@@ -812,8 +812,33 @@ def _execute_notify_run(
                 # is not mutated; observe-only keys are a subset of
                 # _OBSERVE_ONLY_FETCH, disjoint from ALL_SYMBOLS, so no decision
                 # quote can be overwritten (R1/R2).
+                #
+                # Astra R1 (whole-helper containment): the observation layer is
+                # best-effort at the WHOLE-helper level, not only per symbol.
+                # _fetch_observe_only_quotes is designed never to raise, but if it
+                # ever did, the exception -- evaluated here inside the dict literal,
+                # BEFORE _write_watchlist_snapshot is entered, so the writer's own
+                # try/except cannot contain it -- would escape to the outer run
+                # handler (the `except Exception` below), send a SECOND (failure)
+                # notification, and REPLACE the already-successful hourly artifacts
+                # with FAIL/HALT. Contain the entire helper invocation locally so a
+                # helper-level failure degrades to "observation unavailable" (no
+                # extras), exactly like a run where no observation data was
+                # returned. The boundary is deliberately NARROW: only the auxiliary
+                # observation fetch is wrapped. The primary quotes and the watchlist
+                # write stay OUTSIDE it, so the writer still receives the primary
+                # decision quotes when extras are unavailable, and no
+                # decision-authoritative stage is swallowed.
+                try:
+                    _observe_only_extras = _fetch_observe_only_quotes()
+                except Exception:
+                    logger.exception(
+                        "observe-only helper failed at watchlist seam; continuing "
+                        "with primary quotes only (best-effort, observation-only)"
+                    )
+                    _observe_only_extras = {}
                 _write_watchlist_snapshot(
-                    normalized_quotes={**normalized_quotes, **_fetch_observe_only_quotes()},
+                    normalized_quotes={**normalized_quotes, **_observe_only_extras},
                     generated_at=run_at_utc,
                 )
 
@@ -2805,11 +2830,21 @@ def _refresh_trend_structure_sidecar(
 _OBSERVE_ONLY_FETCH: tuple[str, ...] = tuple(
     s for s in MARKET_STRUCTURE_SYMBOLS if s not in config.ALL_SYMBOLS
 )
-# Best-effort elapsed ceiling for the observation fetch seam (F1 / section 4).
-# Checked monotonically BEFORE each symbol; on breach the seam STOPS issuing
-# fetches (remaining rows render n/a) and logs one warning. It NEVER raises and is
-# NOT a hard per-symbol timeout -- the executor-cleanup wait means the configured
-# per-symbol FETCH_TIMEOUT is not itself an elapsed bound.
+# Best-effort SUBSEQUENT-CALL start budget for the observation fetch seam (F1 /
+# section 4; Astra R2). Checked monotonically BEFORE each symbol: once the elapsed
+# time has REACHED the budget (elapsed >= budget) the seam STOPS issuing NEW
+# fetches (remaining rows render n/a) and logs one warning. Scope of the guarantee,
+# stated honestly so downstream docs do not overclaim it:
+#   - it DOES stop STARTING further observation fetches once completed work has
+#     consumed the budget;
+#   - it does NOT interrupt a fetch already in flight (a hung provider call is not
+#     cancelled), does NOT guarantee a 60 s total wall-clock for the seam, provides
+#     NO hard socket / per-symbol deadline, and does NOT eliminate next-slot
+#     wall-clock coupling -- the executor-cleanup wait in ingestion.py can block on
+#     a worker indefinitely, so the per-symbol FETCH_TIMEOUT is not itself an
+#     elapsed bound. Bounding an in-flight hang needs separate provider/ingestion
+#     authority and is deliberately out of this slice.
+# It NEVER raises.
 _OBSERVE_ONLY_FETCH_BUDGET_SECONDS = 60.0
 
 
@@ -2822,9 +2857,11 @@ def _fetch_observe_only_quotes() -> dict[str, NormalizedQuote]:
     (R1/R2). Per-symbol failures are swallowed so a bad observe-only fetch renders
     `n/a` and never halts.
 
-    A monotonic elapsed budget bounds the seam: once
-    ``_OBSERVE_ONLY_FETCH_BUDGET_SECONDS`` is exceeded, no further fetch is
-    started. Best-effort throughout; this function NEVER raises."""
+    A monotonic elapsed budget bounds the START of subsequent fetches: once
+    ``_OBSERVE_ONLY_FETCH_BUDGET_SECONDS`` has been reached (elapsed >= budget),
+    no further fetch is started. It does NOT cancel an in-flight call and is NOT a
+    total wall-clock guarantee (see the constant's comment). Best-effort
+    throughout; this function NEVER raises."""
     # Fail WITHIN the observation boundary (log + empty), never into the decision
     # path: the derived fetch set must stay disjoint from every decision list. A
     # non-disjoint edit renders every observation n/a rather than contaminating a
@@ -2849,10 +2886,14 @@ def _fetch_observe_only_quotes() -> dict[str, NormalizedQuote]:
     started = time.monotonic()
     total = len(_OBSERVE_ONLY_FETCH)
     for i, sym in enumerate(_OBSERVE_ONLY_FETCH):
-        if time.monotonic() - started > _OBSERVE_ONLY_FETCH_BUDGET_SECONDS:
+        if time.monotonic() - started >= _OBSERVE_ONLY_FETCH_BUDGET_SECONDS:
+            # Exhausted-at-equality (Astra R2): once elapsed has REACHED the
+            # budget, no NEW fetch begins -- the call at exactly 60 s does not
+            # start. This bounds only the START of subsequent calls, not an
+            # already-running one (see the constant's comment).
             logger.warning(
                 "observe-only budget exhausted after %d/%d; remaining render n/a "
-                "(best-effort budget, not a hard timeout)",
+                "(best-effort start budget, not a hard timeout)",
                 i, total,
             )
             break

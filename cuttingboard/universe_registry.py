@@ -44,6 +44,18 @@ relative-move measurement. It is INERT in this slice: no relative performance is
 computed, and it is not serialized into the observation carrier. ``null`` marks
 an anchor (SPY, GLD) or a non-measurement row.
 
+F7 -- product question and self-weight caveat (why the six MEGACAPS benchmark to
+``QQQ``). The intended question is: "how is this selected mega-cap / growth-complex
+constituent behaving relative to the broader QQQ growth complex?" It is NOT
+sector-relative breadth, NOT a claim that all six are Technology-sector names
+(META/GOOG are Communication Services, AMZN is Consumer Discretionary), and NOT a
+trading recommendation. Caveat: these six are themselves meaningful components of
+``QQQ``, so a constituent's move versus ``QQQ`` is NOT an independent factor
+comparison -- it partly compares each name with itself. The spread is still useful
+for divergence / relative-behaviour context, but future NS-4C must not overstate
+its statistical independence. (Canonical taxonomy note: docs/universe_taxonomy.md,
+OBSERVE_ONLY benchmark map.)
+
 No I/O, no wall-clock, no derived semantics.
 """
 

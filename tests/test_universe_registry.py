@@ -9,6 +9,7 @@ and unread by any production module (F9).
 
 from __future__ import annotations
 
+import ast
 import dataclasses
 from pathlib import Path
 
@@ -179,19 +180,103 @@ def test_trade_eligible_does_not_imply_personal_or_measurement() -> None:
     assert not (by["TSLA"].personal or by["TSLA"].market_structure or by["TSLA"].enabled)
 
 
+# --- Structural no-reader guard for trade_eligible (F9; Astra R3) -----------
+# The legacy text guard (`".trade_eligible" in text`, skipping universe_registry.py)
+# had concrete bypasses: `getattr(inst, "trade_eligible")` carries no
+# `.trade_eligible` substring, and an executable reader added inside the skipped
+# registry stayed GREEN. Replace it with a small, inspectable, repo-local AST scan
+# that detects EXECUTABLE reads of the field across ALL production modules
+# (including the registry itself), while permitting the dataclass field
+# declaration, construction kwargs, attribute stores, and documentary text.
+def _source_reads_trade_eligible(source: str) -> bool:
+    """True iff `source` contains an executable READ of the ``trade_eligible``
+    field: an attribute load (``x.trade_eligible`` -- any object, so aliasing the
+    instance does not evade it), ``getattr(x, "trade_eligible"[, default])``, or a
+    literal mapping/subscript access (``x["trade_eligible"]``).
+
+    NOT reads (allowed): the dataclass field DECLARATION (``trade_eligible: bool``,
+    an annotated Store target), construction keyword arguments
+    (``U(trade_eligible=...)``), attribute STORES (``obj.trade_eligible = ...``),
+    and docstring/comment mentions. Bound: a fully indirect read whose attribute
+    name is only known at runtime (``getattr(x, some_var)``) is out of scope for a
+    small structural guard; the four Astra-named variants -- direct, aliased-object,
+    helper/getattr, and registry-local -- are all covered."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr == "trade_eligible"
+            and isinstance(node.ctx, ast.Load)
+        ):
+            return True
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "getattr"
+            and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant)
+            and node.args[1].value == "trade_eligible"
+        ):
+            return True
+        if isinstance(node, ast.Subscript):
+            key = node.slice
+            if isinstance(key, ast.Constant) and key.value == "trade_eligible":
+                return True
+    return False
+
+
 def test_no_production_module_reads_trade_eligible() -> None:
+    # Scan EVERY production module, including universe_registry.py itself -- a
+    # registry-local reader is exactly the bypass R3 flagged. The AST guard permits
+    # the field declaration and construction there, so only an executable READ
+    # reddens. Scoped to production Python (cuttingboard/), not audit/history files.
     root = Path(__file__).resolve().parent.parent / "cuttingboard"
-    offenders: list[str] = []
-    for py in root.rglob("*.py"):
-        text = py.read_text(encoding="utf-8")
-        # The registry itself only DEFINES the field (dataclass + docstring), it
-        # does not consume it; any `.trade_eligible` attribute read elsewhere is
-        # an authority hazard.
-        if py.name == "universe_registry.py":
-            continue
-        if ".trade_eligible" in text:
-            offenders.append(py.name)
+    offenders = [
+        py.name
+        for py in sorted(root.rglob("*.py"))
+        if _source_reads_trade_eligible(py.read_text(encoding="utf-8"))
+    ]
     assert offenders == [], offenders
+
+
+def test_trade_eligible_guard_reddens_on_direct_attribute_read() -> None:
+    # `if inst.trade_eligible:` -- the branching-on-authority case R3 requires.
+    assert _source_reads_trade_eligible("if inst.trade_eligible:\n    pass\n")
+    # Aliasing the object does not evade the attribute-name match.
+    assert _source_reads_trade_eligible("alias = inst\nx = alias.trade_eligible\n")
+
+
+def test_trade_eligible_guard_reddens_on_getattr_read() -> None:
+    # `getattr(inst, "trade_eligible")` -- the exact string the old guard missed.
+    assert _source_reads_trade_eligible('permission = getattr(inst, "trade_eligible")\n')
+    assert _source_reads_trade_eligible('permission = getattr(inst, "trade_eligible", False)\n')
+
+
+def test_trade_eligible_guard_reddens_on_mapping_read() -> None:
+    assert _source_reads_trade_eligible('flag = row["trade_eligible"]\n')
+
+
+def test_trade_eligible_guard_reddens_on_registry_local_read() -> None:
+    # An executable reader added INSIDE universe_registry.py must redden too (the
+    # old skip-by-basename bypass).
+    assert _source_reads_trade_eligible(
+        "eligible = [i for i in UNIVERSE_REGISTRY if i.trade_eligible]\n"
+    )
+
+
+def test_trade_eligible_guard_allows_declaration_construction_and_docs() -> None:
+    # Dataclass field declaration is metadata, not a read.
+    assert not _source_reads_trade_eligible(
+        "from dataclasses import dataclass\n@dataclass\nclass U:\n    trade_eligible: bool\n"
+    )
+    # Construction keyword argument is not a read.
+    assert not _source_reads_trade_eligible('U(symbol="AAA", trade_eligible=False)\n')
+    # An attribute STORE (assignment) is not a read.
+    assert not _source_reads_trade_eligible("obj.trade_eligible = False\n")
+    # Docstring / comment mentions are not executable reads.
+    assert not _source_reads_trade_eligible(
+        '"""trade_eligible is legacy metadata."""\n# trade_eligible: do not read\nx = 1\n'
+    )
 
 
 # --- functions vocabulary ---------------------------------------------------

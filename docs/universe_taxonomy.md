@@ -117,10 +117,40 @@ display. Mutation boundaries below are governance rules, not advisory notes.
   existing `fetch_quote` + `normalize_quote`, admitting a result only when
   `nq.symbol == sym`) → merged only into the watchlist sidecar mapping at the
   hourly write seam → `movement_card` display.
-- **Elapsed budget:** the fetch seam carries a 60 s monotonic best-effort budget
-  (`_OBSERVE_ONLY_FETCH_BUDGET_SECONDS`) checked before each symbol; on breach it
-  stops issuing fetches (remaining rows render `n/a`) and logs one warning. It
-  NEVER raises and is not a hard per-symbol timeout.
+- **Elapsed budget (subsequent-call START budget):** the fetch seam carries a
+  60 s monotonic best-effort budget (`_OBSERVE_ONLY_FETCH_BUDGET_SECONDS`) checked
+  before each symbol; once elapsed has **reached** the budget (`elapsed >= budget`,
+  so the call at exactly 60 s does NOT start) it stops issuing NEW fetches
+  (remaining rows render `n/a`) and logs one warning. Scope, stated honestly: it
+  bounds only the START of subsequent fetches. It NEVER raises, does NOT interrupt
+  an in-flight/hung provider call, does NOT guarantee a 60 s total wall-clock,
+  gives NO hard socket/per-symbol deadline, and does NOT eliminate next-slot
+  wall-clock coupling (the ingestion executor-cleanup wait can block on a worker
+  indefinitely). A genuine total-runtime bound needs separate provider/ingestion
+  authority and is out of this slice.
+- **Whole-helper containment:** the single call site
+  (`runtime._execute_notify_run`, hourly watchlist seam) wraps the *entire*
+  `_fetch_observe_only_quotes` invocation in a local best-effort `try/except`. A
+  helper-level exception degrades to "observation unavailable" (no extras) and can
+  NEVER escape to the run-level failure handler, so it cannot flip a successful
+  run to FAIL, replace the successful hourly artifacts with HALT, or trigger a
+  second (failure) notification. The primary decision quotes still reach the
+  watchlist writer when extras are unavailable.
+- **Benchmark map (F7; INERT):** `universe_registry.py:benchmark_symbol` records
+  owner-authored relationships for *future* NS-4C relative-move measurement. No
+  relative performance is computed in this slice and the field is not serialized
+  into the carrier. Map: sectors + `QQQ` -> `SPY`; `SLV`/`GDX` -> `GLD`; the six
+  MEGACAPS (`AAPL MSFT NVDA META AMZN GOOG`) -> `QQQ`; anchors/non-measurement
+  rows (`SPY GLD UCO TSLA`) -> `null`. **Why MEGACAPS benchmark to `QQQ`:** the
+  product question is "how is this selected mega-cap / growth-complex constituent
+  behaving relative to the broader QQQ growth complex?" It is NOT sector-relative
+  breadth, NOT a claim all six are Technology-sector names (META/GOOG are
+  Communication Services, AMZN is Consumer Discretionary), and NOT a trading
+  recommendation. **Self-weight caveat:** these six are themselves meaningful
+  components of `QQQ`, so a constituent's move versus `QQQ` is NOT an independent
+  factor comparison -- it partly compares each name with itself. The spread is
+  still useful for divergence / relative-behaviour context, but future NS-4C must
+  not overstate its statistical independence.
 - **Isolation (binding):** DISJOINT from `ALL_SYMBOLS`, `REQUIRED_SYMBOLS`,
   `HALT_SYMBOLS`, `NON_TRADABLE_SYMBOLS`, and `TREND_STRUCTURE_SYMBOLS` (the seam
   asserts this and returns empty on any overlap). These symbols never enter the

@@ -157,30 +157,40 @@ def test_disjointness_breach_returns_empty(monkeypatch):
     assert called == []  # no fetch issued once overlap detected
 
 
-# --- Monotonic elapsed budget (test D) --------------------------------------
-def test_observe_only_budget_stops_further_fetches(monkeypatch):  # test D / M10
+# --- Monotonic elapsed budget (test D; Astra R2 exact-deadline) -------------
+def test_observe_only_budget_is_exhausted_at_equality(monkeypatch):  # test D / M10
+    # Deterministic fake monotonic clock, no real sleeping. Each fetch advances
+    # elapsed by 30 s, so the pre-fetch elapsed sequence is 0, 30, 60, 90, ...
+    # With the corrected exhausted-budget predicate (elapsed >= 60) a fetch STARTS
+    # only while elapsed is strictly < 60:
+    #   elapsed 0   (< 60)  -> starts
+    #   elapsed 30  (< 60)  -> starts
+    #   elapsed 60  (== 60) -> budget exhausted; does NOT start (exact deadline)
+    #   elapsed 90  (> 60)  -> does NOT start
+    # so exactly two fetches begin and both completed observations are retained.
+    # (Pre-fix `elapsed > 60` blessed a third start at exactly 60 -- this reddens
+    # on that behaviour.)
     clock = {"t": 0.0}
 
     class _FakeTime:
         def monotonic(self):
             return clock["t"]
 
-    calls: list[str] = []
+    started_at: list[float] = []
 
     def fake_fetch(sym):
-        calls.append(sym)
-        clock["t"] += 30.0  # each fetch advances the monotonic clock 30 s
+        started_at.append(clock["t"])  # elapsed at the moment this fetch began
+        clock["t"] += 30.0
         return sym
 
     monkeypatch.setattr(runtime, "time", _FakeTime())
     monkeypatch.setattr(runtime, "fetch_quote", fake_fetch)
     monkeypatch.setattr(runtime, "normalize_quote", lambda raw: _quote(raw))
 
-    out = runtime._fetch_observe_only_quotes()  # must NOT raise
-    # budget 60 s: fetches begin at elapsed 0, 30, 60 (<=60), then elapsed 90 > 60
-    # stops further work. Exactly 3 symbols requested, no unbounded progression.
-    assert len(calls) == 3
-    assert set(out) == set(calls)               # earlier observations retained
+    out = runtime._fetch_observe_only_quotes()  # must NOT raise on budget expiry
+    # < 60 begins; == 60 and > 60 refused.
+    assert started_at == [0.0, 30.0]
+    assert len(out) == 2                        # both completed observations retained
     assert set(out) <= set(runtime._OBSERVE_ONLY_FETCH)
 
 
@@ -336,50 +346,78 @@ def test_volatile_allowlist_is_only_timestamps_and_ids():
         }, key
 
 
-def test_decision_invariance_real_stages_paired_run(monkeypatch, tmp_path):  # M6 / section 3.10
+def test_decision_invariance_real_stages_paired_run(tmp_path):  # M6 / section 3.10 / Astra R1
     """Paired runs of _execute_notify_run with REAL validate_quotes /
-    compute_regime / compute_all_derived / resolve_sector_router:
-      A: _fetch_observe_only_quotes -> {}
-      B: -> all 12 extras with extreme values (price 1e6, pct +0.95)
-    Every durable decision output must be byte-identical (volatile keys scrubbed),
-    proving the observation seam cannot influence decisions, while the extreme
-    observations DO reach the carrier without overwriting the decision SPY."""
+    compute_regime / compute_all_derived / resolve_sector_router. Three cases,
+    each in its OWN monkeypatch scope so the captured spies stay independently
+    attributable (Astra section 7 -- no nested scope over an earlier run's spy):
+      A: _fetch_observe_only_quotes -> {}          (observation data unavailable)
+      B: -> all 12 extras, extreme values          (price 1e6, pct +0.95)
+      C: -> raises RuntimeError                     (WHOLE-helper failure, Fable C)
+
+    Every durable decision output must be byte-identical across A/B/C (volatile
+    keys scrubbed) AND the full return dicts must be equal, proving the observation
+    seam -- empty, extreme, or RAISING -- cannot influence decisions.
+
+    C is the run-level boundary case Astra required (R1): a helper that raises must
+    behave exactly like the observation-unavailable run A -- same status, same
+    decision artifacts, same single notification, no HALT replacement, no extra
+    failure notification. Pre-fix, C escaped to the outer handler and returned FAIL
+    with a second notification and HALT artifacts, so this reddens on that
+    behaviour. B proves the extreme observations DO reach the carrier without
+    overwriting the decision SPY."""
+    import re
     from cuttingboard.runtime import SUMMARY_STATUS_SUCCESS
 
     extreme = {s: _quote(s, price=1e6, pct=0.95) for s in runtime._OBSERVE_ONLY_FETCH}
 
-    va_a: list = []
-    resA, filesA, notifA, _wlA = _run_real_notify(
-        lambda: {}, tmp_path / "a", monkeypatch, va_a)
-    # Fresh monkeypatch scope per run so the second run rebinds cleanly.
-    va_b: list = []
-    mp_b = __import__("pytest").MonkeyPatch()
-    try:
-        resB, filesB, notifB, wlB = _run_real_notify(
-            lambda: dict(extreme), tmp_path / "b", mp_b, va_b)
-    finally:
-        mp_b.undo()
+    def _raise_helper():
+        raise RuntimeError("review C sentinel")
 
+    def _isolated_run(observe_ret, tag):
+        """Run one case under a fresh, fully-undone MonkeyPatch scope."""
+        mp = __import__("pytest").MonkeyPatch()
+        validate_calls: list = []
+        try:
+            res, files, notif, wl = _run_real_notify(
+                observe_ret, tmp_path / tag, mp, validate_calls)
+        finally:
+            mp.undo()
+        return res, files, notif, wl, validate_calls
+
+    resA, filesA, notifA, _wlA, va_a = _isolated_run(lambda: {}, "a")
+    resB, filesB, notifB, wlB, va_b = _isolated_run(lambda: dict(extreme), "b")
+    resC, filesC, notifC, _wlC, va_c = _isolated_run(_raise_helper, "c")
+
+    # (0) All three runs SUCCEED -- the raising helper C must NOT flip to FAIL.
     assert resA["status"] == SUMMARY_STATUS_SUCCESS
     assert resB["status"] == SUMMARY_STATUS_SUCCESS
+    assert resC["status"] == SUMMARY_STATUS_SUCCESS
 
-    # (1) Decision invariance: every durable decision file byte-identical.
+    # (1) Full return dictionaries identical across all three cases.
+    assert resA == resB == resC
+
+    # (2) Decision invariance: every durable decision file byte-identical A/B/C.
+    #     C identical to A proves NO HALT replacement of the successful artifacts.
     for fn in filesA:
         assert filesA[fn] != "<MISSING>"
-        assert filesA[fn] == filesB[fn], f"decision output {fn} differs between A and B"
+        assert filesA[fn] == filesB[fn], f"decision output {fn} differs A vs B"
+        assert filesA[fn] == filesC[fn], f"decision output {fn} differs A vs C"
 
-    # (2) Notification identical (clock tokens scrubbed to minute resolution).
-    import re
+    # (3) One notification per run, identical across runs (clock tokens scrubbed).
+    #     Equal counts prove C sent NO extra (failure) notification.
     def _clk(pairs):
         return [(t, re.sub(r"\d{1,2}:\d{2}", "<T>", b or "")) for t, b in pairs]
-    assert _clk(notifA) == _clk(notifB)
+    assert len(notifA) == len(notifB) == len(notifC)
+    assert notifA  # the primary decision notification was sent
+    assert _clk(notifA) == _clk(notifB) == _clk(notifC)
 
-    # (3) The real validate_quotes never saw an observe-only symbol in either run.
-    assert va_a and va_b
-    for keyset in va_a + va_b:
+    # (4) The real validate_quotes never saw an observe-only symbol in any run.
+    assert va_a and va_b and va_c
+    for keyset in va_a + va_b + va_c:
         assert set(runtime._OBSERVE_ONLY_FETCH).isdisjoint(keyset)
 
-    # (4) The extreme observations reached the carrier, without corrupting SPY.
+    # (5) The extreme observations reached the carrier (B), without corrupting SPY.
     assert wlB is not None
     assert set(wlB["symbols"]) == set(runtime.MARKET_STRUCTURE_SYMBOLS)  # exactly 22
     assert wlB["symbols"]["SPY"]["current_price"] == 400.0        # decision value preserved
