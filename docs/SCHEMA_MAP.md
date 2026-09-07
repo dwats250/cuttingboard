@@ -148,27 +148,29 @@ decision input; independent of clock/network/current market (R3/R4/R5/R7).
 ## watchlist_snapshot (logs/watchlist_snapshot.json)
 
 Producer `cuttingboard/watchlist_sidecar.py:build_watchlist_snapshot`; the
-display-only consumer `cuttingboard/delivery/movement_card.py` (PRD-311, the
-MARKET MOVEMENT card) reads the paths below and suppresses the whole card
-(byte-identical baseline) on any contract violation.
+display-only consumer `cuttingboard/delivery/movement_card.py` (the MARKET
+MOVEMENT card) reads the paths below and suppresses the whole card
+(byte-identical baseline) on any contract violation. The file is the
+observation-universe snapshot; NS-4A v2 (PRD-337 precursor) evolved it to
+schema 3 (row shape + membership change).
 
 | Field path | Type | Notes |
 |---|---|---|
-| `schema_version` | int | strict `== 2` (bool-first; PRD-311 bump from 1) |
+| `schema_version` | int | strict `== 3` (bool-first; NS-4A v2 bump from 2) |
 | `source` | string | identity guard `== "watchlist"` |
 | `generated_at` | ISO-8601 tz-aware\|null | capture clock; card requires tz-aware (naive/malformed → suppress); rendered `captured HH:MM ET` |
-| `symbols` | dict | MUST contain exactly the 12 enabled registry symbols (full-12 identity; missing/extra → suppress) |
+| `symbols` | dict | MUST contain exactly the 22 `market_structure` measurement symbols (full-22 identity; missing/extra → suppress). Personal-only UCO and disabled TSLA are NEVER serialized |
 | `symbols[S].symbol` | string | must equal its key |
-| `symbols[S].sector_theme` | string | legacy coarse theme (unchanged) |
-| `symbols[S].watch_reason` | string | registry rationale (unchanged) |
-| `symbols[S].current_price` | float\|null | `NormalizedQuote.price` passthrough (unchanged) |
+| `symbols[S].primary_group` | string | registry group ∈ {MARKET, SECTORS, METALS, MEGACAPS}; must equal `MARKET_STRUCTURE_ROWS`; unknown/mismatch → suppress |
+| `symbols[S].registry_index` | int | 0-based position within `MARKET_STRUCTURE_SYMBOLS`; unique in-range; drives group-internal order |
+| `symbols[S].current_price` | float\|null | `NormalizedQuote.price` passthrough; key present, float-or-null |
 | `symbols[S].daily_change_pct` | float\|null | `round(pct_change_decimal*100, 1)` or null (n/a hook; NEVER fabricated 0.0); honest 0.0 shown as `0.0%` |
-| `symbols[S].primary_group` | string | fine registry group ∈ {INDEX, METALS, ENERGY, TECH, HIGH_BETA}; unknown → suppress |
-| `symbols[S].registry_index` | int | 0-based enabled-registry position; unique in-range; drives group-internal order |
 
-DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact. Observe-only
-UCO/GOOG (PRD-311) reach the rows only via the runtime merge at the hourly write
-seam and never any decision surface.
+Row keys are EXACTLY these five (no `sector_theme`/`watch_reason`/`roles`/
+`benchmark_symbol`/`rationale` — relationships live only in the registry).
+DISPLAY-ONLY: no `cuttingboard` decision module reads this artifact. The
+market-structure observation symbols reach the rows only via the runtime merge at
+the hourly write seam and never any decision surface.
 
 ---
 

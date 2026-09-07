@@ -5120,9 +5120,9 @@ def test_renderer_has_no_gex_math():
         assert token not in src, token
 
 
-def _movement_snapshot():  # PRD-311: a valid full-12 schema_version-2 artifact
+def _movement_snapshot():  # NS-4A v2: a valid full-22 schema_version-3 artifact
     from cuttingboard.normalization import NormalizedQuote
-    from cuttingboard.watchlist_sidecar import WATCHLIST_SYMBOLS, build_watchlist_snapshot
+    from cuttingboard.watchlist_sidecar import MARKET_STRUCTURE_SYMBOLS, build_watchlist_snapshot
 
     def _q(sym):
         return NormalizedQuote(
@@ -5131,16 +5131,19 @@ def _movement_snapshot():  # PRD-311: a valid full-12 schema_version-2 artifact
             source="test", units="usd_price", age_seconds=0.0,
         )
 
-    quotes = {sym: _q(sym) for sym, *_ in WATCHLIST_SYMBOLS}
+    quotes = {sym: _q(sym) for sym in MARKET_STRUCTURE_SYMBOLS}
     return build_watchlist_snapshot(quotes, datetime(2026, 8, 22, 14, 30, tzinfo=timezone.utc))
 
 
-def test_movement_card_present_when_valid_snapshot():  # PRD-311 renderer wiring
+def test_movement_card_present_when_valid_snapshot():  # NS-4A v2 renderer wiring
     html = render_dashboard_html(_payload(), _run(), market_map=None,
                                  movement_snapshot=_movement_snapshot())
     assert 'id="market-movement"' in html
     assert "MARKET MOVEMENT" in html
-    assert "UCO" in html and "GOOG" in html
+    # measurement symbols render (GOOG/MSFT are new observe-only members); the
+    # personal-only UCO chip has left the dashboard (F4).
+    assert "GOOG" in html and "MSFT" in html
+    assert "UCO" not in html
 
 
 def test_movement_card_suppression_is_baseline_neutral():  # PRD-311 M8/M9 whole-output equality

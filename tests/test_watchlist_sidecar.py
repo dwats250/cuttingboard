@@ -1,8 +1,13 @@
-"""Tests for PRD-114 watchlist snapshot sidecar (registry-sourced, PRD-308)."""
+"""Tests for the watchlist snapshot sidecar (NS-4A v2 measurement projection).
+
+Pins the derived projections (22 measurement, 11 personal, benchmark map) and the
+schema_version-3 carrier: exact 22-row population in registry order, UCO/TSLA
+absent, minimal five-key rows, honest nulls (never coerced to 0.0), byte
+determinism, and tz-awareness.
+"""
 
 from __future__ import annotations
 
-import dataclasses
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,144 +15,113 @@ from pathlib import Path
 import pytest
 
 from cuttingboard.normalization import NormalizedQuote
-from cuttingboard.universe_registry import UNIVERSE_REGISTRY
 from cuttingboard.watchlist_sidecar import (
-    WATCHLIST_SYMBOLS,
-    _PRIMARY_GROUP_TO_THEME,
+    BENCHMARK_BY_SYMBOL,
+    MARKET_STRUCTURE_ROWS,
+    MARKET_STRUCTURE_SYMBOLS,
+    PERSONAL_SYMBOLS,
     build_watchlist_snapshot,
-    build_watchlist_symbols,
+)
+
+_MARKET_STRUCTURE_22 = (
+    "SPY", "QQQ",
+    "XLK", "XLF", "XLE", "XLI", "XLY", "XLP", "XLV", "XLU", "XLB", "XLRE", "XLC",
+    "GLD", "SLV", "GDX",
+    "AAPL", "MSFT", "NVDA", "META", "AMZN", "GOOG",
+)
+_PERSONAL_11 = (
+    "SPY", "QQQ", "XLE", "GLD", "SLV", "GDX", "NVDA", "META", "AMZN", "GOOG", "UCO",
 )
 
 
-# The watchlist exactly as it stood BEFORE PRD-308 (11 rows). Frozen here so the
-# value-for-value (F) and delta (G) tests are anchored to a literal baseline, not
-# to the post-change constant they are meant to police.
-_PRE_CHANGE_WATCHLIST: tuple[tuple[str, str, str], ...] = (
-    ("SPY", "Index", "broad market reference"),
-    ("QQQ", "Index", "tech-heavy reference"),
-    ("GDX", "Commodities", "gold miners exposure"),
-    ("GLD", "Commodities", "spot gold ETF"),
-    ("SLV", "Commodities", "spot silver ETF"),
-    ("XLE", "Commodities", "energy sector"),
-    ("NVDA", "High beta", "AI/semis bellwether"),
-    ("TSLA", "High beta", "retail-flow signal"),
-    ("META", "High beta", "large-cap tech"),
-    ("AMZN", "High beta", "large-cap tech"),
-    ("AAPL", "High beta", "large-cap tech"),
-)
-
-
-def _quote(symbol: str, price: float) -> NormalizedQuote:
+def _quote(symbol: str, price: float, pct: float = 0.0) -> NormalizedQuote:
     return NormalizedQuote(
-        symbol=symbol,
-        price=price,
-        pct_change_decimal=0.0,
-        volume=None,
+        symbol=symbol, price=price, pct_change_decimal=pct, volume=None,
         fetched_at_utc=datetime(2026, 5, 10, 14, 0, tzinfo=timezone.utc),
-        source="test",
-        units="usd_price",
-        age_seconds=0.0,
+        source="test", units="usd_price", age_seconds=0.0,
     )
 
 
 def _full_quotes() -> dict[str, NormalizedQuote]:
-    return {sym: _quote(sym, 100.0 + i) for i, (sym, *_) in enumerate(WATCHLIST_SYMBOLS)}
+    return {sym: _quote(sym, 100.0 + i) for i, sym in enumerate(MARKET_STRUCTURE_SYMBOLS)}
 
 
 def _generated_at() -> datetime:
     return datetime(2026, 5, 10, 14, 0, tzinfo=timezone.utc)
 
 
-def test_frozen_universe_is_twelve_tuple_of_quintuples() -> None:  # PRD-311
-    assert isinstance(WATCHLIST_SYMBOLS, tuple)
-    assert len(WATCHLIST_SYMBOLS) == 12
-    for entry in WATCHLIST_SYMBOLS:
-        assert isinstance(entry, tuple)
-        assert len(entry) == 5
-        sym, theme, reason, group, idx = entry
-        assert all(isinstance(x, str) and x for x in (sym, theme, reason, group))
+# --- Projections ------------------------------------------------------------
+def test_market_structure_symbols_exact_22() -> None:
+    assert MARKET_STRUCTURE_SYMBOLS == _MARKET_STRUCTURE_22
+
+
+def test_personal_symbols_exact_11() -> None:
+    assert PERSONAL_SYMBOLS == _PERSONAL_11
+
+
+def test_market_structure_rows_shape_and_order() -> None:
+    assert len(MARKET_STRUCTURE_ROWS) == 22
+    assert [sym for sym, *_ in MARKET_STRUCTURE_ROWS] == list(_MARKET_STRUCTURE_22)
+    assert [idx for *_, idx in MARKET_STRUCTURE_ROWS] == list(range(22))
+    for sym, group, idx in MARKET_STRUCTURE_ROWS:
+        assert isinstance(group, str) and group
         assert isinstance(idx, int) and not isinstance(idx, bool)
 
 
-def test_frozen_universe_exact_set() -> None:
-    expected = {"SPY", "QQQ", "GDX", "GLD", "SLV", "XLE", "UCO",
-                "NVDA", "TSLA", "META", "AMZN", "GOOG"}
-    assert {s for s, *_ in WATCHLIST_SYMBOLS} == expected
+def test_benchmark_map_has_22_keys_over_measurement() -> None:
+    assert set(BENCHMARK_BY_SYMBOL) == set(_MARKET_STRUCTURE_22)
+    assert BENCHMARK_BY_SYMBOL["SPY"] is None
+    assert BENCHMARK_BY_SYMBOL["QQQ"] == "SPY"
+    assert BENCHMARK_BY_SYMBOL["GLD"] is None
+    assert BENCHMARK_BY_SYMBOL["SLV"] == "GLD"
+    assert BENCHMARK_BY_SYMBOL["AAPL"] == "QQQ"
 
 
-# (F) every unaffected row is value-for-value identical to the pre-change baseline
-def test_unaffected_rows_value_for_value_identical() -> None:
-    pre = {s: (t, r) for s, t, r in _PRE_CHANGE_WATCHLIST}
-    post = {s: (t, r) for s, t, r, *_ in WATCHLIST_SYMBOLS}
-    unaffected = set(pre) - {"AAPL"}  # AAPL is the only removed symbol
-    assert unaffected  # guard against an empty comparison silently passing
-    for s in unaffected:
-        assert post[s] == pre[s], (s, post.get(s), pre[s])
+def test_uco_and_tsla_absent_from_measurement() -> None:
+    assert "UCO" not in MARKET_STRUCTURE_SYMBOLS
+    assert "TSLA" not in MARKET_STRUCTURE_SYMBOLS
 
 
-# (G) the only watchlist membership delta is {remove AAPL, add GOOG, add UCO}
-def test_membership_delta_is_exactly_aapl_goog_uco() -> None:
-    pre = {s for s, _, _ in _PRE_CHANGE_WATCHLIST}
-    post = {s for s, *_ in WATCHLIST_SYMBOLS}
-    assert pre - post == {"AAPL"}
-    assert post - pre == {"GOOG", "UCO"}
-    assert len(WATCHLIST_SYMBOLS) == 12
-
-
-# (H) SOURCING: WATCHLIST_SYMBOLS is exactly the registry projection. This goes
-# RED if the constant is reverted to a hand-maintained literal.
-def test_watchlist_is_sourced_from_registry() -> None:
-    assert WATCHLIST_SYMBOLS == build_watchlist_symbols(UNIVERSE_REGISTRY)
-    by_reg = {i.symbol: i for i in UNIVERSE_REGISTRY if i.enabled}
-    assert {s for s, *_ in WATCHLIST_SYMBOLS} == set(by_reg)
-    for symbol, theme, reason, group, idx in WATCHLIST_SYMBOLS:
-        assert reason == by_reg[symbol].rationale
-        assert theme == _PRIMARY_GROUP_TO_THEME[by_reg[symbol].primary_group]
-        assert group == by_reg[symbol].primary_group  # PRD-311 fine group passthrough
-
-
-# (I) VALUE PROPAGATION: the builder is a pure function of its registry input --
-# a mutated rationale flows through, and a disabled entry drops out.
-def test_builder_is_pure_function_of_registry() -> None:
-    mutated = tuple(
-        dataclasses.replace(i, rationale="MUTATED") if i.symbol == "SPY" else i
-        for i in UNIVERSE_REGISTRY
-    )
-    out = {s: (t, r) for s, t, r, *_ in build_watchlist_symbols(mutated)}
-    assert out["SPY"] == ("Index", "MUTATED")
-
-    disabled = tuple(
-        dataclasses.replace(i, enabled=False) if i.symbol == "UCO" else i
-        for i in UNIVERSE_REGISTRY
-    )
-    rows = build_watchlist_symbols(disabled)
-    assert "UCO" not in {s for s, *_ in rows}
-    assert len(rows) == 11
-
-
+# --- v3 carrier envelope ----------------------------------------------------
 def test_top_level_schema_keys() -> None:
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
     assert set(snap) == {"schema_version", "source", "generated_at", "symbols"}
-    assert snap["schema_version"] == 2  # PRD-311: reader-required fields added
+    assert snap["schema_version"] == 3
     assert snap["source"] == "watchlist"
 
 
-def test_per_symbol_record_has_exactly_seven_keys() -> None:  # PRD-311
+def test_per_symbol_record_has_exactly_five_keys() -> None:
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    expected_keys = {"symbol", "sector_theme", "watch_reason", "current_price",
-                     "daily_change_pct", "primary_group", "registry_index"}
+    expected_keys = {"symbol", "primary_group", "registry_index", "current_price", "daily_change_pct"}
     for record in snap["symbols"].values():
         assert set(record) == expected_keys
 
 
-def test_symbols_set_equals_frozen_universe() -> None:
+def test_no_legacy_row_keys() -> None:  # M7-adjacent: no metadata leakage
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    assert set(snap["symbols"]) == {s for s, *_ in WATCHLIST_SYMBOLS}
+    for record in snap["symbols"].values():
+        for forbidden in ("sector_theme", "watch_reason", "roles", "benchmark_symbol",
+                          "rationale", "personal", "market_structure", "trade_eligible"):
+            assert forbidden not in record, forbidden
 
 
-def test_insertion_order_preserved() -> None:
+def test_symbols_exactly_22_in_registry_order() -> None:
     snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    assert list(snap["symbols"]) == [s for s, *_ in WATCHLIST_SYMBOLS]
+    assert list(snap["symbols"]) == list(_MARKET_STRUCTURE_22)
+
+
+def test_uco_and_tsla_never_serialized() -> None:  # M7 / M8
+    snap = build_watchlist_snapshot({}, _generated_at())  # all n/a, full population
+    assert "UCO" not in snap["symbols"]
+    assert "TSLA" not in snap["symbols"]
+    assert set(snap["symbols"]) == set(_MARKET_STRUCTURE_22)
+
+
+def test_registry_index_and_primary_group_populated() -> None:
+    snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
+    for sym, group, idx in MARKET_STRUCTURE_ROWS:
+        assert snap["symbols"][sym]["primary_group"] == group
+        assert snap["symbols"][sym]["registry_index"] == idx
 
 
 def test_current_price_passthrough() -> None:
@@ -157,40 +131,35 @@ def test_current_price_passthrough() -> None:
         assert record["current_price"] == quotes[symbol].price
 
 
-def test_missing_quote_yields_null_price() -> None:
-    quotes = {"SPY": _quote("SPY", 500.0)}
-    snap = build_watchlist_snapshot(quotes, _generated_at())
+def test_daily_change_pct_scale() -> None:
+    snap = build_watchlist_snapshot({"SPY": _quote("SPY", 500.0, 0.052)}, _generated_at())
+    assert snap["symbols"]["SPY"]["daily_change_pct"] == 5.2  # decimal*100, 1 dp
+
+
+def test_missing_quote_yields_null_price_and_pct_never_zero() -> None:  # M5
+    snap = build_watchlist_snapshot({"SPY": _quote("SPY", 500.0, 0.01)}, _generated_at())
     assert snap["symbols"]["SPY"]["current_price"] == 500.0
-    for symbol in {s for s, *_ in WATCHLIST_SYMBOLS} - {"SPY"}:
+    for symbol in set(_MARKET_STRUCTURE_22) - {"SPY"}:
         assert snap["symbols"][symbol]["current_price"] is None
+        assert snap["symbols"][symbol]["daily_change_pct"] is None  # NEVER 0.0
 
 
-def test_extra_quote_symbols_ignored() -> None:
+def test_all_missing_yields_all_nulls() -> None:  # M5
+    snap = build_watchlist_snapshot({}, _generated_at())
+    for rec in snap["symbols"].values():
+        assert rec["current_price"] is None
+        assert rec["daily_change_pct"] is None
+
+
+def test_unrequested_quote_symbols_ignored() -> None:
     quotes = _full_quotes()
     quotes["AMD"] = _quote("AMD", 999.0)
-    quotes["COIN"] = _quote("COIN", 999.0)
+    quotes["UCO"] = _quote("UCO", 40.0)   # personal-only must never appear
+    quotes["TSLA"] = _quote("TSLA", 200.0)
     snap = build_watchlist_snapshot(quotes, _generated_at())
     assert "AMD" not in snap["symbols"]
-    assert "COIN" not in snap["symbols"]
-
-
-def test_watch_reason_byte_equal_to_constant() -> None:
-    snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    by_symbol = {s: (theme, reason) for s, theme, reason, *_ in WATCHLIST_SYMBOLS}
-    for symbol, record in snap["symbols"].items():
-        expected_theme, expected_reason = by_symbol[symbol]
-        assert record["watch_reason"] == expected_reason
-        assert record["sector_theme"] == expected_theme
-
-
-def test_watch_reason_static_across_disjoint_runs() -> None:
-    quotes_a = {sym: _quote(sym, 100.0) for sym, *_ in WATCHLIST_SYMBOLS}
-    quotes_b = {sym: _quote(sym, 250.0) for sym, *_ in WATCHLIST_SYMBOLS}
-    snap_a = build_watchlist_snapshot(quotes_a, _generated_at())
-    snap_b = build_watchlist_snapshot(quotes_b, _generated_at())
-    for symbol in snap_a["symbols"]:
-        assert snap_a["symbols"][symbol]["watch_reason"] == snap_b["symbols"][symbol]["watch_reason"]
-        assert snap_a["symbols"][symbol]["sector_theme"] == snap_b["symbols"][symbol]["sector_theme"]
+    assert "UCO" not in snap["symbols"]
+    assert "TSLA" not in snap["symbols"]
 
 
 def test_determinism_byte_identical() -> None:
@@ -217,6 +186,7 @@ def test_generated_at_isoformat_with_tz() -> None:
     assert snap["generated_at"] == "2026-05-10T14:00:00+00:00"
 
 
+# --- Source hygiene ---------------------------------------------------------
 def test_no_forbidden_wall_clock_substrings_in_source() -> None:
     src = Path(__file__).resolve().parent.parent / "cuttingboard" / "watchlist_sidecar.py"
     text = src.read_text(encoding="utf-8")
@@ -239,12 +209,15 @@ def test_no_io_imports_in_source() -> None:
         assert forbidden not in text, f"{forbidden} present in watchlist_sidecar.py"
 
 
+def test_legacy_symbols_removed_from_module() -> None:
+    src = Path(__file__).resolve().parent.parent / "cuttingboard" / "watchlist_sidecar.py"
+    text = src.read_text(encoding="utf-8")
+    for forbidden in ("WATCHLIST_SYMBOLS", "_PRIMARY_GROUP_TO_THEME", "build_watchlist_symbols"):
+        assert forbidden not in text, f"{forbidden} still present in watchlist_sidecar.py"
+
+
+# --- HALT-guard placement (unchanged contract) ------------------------------
 def test_runtime_call_site_has_explicit_halt_guard() -> None:
-    """R11 placement: _write_watchlist_snapshot() must sit immediately
-    after _write_trend_structure_snapshot(), wrapped in an explicit
-    `if not validation_summary.system_halted:` guard. Branch inheritance
-    is unavailable — the hourly artifact block is a sibling of the HALT
-    branch, not nested inside it."""
     src = Path(__file__).resolve().parent.parent / "cuttingboard" / "runtime" / "__init__.py"
     lines = src.read_text(encoding="utf-8").splitlines()
 
@@ -262,79 +235,25 @@ def test_runtime_call_site_has_explicit_halt_guard() -> None:
         f"line after trend_structure call must be the explicit HALT guard, "
         f"got: {lines[guard_idx]!r}"
     )
-
     watch_idx = next(
         i for i in range(guard_idx + 1, len(lines))
         if "_write_watchlist_snapshot(" in lines[i]
     )
     guard_indent = len(lines[guard_idx]) - len(lines[guard_idx].lstrip())
     watch_indent = len(lines[watch_idx]) - len(lines[watch_idx].lstrip())
-    assert watch_indent > guard_indent, (
-        "watchlist call must be nested inside the explicit HALT guard"
-    )
+    assert watch_indent > guard_indent
 
 
-def test_runtime_halt_skip_preserves_existing_artifact(tmp_path, monkeypatch) -> None:
-    """R11 behavior: on HALT, the watchlist artifact is unchanged
-    (hash + size + existence + no .tmp). Verified by source-level
-    placement: helper is only callable inside the HALT branch.
-
-    This test inspects the helper itself: calling it directly must
-    write; the protection is purely placement, so we exercise the
-    write path (non-HALT semantics) and confirm artifact equality
-    when no write occurs (HALT semantics simulated by not calling
-    the helper)."""
+def test_runtime_write_helper_writes_atomically(tmp_path, monkeypatch) -> None:
     from cuttingboard import runtime
 
     monkeypatch.setattr(runtime, "LOGS_DIR", tmp_path)
     monkeypatch.setattr(runtime, "WATCHLIST_PATH", tmp_path / "watchlist_snapshot.json")
 
-    quotes = _full_quotes()
-    gen = _generated_at()
-
-    runtime._write_watchlist_snapshot(normalized_quotes=quotes, generated_at=gen)
+    runtime._write_watchlist_snapshot(normalized_quotes=_full_quotes(), generated_at=_generated_at())
     artifact = tmp_path / "watchlist_snapshot.json"
     assert artifact.exists()
-    pre_bytes = artifact.read_bytes()
-    pre_size = artifact.stat().st_size
-
-    # HALT semantics: helper is not invoked. Simulate by leaving the file alone.
-    post_bytes = artifact.read_bytes()
-    post_size = artifact.stat().st_size
-
-    import hashlib
-    assert hashlib.sha256(pre_bytes).hexdigest() == hashlib.sha256(post_bytes).hexdigest()
-    assert pre_size == post_size
     assert not (tmp_path / "watchlist_snapshot.json.tmp").exists()
-
-
-def _quote_pct(symbol: str, pct: float) -> NormalizedQuote:
-    return dataclasses.replace(_quote(symbol, 100.0), pct_change_decimal=pct)
-
-
-def test_daily_change_pct_scale() -> None:  # PRD-311 M1
-    snap = build_watchlist_snapshot({"SPY": _quote_pct("SPY", 0.052)}, _generated_at())
-    assert snap["symbols"]["SPY"]["daily_change_pct"] == 5.2  # decimal*100, 1 dp
-
-
-def test_missing_quote_daily_change_is_none_never_zero() -> None:  # PRD-311 M2
-    snap = build_watchlist_snapshot({}, _generated_at())
-    for rec in snap["symbols"].values():
-        assert rec["daily_change_pct"] is None  # NEVER fabricated as 0.0
-
-
-def test_registry_index_and_primary_group_populated() -> None:  # PRD-311 M5/M4
-    snap = build_watchlist_snapshot(_full_quotes(), _generated_at())
-    indices = [snap["symbols"][s]["registry_index"] for s, *_ in WATCHLIST_SYMBOLS]
-    assert indices == list(range(12))  # contiguous 0..11 in insertion order
-    for s, theme, reason, group, idx in WATCHLIST_SYMBOLS:
-        assert snap["symbols"][s]["primary_group"] == group
-        assert snap["symbols"][s]["registry_index"] == idx
-
-
-def test_full_12_population_includes_uco_goog() -> None:  # PRD-311 M6
-    snap = build_watchlist_snapshot({}, _generated_at())  # no quotes -> all present as n/a
-    assert set(snap["symbols"]) == {
-        "SPY", "QQQ", "GDX", "GLD", "SLV", "XLE", "UCO",
-        "NVDA", "TSLA", "META", "AMZN", "GOOG",
-    }
+    data = json.loads(artifact.read_text(encoding="utf-8"))
+    assert data["schema_version"] == 3
+    assert set(data["symbols"]) == set(_MARKET_STRUCTURE_22)
