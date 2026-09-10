@@ -128,10 +128,15 @@ PRD-271 Gate A (ORB session-provenance ruling)  [GRANTED 2026-08-04]
                  MATERIAL intake → upstream packet (seeded by stage0-01)]
                  └─ NS-2F ranked control ladder (LATER)
 
-NS-4A universe registry (LATER; seed exists in config)
-  ├─ NS-4B heatmap → NS-4C leadership / NS-4D participation / NS-4E mirror
-  ├─ NS-6 news registry (NEWS-0; doctrine gates NEWS-0→4)
-  └─ NS-7 decoupling (needs benchmarks from the registry + NS-4B)
+NS-4A universe registry  [SHIPPED — PRD-308 seed, PRD-337 measurement universe]
+  ├─ NS-4B heatmap       [SHIPPED — PRD-311 + PRD-337 22-symbol carrier
+  │                       (2026-09-09: ALREADY DONE; no restyle campaign)]
+  │    └─ NS-4C leadership / NS-4D participation / NS-4E mirror
+  │                       [RETIRED 2026-09-09; only a possible benchmark-
+  │                        relative movement field stays PARKED]
+  ├─ NS-6 news registry  [RETIRED 2026-09-09 — Market Brief owns news /
+  │                       relationship interpretation]
+  └─ NS-7 decoupling     [RETIRED 2026-09-09]
 
 NS-2A observation artifact + NS-9C freshness vocabulary are shared substrate
   └─ NS-9 scheduling/freshness (evidence: stage0-03; debt anchors CB-18, CB-06)
@@ -328,7 +333,20 @@ packet where MATERIAL, PRD, review, and Gate A):**
    existing to feed it. Still MATERIAL: it begins with its own upstream packet,
    not with code.
 
-**LATER (preserved, not authorized):** NS-4A/4B (universe registry and basic
+**LATER — SUPERSEDED 2026-09-09 (completion ruling, `docs/DECISIONS.md`).**
+The paragraph below is historical. Current portfolio truth: ABSORBED /
+SHIPPED — NS-2D, NS-2E, NS-3B/C/D, NS-4A, NS-4B (PRD-311 + PRD-337; no restyle
+campaign), the shipped GEX product components, NS-8A, NS-9A/B/C; NS-1D is the
+de facto frozen baseline. RETIRED / SUPERSEDED — NS-2F, NS-3A, NS-3E, NS-4C
+full Leadership, NS-4D, NS-4E, GEX-3 cadence expansion, NS-6, NS-7, NS-8C/D/E,
+NS-9D, the ODATA quoting items, the section-registry refactor, and the dormant
+macro-awareness expansion. PARKED only — NS-8B (pending real-use evidence) and
+one possible benchmark-relative movement field. Neither is authorized; no
+replacement roadmap is created. The "Need Scanner" idea is ABSORBED / RETIRED.
+Market Brief owns narrative / news / relationship interpretation; Cuttingboard
+owns deterministic market and trading state.
+
+*Historical text:* LATER (preserved, not authorized): NS-4A/4B (universe registry and basic
 movement heatmap — the first named promotion candidates after NS-2E; registry
 content is Dustin-authored, seed tuples exist, and promotion is Dustin's),
 NS-2D, NS-2F, NS-3 (all packets), NS-4C/D/E, NS-5 (GEX-0→3; GEX-0 lifecycle `EVIDENCE INCOMPLETE`, GEX-1→2 lifecycle
@@ -514,6 +532,16 @@ Held decisions, stated once, none inferred or pre-empted:
 ## 12. "Not lost" appendix — every preserved future plan
 
 Nothing below is authorized; everything below is deliberately preserved.
+
+*2026-09-09 supersession note (completion ruling, `docs/DECISIONS.md`): this
+appendix is retained as the historical record of what was once preserved. The
+owner accepted the North Star subtraction — NS-2D/2E, NS-3B/C/D, NS-4A/B, the
+shipped GEX components, NS-8A and NS-9A/B/C are ABSORBED / SHIPPED; NS-2F,
+NS-3A/E, NS-4C/D/E, GEX-3 expansion, NS-6, NS-7, NS-8C/D/E, NS-9D, the ODATA
+quoting items, the section-registry refactor and the dormant macro-awareness
+expansion are RETIRED / SUPERSEDED; only NS-8B and one possible
+benchmark-relative movement field remain PARKED. The entries below are not a
+backlog and no replacement roadmap was manufactured.*
 
 - **NS-2D** meaningful intraday event preservation; **NS-2F** ranked control
   ladder (support/pivot/resistance/structural failure, evidence-linked,

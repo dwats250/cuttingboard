@@ -112,7 +112,7 @@ Star implementation packet is promoted until Dustin rules.
 | NS-1A SPY direct-path fidelity | `COMPLETE` | Delivered by the 2026-07-31 fidelity delta on `main`: counts recomputed, kill-switch effect verified, seam conclusion = proxy posture defect only, no engine change | Met; residual is the Strategy-repo D2 ruling (Dustin) |
 | NS-1B Artifact/provenance repair | `COMPLETE` (Cuttingboard side) | Canonical files hash-pinned; exploratory vs frozen lineage separated; manifests verified | Strategy-side dated correction (D2) and the post-patch script identity gap remain Dustin's ruling |
 | NS-1C Engine seam corrections | `BLOCKED` | Fix only confirmed mismatches — the fidelity delta confirmed **zero** Cuttingboard-side mismatches at this pin (the one rule mismatch is proxy-side) | Entry condition unmet; reopen only on a confirmed engine mismatch |
-| NS-1D Prospective baseline freeze | `LATER` | Observe outcomes without tuning — preserved evaluation capability | Dustin-only promotion after the relevant decision surfaces and frozen baseline are ready; frozen rules and timestamped captures |
+| NS-1D Prospective baseline freeze | `DE FACTO FROZEN` (2026-09-09, ruled: Dustin) | The running fixed-universe system IS the frozen baseline; observe outcomes without tuning | No new baseline project is manufactured and nothing is retroactively certified; see `docs/DECISIONS.md` 2026-09-09 |
 | NS-1E Smallest-contract refusal (CB-02 / PRD-283) | `COMPLETE` — resolved by PRD-283 | Delivered: refusal instead of a silent budget-breaching one-contract floor, and the rejection is first-class evidence at the contract, audit, postmarket, report, notification, CLI, and dashboard surfaces | Met. Merged to `main` as `f806f5b` on 2026-08-03 (PR #204); validated at the exact merged head by `docs/prd_history/PRD-283.review.claude.md` (VALIDATED WITH FINDINGS); closed out 2026-08-05. The abandoned OPT-1/PRD-278 line is superseded, PR #184's packet is imported in-tree, and PR #185 carries no authority. See `docs/DECISIONS.md` 2026-08-05 TRUTH-SYNC |
 
 Evidence to preserve:
@@ -132,9 +132,9 @@ Evidence to preserve:
 | NS-2A Fixed SPY observation | `SHIPPED` — PRD-288 | Observe SPY on every relevant run, including `STAY_FLAT` and halted states | Met by PRD-288 (COMPLETE @ `68cca76`, PR #218, 2026-08-05): one transient read-only SPY card on the daily dashboard, independent of candidate availability. Daily `_run_pipeline` only; hourly deliberately out of scope |
 | NS-2B Session-correct ORB | `SHIPPED` — PRD-271 | Use the intended market session, not a positional data tail; never a duplicate ORB truth | Met by PRD-271 (COMPLETE @ `4902b1f`, PR #209, 2026-08-05): timestamp-windowed session-scoped ORB (09:30–09:35 ET of the current trading date) with a transient `watch.OrbObservation` provenance carrier and the fail-closed `orb_invalid_session` gate reason. One ORB truth; PRD-288 projects it verbatim |
 | NS-2C Session VWAP | `SHIPPED` — PRD-288 | Authoritative session-anchored typical-price VWAP | Met by PRD-288 (same commit as NS-2A): source window, timestamp, and stale behavior explicit via the shared freshness states and reason tokens |
-| NS-2D Meaningful intraday event | `LATER` | Preserve and expose the last meaningful transition | Rich state is not flattened or discarded |
-| NS-2E Market Control Card | `NEXT` | Compact orientation replacing/refactoring generic Market Map | Answers state, location, event, transition, invalidation, permission, candidate implication |
-| NS-2F Ranked control ladder | `LATER` | Support, pivot, resistance, structural failure | Evidence-linked, non-predictive |
+| NS-2D Meaningful intraday event | `ABSORBED / SHIPPED` (2026-09-09) | Absorbed under later work (Market Control transition/invalidation, SPY session observation, A1 intraday chart) | Ruled absorbed; see `docs/DECISIONS.md` 2026-09-09 |
+| NS-2E Market Control Card | `SHIPPED` — PRD-289 (2026-09-09 label) | Compact orientation replacing/refactoring generic Market Map | Met by PRD-289 and the later dashboard passes (PRD-318/334/335/336); ruled absorbed 2026-09-09 |
+| NS-2F Ranked control ladder | `RETIRED` (2026-09-09, ruled: Dustin) | — | Retired; no replacement work manufactured |
 
 ### NS-3 — Opportunity Set Engine
 
@@ -142,11 +142,15 @@ Evidence to preserve:
 
 | Packet | State | Outcome |
 |---|---|---|
-| NS-3A Opportunity taxonomy | `LATER` | Grade A, Near Qualification, Developing, Watch, Invalidated, Macro Conflict, Stay Flat |
-| NS-3B Funnel visibility | `LATER` | Universe → Macro → Trend → Risk → Qualified → Grade A |
-| NS-3C Negative market statements | `LATER` | “No quality longs,” “breakouts failing,” and similar evidence-based summaries |
-| NS-3D Maturity/deterioration views | `LATER` | Emerging, improving, mature, deteriorating |
-| NS-3E Confidence decomposition | `LATER` | Explain why confidence exists or is withheld |
+| NS-3A Opportunity taxonomy | `RETIRED` (2026-09-09, ruled: Dustin) | The existing decision / lifecycle / setup_state vocabulary is the taxonomy; no second attention ontology |
+| NS-3B Funnel visibility | `ABSORBED / SHIPPED` (2026-09-09) | Absorbed by the fixed-universe runtime (regime / STAY_FLAT, structure, qualification, decision states, ALERT WATCHLIST) |
+| NS-3C Negative market statements | `ABSORBED / SHIPPED` (2026-09-09) | Absorbed by the Verdict / STAY_FLAT / permission surfaces |
+| NS-3D Maturity/deterioration views | `ABSORBED / SHIPPED` (2026-09-09) | Absorbed by lifecycle states and the HISTORY delta |
+| NS-3E Confidence decomposition | `RETIRED` (2026-09-09, ruled: Dustin) | — |
+
+The "Need Scanner" idea is ABSORBED / RETIRED with this section (2026-09-09):
+its useful job is already the fixed-universe runtime plus hourly Telegram
+output; no unique scanner job survives and none is to be built.
 
 ### NS-4 — Universe registry and heatmap
 
@@ -154,11 +158,11 @@ Evidence to preserve:
 
 | Packet | State | Outcome |
 |---|---|---|
-| NS-4A Universe registry | `LATER` | Human-authored symbols, aliases, themes, roles, horizons, benchmarks, questions |
-| NS-4B Movement heatmap | `LATER` | Grouped raw movement with visible freshness |
-| NS-4C Leadership mode | `LATER` | Relative performance versus assigned benchmark |
-| NS-4D Participation mode | `LATER` | Breadth inside each group |
-| NS-4E External watchlist mirror | `LATER` | One consistent universe across tools |
+| NS-4A Universe registry | `SHIPPED` — PRD-308 seed registry, PRD-337 measurement universe (NS-4A v2) | Human-authored symbols, groups, roles, benchmarks (inert), questions |
+| NS-4B Movement heatmap | `SHIPPED` — PRD-311 (Market Movement card) + PRD-337 (22-symbol carrier: MARKET / SECTORS / METALS / MEGACAPS, raw signed daily movement, registry order, capture clock, null honesty, observation-only) | ALREADY DONE (2026-09-09 ruling). No restyle, colours, scale, legend, relative field, ranking, or strongest/weakest language; the remaining work was restoring delivery, not a heatmap PR |
+| NS-4C Leadership mode | `RETIRED` as a mode (2026-09-09, ruled: Dustin) | Only a possible tiny benchmark-relative movement field stays `PARKED`; not authorized |
+| NS-4D Participation mode | `RETIRED` (2026-09-09, ruled: Dustin) | — |
+| NS-4E External watchlist mirror | `RETIRED` (2026-09-09, ruled: Dustin) | — |
 
 Suggested groups: Context, Energy, AI / Semis, Tradeable, Spec / Learning, Holdings.
 
@@ -173,7 +177,7 @@ Suggested groups: Context, Energy, AI / Semis, Tradeable, Spec / Learning, Holdi
 | GEX-0 Provider evidence pass | `LATER / EVIDENCE INCOMPLETE` | Test one provider against a bounded honesty contract — the 2026-08-05 egress pass reached Polygon and got a real HTTP 401 (authentication required); no provider-viability verdict was established, so the next step needs a real free-tier Polygon credential |
 | GEX-1 Manual cached producer | `LATER / EVIDENCE BLOCKED` | Versioned gamma flip, put wall, and call wall snapshot — lifecycle state per the workplan, gated on GEX-0 passing |
 | GEX-2 Display-only consumer | `LATER / EVIDENCE BLOCKED` | Compact dashboard row with no qualification/sizing effect — lifecycle state per the workplan, gated on GEX-1 |
-| GEX-3 Cadence decision | `LATER` | Premarket and bounded intraday refresh only after usefulness (no workplan lifecycle row; doctrine gate GEX-3 applies) |
+| GEX-3 Cadence decision | `RETIRED` as expansion (2026-09-09, ruled: Dustin) | The PRD-310 hourly refresh was removed 2026-09-03 under the provider-rights ruling; live acquisition stays BLOCKED / context-only and the All Access adapter DORMANT. Shipped GEX product components (producer, display card, synthetic reference) are `ABSORBED / SHIPPED`; no GEX-4, no provider shopping |
 
 Required honesty: provider, model or provider-defined label, expiry scope, source/as-of time, observation time, spot basis, stale/unavailable state.
 
@@ -185,11 +189,15 @@ Required honesty: provider, model or provider-defined label, expiry scope, sourc
 
 | Packet | State | Outcome |
 |---|---|---|
-| NEWS-0 Static relationship registry | `LATER / EVIDENCE BLOCKED` | Symbols, aliases, themes, benchmarks, related companies, approved sources — nothing drafted yet; the workplan gates it and Dustin supplies/ratifies the universe |
-| NEWS-1 Manual producer | `LATER / EVIDENCE BLOCKED` | Small deterministic artifact, normally 2–3 items and never over 5 — lifecycle state per the workplan, gated on NEWS-0 |
-| NEWS-2 Usefulness evaluation | `LATER / EVIDENCE BLOCKED` | Dustin chooses KEEP, one bounded REVISE, or RETIRE — lifecycle state per the workplan, gated on NEWS-1 |
-| NEWS-3 Display consumer | `LATER / EVIDENCE BLOCKED` | Display-only, baseline-neutral context — lifecycle state per the workplan, gated on NEWS-2 `KEEP` |
-| NEWS-4 Cadence | `LATER` | Scheduling only after demonstrated usefulness (no workplan lifecycle row; doctrine gate NEWS-4 applies) |
+| NEWS-0 Static relationship registry | `RETIRED` (2026-09-09, ruled: Dustin) | Narrative / news / relationship interpretation is owned by Market Brief, not Cuttingboard; nothing was drafted and nothing will be |
+| NEWS-1 Manual producer | `RETIRED` (2026-09-09) | — |
+| NEWS-2 Usefulness evaluation | `RETIRED` (2026-09-09) | — |
+| NEWS-3 Display consumer | `RETIRED` (2026-09-09) | — |
+| NEWS-4 Cadence | `RETIRED` (2026-09-09) | — |
+
+NS-6 is RETIRED / SUPERSEDED as a Cuttingboard packet (2026-09-09 ruling):
+Market Brief owns narrative, news, and relationship interpretation;
+Cuttingboard owns deterministic market and trading state.
 
 Relationship path:
 
@@ -213,9 +221,9 @@ TRADES
 
 | Packet | State | Outcome |
 |---|---|---|
-| NS-7A Decoupling contract | `LATER` | Window, benchmark, threshold, freshness |
-| NS-7B Heatmap label | `LATER` | Compact idiosyncratic/broad classification |
-| NS-7C News link | `LATER` | Connect divergence to catalysts when present without inventing cause |
+| NS-7A Decoupling contract | `RETIRED` (2026-09-09, ruled: Dustin) | — |
+| NS-7B Heatmap label | `RETIRED` (2026-09-09) | — |
+| NS-7C News link | `RETIRED` (2026-09-09) | Relationship interpretation belongs to Market Brief |
 
 Examples: AVGO vs SOXX, OXY vs energy/crude, NVDA vs QQQ.
 
@@ -225,11 +233,11 @@ Examples: AVGO vs SOXX, OXY vs energy/crude, NVDA vs QQQ.
 
 | Packet | State | Outcome |
 |---|---|---|
-| NS-8A Cohort capture | `LATER` | Qualified, near-miss, excluded-by-reason, and `STAY_FLAT` cohorts |
-| NS-8B Decision linkage | `LATER` | What was shown, what Dustin did, whether behavior changed |
-| NS-8C Counterfactual observation | `LATER` | Subsequent outcomes for rejected and abstained cases |
-| NS-8D Usefulness measures | `LATER` | Comprehension time, outside-screen dependence, override quality, abstention value |
-| NS-8E Review cadence | `LATER` | Human review after adequate sample; no threshold tuning during baseline |
+| NS-8A Cohort capture | `ABSORBED / SHIPPED` (2026-09-09) | The audit / regime-history / HISTORY-delta carriers already capture qualified, excluded-by-reason and `STAY_FLAT` cohorts |
+| NS-8B Decision linkage | `PARKED` (2026-09-09, ruled: Dustin) | Reopen only on real-use evidence; not authorized |
+| NS-8C Counterfactual observation | `RETIRED` (2026-09-09, ruled: Dustin) | — |
+| NS-8D Usefulness measures | `RETIRED` (2026-09-09) | — |
+| NS-8E Review cadence | `RETIRED` (2026-09-09) | — |
 
 ```text
 Macro State
@@ -246,12 +254,14 @@ Macro State
 
 | Packet | State | Outcome |
 |---|---|---|
-| NS-9A Run identity | `LATER` | Nominal slot, trading date, idempotency key |
-| NS-9B Execution observability | `LATER` | Trigger, start, source times, completion/failure |
-| NS-9C Artifact freshness | `LATER` | Current/stale/unavailable visible to every consumer |
-| NS-9D Cadence promotion | `LATER` | Schedule producers only after usefulness |
+| NS-9A Run identity | `ABSORBED / SHIPPED` (2026-09-09) | PRD-299/319 slot identity (CB-SLOT carrier, explicit PT slot, `last_hourly_slot` dedup key) |
+| NS-9B Execution observability | `ABSORBED / SHIPPED` (2026-09-09) | Worker ACCEPTED/REJECTED/ERROR logging (persisted), runner exit-reason diagnostics, and the GitHub liveness probe (completion PR) |
+| NS-9C Artifact freshness | `ABSORBED / SHIPPED` (2026-09-09) | Freshness states and capture clocks on every card; workflow freshness gate |
+| NS-9D Cadence promotion | `RETIRED` (2026-09-09, ruled: Dustin) | No cadence expansion is manufactured |
 
-> **The clock declares when. The pipeline decides how.**
+> **The clock declares when. The pipeline decides how.** As of 2026-09-09 the
+> clock is Cloudflare (`workers/cuttingboard-clock`, authoritative); the GitHub
+> schedule is a liveness probe only, never an execution fallback.
 
 ## 5. Existing work, debt, and parked material
 
@@ -332,6 +342,13 @@ NS-0A and NS-1A/B — the draft's original NOW — are already delivered on
 3. NS-2E — Market Control Card
 
 ### LATER
+
+*Superseded 2026-09-09 (completion ruling, `docs/DECISIONS.md`): items 4-10
+below are historical. NS-4A/B, GEX product components, and NS-9A/B/C SHIPPED;
+NS-2E and NS-3B/C/D were absorbed; the Opportunity Set Engine (as a scanner),
+news, decoupling, NS-8C/D/E, and cadence promotion are RETIRED. Only NS-8B and
+one possible benchmark-relative movement field remain PARKED. No replacement
+roadmap exists; the remaining work was restoring reliable delivery.*
 
 4. NS-4A/B — universe registry and basic movement heatmap (first named
    promotion candidates after NS-2E; promotion is Dustin's)

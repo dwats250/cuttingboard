@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -378,3 +380,168 @@ def test_send_notification_audit_reason_is_recorded(tmp_path, monkeypatch):
     records = _notification_records(tmp_path / "logs" / "audit.jsonl")
     assert len(records) == 1
     assert records[0]["reason"] == "runner_level_exception"
+
+
+
+# ---- Completion PR (2026-09-09): runner exit diagnostics, fresh-process ------
+#
+# The hourly job's process entrypoint is alert_runner (no cli_main), so the
+# runner must configure logging itself or every INFO suppression line is
+# dropped from the Actions log. caplog cannot prove that; these tests run the
+# runner in a FRESH PROCESS with a fixed clock and a stubbed
+# _execute_notify_run, and assert on the process's actual stderr.
+
+_DRIVER = r'''
+import json, sys
+from datetime import datetime
+from cuttingboard import alert_runner, config
+cfg = json.loads(sys.argv[1])
+fixed = datetime.fromisoformat(cfg["now"])
+class _Fixed(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return fixed if tz is None else fixed.astimezone(tz)
+alert_runner.datetime = _Fixed
+import cuttingboard.runtime as rt
+def fake(*, mode, run_date, notify_mode, slot_utc=None, **kw):
+    if cfg["behavior"] == "raise":
+        raise RuntimeError("boom")
+    return {"status": cfg["behavior"], "suppressed": False}
+rt._execute_notify_run = fake
+config.TELEGRAM_BOT_TOKEN = None
+config.TELEGRAM_CHAT_ID = None
+sys.exit(alert_runner.main(cfg["argv"]))
+'''
+
+
+def _fresh_run(tmp_path: Path, *, now: str, argv: list[str], behavior: str = "SUCCESS") -> tuple[int, str]:
+    import os
+
+    (tmp_path / "logs").mkdir(exist_ok=True)
+    cfg = json.dumps({"now": now, "argv": argv, "behavior": behavior})
+    # Pin the import to THIS checkout (an editable install elsewhere must not
+    # shadow it in the fresh process).
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parent.parent)}
+    proc = subprocess.run(
+        [sys.executable, "-c", _DRIVER, cfg],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    return proc.returncode, proc.stderr
+
+
+# Tue 2026-05-19 (PDT): 07:00 PT == 14:00Z.
+_PDT_0700Z = "2026-05-19T14:00:00+00:00"
+
+
+def test_runner_late_named_slot_logs_reason_slot_pt_time_and_signed_lag(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:40:00+00:00", argv=["--routine-slot", "07:00"])
+    assert rc == 0
+    assert "hourly alert suppressed: reason=outside_routine_window" in err
+    assert "intended_slot=07:00 PT (2026-05-19T07:00:00-07:00)" in err
+    assert "now_pt=2026-05-19T07:40:00-07:00" in err
+    assert "lag=+40m" in err
+    assert "admission_window=+25m" in err and "exit=0" in err
+    rows = _notification_records(tmp_path / "logs" / "audit.jsonl")
+    assert rows[-1]["reason"] == "outside_routine_window"  # audit token unchanged
+    assert rows[-1]["state_key"].endswith(":named=07:00")
+
+
+def test_runner_exact_plus_25m_is_admitted_and_completes(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:25:00+00:00", argv=["--routine-slot", "07:00"])
+    assert rc == 0
+    assert "hourly alert admitted: slot_utc=2026-05-19T14:00:00+00:00" in err
+    assert "hourly alert completed: status=SUCCESS slot_utc=2026-05-19T14:00:00+00:00 exit=0" in err
+    assert "suppressed" not in err
+
+
+def test_runner_plus_26m_is_rejected_with_lag(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:26:00+00:00", argv=["--routine-slot", "07:00"])
+    assert rc == 0
+    assert "reason=outside_routine_window" in err and "lag=+26m" in err
+    assert "hourly alert completed" not in err
+
+
+def test_runner_early_named_arrival_has_negative_lag(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T13:57:00+00:00", argv=["--routine-slot", "07:00"])
+    assert rc == 0
+    assert "reason=outside_routine_window" in err and "lag=-3m" in err
+
+
+@pytest.mark.parametrize(
+    "label, fragment",
+    [
+        ("07:30", "intended_slot=invalid ('07:30' not an allowed PT slot)"),
+        ("xx", "intended_slot=invalid ('xx')"),
+    ],
+)
+def test_runner_invalid_named_slot_is_explicitly_invalid_never_invented(tmp_path, label, fragment):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:40:00+00:00", argv=["--routine-slot", label])
+    assert rc == 0
+    assert "reason=outside_routine_window" in err and fragment in err
+    assert "lag=" not in err
+
+
+def test_runner_unnamed_inference_outside_window_reports_unavailable(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T21:00:00+00:00", argv=[])  # 14:00 PT
+    assert rc == 0
+    assert "reason=outside_routine_window intended_slot=unavailable (inferred arrival" in err
+    assert "now_pt=2026-05-19T14:00:00-07:00" in err
+
+
+def test_runner_duplicate_slot_logs_reason_and_prior_delivery(tmp_path):
+    from cuttingboard.notifications.hourly_slot import save_last_slot
+
+    (tmp_path / "logs").mkdir()
+    save_last_slot(datetime.fromisoformat(_PDT_0700Z), path=str(tmp_path / "logs" / "last_hourly_slot.json"))
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:10:00+00:00", argv=["--routine-slot", "07:00"])
+    assert rc == 0
+    assert "hourly alert suppressed: reason=suppressed_same_slot slot_utc=2026-05-19T14:00:00+00:00" in err
+    assert "saved_at_utc=" in err and "exit=0" in err
+    rows = _notification_records(tmp_path / "logs" / "audit.jsonl")
+    assert rows[-1]["reason"] == "suppressed_same_slot"
+
+
+def test_runner_forced_dispatch_bypasses_window_and_logs_it(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T22:00:00+00:00", argv=["--force-slot"])
+    assert rc == 0
+    assert "hourly alert forced: slot_utc=2026-05-19T22:00:00+00:00" in err
+    assert "hourly alert completed: status=SUCCESS" in err
+
+
+def test_runner_healthy_halt_status_success_exits_zero(tmp_path):
+    """A market-stress safety HALT returns SUMMARY_STATUS_SUCCESS (PRD-287);
+    the runner's contract is status-only, so it completes healthy."""
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:05:00+00:00", argv=["--routine-slot", "07:00"])
+    assert rc == 0 and "hourly alert completed: status=SUCCESS" in err
+
+
+def test_runner_non_success_return_logs_failure_and_exits_one(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:05:00+00:00", argv=["--routine-slot", "07:00"], behavior="FAIL")
+    assert rc == 1
+    assert "hourly alert failed: reason=non_success_return status=FAIL" in err and "exit=1" in err
+
+
+def test_runner_exception_logs_backstop_reason_and_exits_one(tmp_path):
+    rc, err = _fresh_run(tmp_path, now="2026-05-19T14:05:00+00:00", argv=["--force-slot"], behavior="raise")
+    assert rc == 1
+    assert "alert runner backstop caught exception" in err
+    assert "hourly alert failed: reason=runner_level_exception error_type=RuntimeError exit=1" in err
+    rows = _notification_records(tmp_path / "logs" / "audit.jsonl")
+    assert rows[-1]["reason"] == "runner_level_exception"
+
+
+def test_runner_configures_logging_only_when_no_handler_exists(monkeypatch):
+    """basicConfig is a no-op under an existing handler (pytest/caplog, embedding)."""
+    import logging
+
+    from cuttingboard import alert_runner
+
+    root = logging.getLogger()
+    before = list(root.handlers)
+    alert_runner._configure_logging()
+    if before:
+        assert root.handlers == before

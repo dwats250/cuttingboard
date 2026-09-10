@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 335,
-  "next_prd": 336,
+  "latest_complete": 337,
+  "next_prd": 338,
   "entries": [
     {
       "number": 56,
@@ -1668,14 +1668,14 @@
     {
       "number": 333,
       "title": "GEX synthetic reference context disclosure",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#321"
     },
     {
       "number": 334,
       "title": "Operator-composition dashboard presentation pass",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#322"
     },
     {
       "number": 335,
@@ -1692,8 +1692,8 @@
     {
       "number": 337,
       "title": "Market Structure Universe (NS-4A v2) precursor for NS-4C Leadership",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#325"
     }
   ]
 }

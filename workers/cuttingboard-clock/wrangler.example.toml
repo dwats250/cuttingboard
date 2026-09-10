@@ -13,10 +13,25 @@ compatibility_date = "2024-11-01"
 #   0 13-21     -> 06:00 PT pipeline OPEN + hourly 07:00..13:00 PT (per season)
 #   30 13,14    -> 06:30 PT (one of the pair per season)
 #   45 13,14    -> 06:45 PT (one of the pair per season)
-# GitHub crons remain the DELAYED fallbacks (pipeline 20 13/20 14 season-gated;
-# hourly 40/55 13,14 with explicit slot identity; 10 14-21 inference).
+#   30 23 SUN   -> Sunday session (23:30 UTC, year-round; existing mode=sunday)
+# Completion PR (2026-09-09): the weekday field is the EXPLICIT name range
+# MON-FRI (Cloudflare's documented weekday form), never numeric 1-5; every
+# weekday TIME is unchanged from PRD-319. The Sunday session row transfers the
+# former GitHub `30 23 * * 0` execution cron to this clock (owner ruling).
+# This Worker is the AUTHORITATIVE routine clock. The GitHub schedule is a
+# liveness PROBE only (hourly_alert.yml `liveness` job) -- it never executes
+# product work and does not cover a rejected/missing dispatch.
 [triggers]
-crons = ["50 12 * * 1-5", "0 13-21 * * 1-5", "30 13,14 * * 1-5", "45 13,14 * * 1-5"]
+crons = ["50 12 * * MON-FRI", "0 13-21 * * MON-FRI", "30 13,14 * * MON-FRI", "45 13,14 * * MON-FRI", "30 23 * * SUN"]
+
+# Persisted Workers Logs (smallest supported configuration): the handler's
+# ACCEPTED / REJECTED / ERROR lines survive the invocation so a dispatch
+# failure is observable after the fact. Transport metadata only -- the handler
+# never logs the credential, request headers, or response bodies.
+# https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+[observability]
+enabled = true
+head_sampling_rate = 1
 
 # The Actions-write-only GitHub token is a SECRET, set out-of-band, never here:
 #   wrangler secret put GH_DISPATCH_TOKEN

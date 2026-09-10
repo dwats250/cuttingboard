@@ -66,7 +66,7 @@ always current).
 | `_mcc_cell_display` / `_mcc_event_display` / `_mcc_location_display` | PRD-289 Market Control Card cell projection (value or typed unavailable token, never a default); block renders iff `sections["market_control_card"]` present |
 | `main` / `write_dashboard` / `render_dashboard_html` (GEX seam) | Loads `logs/gex_snapshot.json` via `gex_card.load_gex_snapshot`, threads a tz-aware `now`, and emits `gex_card.render_fragment(...)` as a display-only card (PRD-309); `if frag:` guarded, so absent/stale/invalid emits nothing (byte-identical baseline) |
 | `render_dashboard_html` (GEX REFERENCE seam) | PRD-333: emits `gex_reference.render_reference_fragment()` UNCONDITIONALLY (no inputs) at the WATCHING -> DETAILS boundary (after `#watching-zone` close, before `#details-history`) -- exactly one `<details id="gex-reference">`, structurally separate from current GEX; not an operator zone (keeps the pre-`#details-history` `block operator-zone` count at 4) |
-| `render_dashboard_html` (MARKET STATE seam) | Builds the resolved `GexCard` / `MovementCard` (renderer owns the artifact reads), then emits `market_state_panel.render_fragment(...)` immediately BEFORE `id="system-state"` (outside the PRD-219 protected region; PRD-312). Persistent five-axis panel — always emitted (no suppression). Also the arrow-cut site: the tradables daily-change arrow builder + span are removed here |
+| `render_dashboard_html` (MARKET STATE seam) — HISTORICAL / INACTIVE | PRD-312 had the renderer build the resolved `GexCard` / `MovementCard` and emit `market_state_panel.render_fragment(...)` before `id="system-state"`. PRD-318 SUPERSEDED that presentation: the renderer no longer imports or calls `market_state_panel` (verified 2026-09-09: zero references in `dashboard_renderer.py`); the five facts were redistributed with semantics unchanged. The tradables daily-change arrow cut from PRD-312 stands. `market_state_panel.py` is retained as a pure, tested, currently-unconsumed module (no purge; see the 2026-09-09 completion ruling) |
 
 Note: the candidate board reads `market_map["symbols"]` directly, not payload
 candidates. The chart/ladder anchor and stop come from the contract overlay
@@ -100,6 +100,11 @@ PRD-333 synthetic GEX reference carrier. Imports ONLY `gex_card`; never reads th
 | `render_reference_fragment` | Renderer's sole entry point; NO inputs (no clock/path/network/snapshot). Loads the one bundled resource and always returns exactly one collapsed `<details id="gex-reference" data-gex-kind="reference">`; invalid/missing -> a labeled "Reference example unavailable." disclosure |
 
 ## cuttingboard/delivery/market_state_panel.py
+
+Active consumers: NONE (2026-09-09). `dashboard_renderer.py` stopped emitting
+this fragment under PRD-318; the only remaining references are its own tests
+(`tests/test_market_state_panel.py`) and a docstring cross-reference in
+`movement_card.py`. Retained, not purged.
 
 | Function | Purpose |
 |---|---|

@@ -13,6 +13,8 @@ from cuttingboard import alert_runner
 from cuttingboard.notifications.hourly_slot import (
     LAST_HOURLY_SLOT_PATH,
     canonical_slot_utc,
+    explicit_pt_slot,
+    routine_pt_slot,
     save_last_slot,
 )
 
@@ -290,3 +292,60 @@ def test_prd319_send_success_persist_success_suppresses_twin(tmp_path, monkeypat
     statuses = [r["status"] for r in rows]
     assert statuses.count("success") == 1
     assert any(r.get("reason") == "suppressed_same_slot" for r in rows)
+
+
+
+# ---- Completion PR (2026-09-09): exact admission boundary, unchanged ----------
+#
+# The 25-minute admission window is INCLUSIVE at exactly +25m and rejects one
+# second later, for both the explicitly named (Cloudflare routine) path and
+# the inference path. Pinned here so the runner diagnostics work could not
+# have moved the boundary.
+
+_SLOT_0700_PDT = datetime(2026, 5, 19, 14, 0, 0, tzinfo=timezone.utc)
+
+
+@pytest.mark.parametrize(
+    "now_utc, admitted",
+    [
+        (datetime(2026, 5, 19, 14, 25, 0, tzinfo=timezone.utc), True),    # exactly +25m
+        (datetime(2026, 5, 19, 14, 25, 1, tzinfo=timezone.utc), False),   # +25m01s
+        (datetime(2026, 5, 19, 14, 26, 0, tzinfo=timezone.utc), False),   # +26m
+        (datetime(2026, 5, 19, 13, 59, 59, tzinfo=timezone.utc), False),  # -1s (future slot)
+    ],
+)
+def test_named_slot_admission_boundary_is_inclusive_at_25m(now_utc, admitted):
+    got = explicit_pt_slot(now_utc, "07:00")
+    assert (got == _SLOT_0700_PDT) if admitted else (got is None)
+
+
+@pytest.mark.parametrize(
+    "now_utc, admitted",
+    [
+        (datetime(2026, 5, 19, 14, 25, 0, tzinfo=timezone.utc), True),
+        (datetime(2026, 5, 19, 14, 25, 1, tzinfo=timezone.utc), False),
+    ],
+)
+def test_inference_admission_boundary_is_inclusive_at_25m(now_utc, admitted):
+    got = routine_pt_slot(now_utc)
+    assert (got == _SLOT_0700_PDT) if admitted else (got is None)
+
+
+def test_runner_boundary_end_to_end_plus_25m_sends_plus_26m_suppresses(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "logs").mkdir()
+    for now, expected_status in (
+        (datetime(2026, 5, 19, 14, 26, 0, tzinfo=timezone.utc), "suppressed"),
+        (datetime(2026, 5, 19, 14, 25, 0, tzinfo=timezone.utc), "success"),
+    ):
+        with (
+            patch("cuttingboard.alert_runner.datetime") as mock_dt,
+            patch("cuttingboard.runtime._execute_notify_run", _stub_execute),
+        ):
+            mock_dt.now.return_value = now
+            mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
+            assert alert_runner.main(["--routine-slot", "07:00"]) == 0
+        assert _notification_rows(tmp_path)[-1]["status"] == expected_status
+    suppressed = _notification_rows(tmp_path)[0]
+    assert suppressed["reason"] == "outside_routine_window"
+    assert suppressed["state_key"].endswith(":named=07:00")
