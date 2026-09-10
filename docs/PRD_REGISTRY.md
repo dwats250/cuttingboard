@@ -350,11 +350,11 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-330 | 13c7f04 | Dashboard D4 implementation: Proto-B primary-path synthesis + SPY chart LEVELS control | COMPLETE | [PRD-330](prd_history/PRD-330.md) |
 | PRD-331 | c8b35ef | MANUAL CHECK flag on the ALERT WATCHLIST row (operator prominence, presentation-only) | COMPLETE | [PRD-331](prd_history/PRD-331.md) |
 | PRD-332 | #320 | Dashboard D5 — A-style upper surface + C-style WATCHING selectable setup workspace | COMPLETE | [PRD-332](prd_history/PRD-332.md) |
-| PRD-333 | — | GEX synthetic reference context disclosure | IN PROGRESS | [PRD-333](prd_history/PRD-333.md) |
-| PRD-334 | — | Operator-composition dashboard presentation pass | IN PROGRESS | [PRD-334](prd_history/PRD-334.md) |
+| PRD-333 | #321 | GEX synthetic reference context disclosure | COMPLETE | [PRD-333](prd_history/PRD-333.md) |
+| PRD-334 | #322 | Operator-composition dashboard presentation pass | COMPLETE | [PRD-334](prd_history/PRD-334.md) |
 | PRD-335 | #323 | Market context completion and second editorial pass | COMPLETE | [PRD-335](prd_history/PRD-335.md) |
 | PRD-336 | — | Cockpit context polish (final pre-live pass) | IN PROGRESS | [PRD-336](prd_history/PRD-336.md) |
-| PRD-337 | — | Market Structure Universe (NS-4A v2) precursor for NS-4C Leadership | IN PROGRESS | [PRD-337](prd_history/PRD-337.md) |
+| PRD-337 | #325 | Market Structure Universe (NS-4A v2) precursor for NS-4C Leadership | COMPLETE | [PRD-337](prd_history/PRD-337.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

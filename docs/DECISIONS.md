@@ -16,6 +16,131 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-09 — Completion ruling: Cloudflare is the authoritative clock, GitHub schedule is a liveness probe, Sunday transfers to Cloudflare; Need Scanner RETIRED, NS-4B already SHIPPED, North Star subtraction accepted; merged-provenance truth-sync (ruled: Dustin / HELM, adopting the Astra execution plan)
+
+**Reliability (the actual remaining product work).** The hourly lane had
+delivered nothing since 2026-08-26 (last good run 32986986134 at 16:09Z, ~9m
+lag; first bad 33001752426 at 18:48Z, ~48m lag, `outside_routine_window`; 68
+later scheduled arrivals, 0 accepted; no `_execute_notify_run` entry). Two
+compounding causes: the Cloudflare cron weekday field `1-5` was observed to
+fire Sunday-Thursday, and every Worker POST to GitHub was rejected
+(credential-class; exact HTTP status NOT captured — token invalidity is a
+strong hypothesis, not a confirmed fact). GitHub's own crons ran a median
+~195 min late, so the "delayed fallback" role they held under PRD-319 could
+never honour the 25-minute admission window. **CF-E1 did not complete**: the
+2026-08-28 "DEPLOYED" wording recorded a deploy, not a captured accepted
+dispatch correlated with a GitHub run; no such capture ever existed.
+
+Rulings, landed by the completion PR:
+
+1. **Cloudflare (`workers/cuttingboard-clock`) is the AUTHORITATIVE routine
+   clock.** Weekday crons use the explicit `MON-FRI` field with every PRD-319
+   time unchanged; persisted Workers Logs (`[observability]`) so ACCEPTED /
+   REJECTED / ERROR lines survive; bounded transport logging (workflow, slot
+   or mode, scheduledTime, HTTP status, error class) and never the credential,
+   headers, or response bodies.
+2. **GitHub schedule = liveness probe, never an execution fallback.**
+   `hourly_alert.yml` keeps its cron arrival times as a `liveness` job
+   (contents:read, no secrets, own concurrency group) that reads
+   `logs/last_hourly_slot.json` from the fetched `publish` branch and goes RED
+   when no same-day hourly delivery exists at/after 08:00 PT (after the
+   06:30/06:45/07:00 slots, the 07:25 admission end, and 35 minutes of
+   allowance; any same-day delivery satisfies it, not the 08:00 slot). Weekend
+   and pre-threshold arrivals are NOT_DUE. Missing, malformed, naive, stale,
+   future, or non-canonical evidence is RED. The probe never runs
+   `alert_runner`, fetches data, sends Telegram, renders, or publishes; the
+   `alert` job is workflow_dispatch-only. Honesty limit accepted: a probe
+   GitHub never delivers cannot alarm, and no second monitor is built to hide
+   that. Weekday market holidays at/after 08:00 PT are RED (no calendar
+   subsystem). `cuttingboard.yml` has NO schedule triggers; its PRE / seasonal
+   OPEN fallback / Sunday execution crons and the season gate are unwired
+   (scripts retained dormant, not purged).
+3. **Sunday transfers to Cloudflare.** Worker cron `30 23 * * SUN` resolves the
+   Sunday 23:30 UTC instant to the existing pipeline `{mode: "sunday",
+   source: "cloudflare-worker"}` with no slot; manual `mode=sunday` dispatch is
+   preserved; no new Sunday product semantics.
+4. **Runner and freshness honesty.** `alert_runner` configures logging before
+   gating and states every exit reason (outside window with intended slot,
+   actual PT time and signed lag; duplicate slot; healthy completion;
+   non-success; exception). The workflow's payload-mtime freshness predicate
+   is unchanged but its wording now says only what it proves: "no fresh hourly
+   payload detected", never "suppressed slot". The 25-minute window, canonical
+   slot identity, dedup, forced dispatch, and HALT semantics are unchanged.
+5. **Sep-03 dispatch-schema correction stands.** The Worker posts `{kind,
+   slot, source}` to `hourly_alert.yml`; GitHub rejects undeclared inputs with
+   HTTP 422, so `source` is admitted on both workflows as provenance only.
+6. **Owner-held after merge (no agent performs these):** mint a fresh
+   fine-grained PAT (repo `dwats250/cuttingboard`, Actions read/write only);
+   safe invalid-ref authorization probe (expected 422; 401/403 = auth/access
+   unresolved); rebind `GH_DISPATCH_TOKEN`; deploy the reviewed Worker
+   source/config; observe a valid cron (ACCEPTED 204 + correlated
+   `workflow_dispatch`); require runtime entry, fresh artifacts, Telegram
+   outcome, publish `last_hourly_slot` update, Pages deploy, served board;
+   confirm a Friday fire and the Sunday 23:30 UTC session; verify the existing
+   22-symbol MARKET MOVEMENT card renders (no restyle); close PR #309 and
+   PR #310 unmerged. GEX: no implementation change; the dormant provider /
+   acquisition path stays untouched; no GEX-4, no provider shopping.
+
+**Product truth (subtraction accepted).**
+
+- **Need Scanner = ABSORBED / RETIRED. Do not build.** Its useful job is
+  already the fixed-universe runtime: regime / STAY_FLAT, structure and
+  setup_state, qualification, decision and lifecycle states, ALERT WATCHLIST,
+  HISTORY delta, and the hourly Telegram output. No unique scanner job
+  survives; no preparatory infrastructure or second attention ontology.
+- **NS-4B Market Movement = ALREADY SHIPPED**: PRD-311 supplied the card;
+  PRD-337 widened the observation carrier to 22 symbols (MARKET / SECTORS /
+  METALS / MEGACAPS, raw signed daily movement, registry order, capture clock,
+  null honesty, observation-only). No restyle, colours, scale, legend,
+  relative field, ranking, or strongest/weakest language. The remaining work
+  is restoring delivery (above), not a heatmap PR.
+- **NS-4C full Leadership mode RETIRED**; only a possible tiny
+  benchmark-relative movement field stays PARKED (not authorized).
+- **ABSORBED / SHIPPED under later work:** NS-2D, NS-2E, NS-3B, NS-3C, NS-3D,
+  NS-4A, NS-4B, the shipped GEX product components, NS-8A, NS-9A, NS-9B,
+  NS-9C. NS-1D is the de facto frozen baseline; no new baseline project.
+- **RETIRE / SUPERSEDE:** NS-2F, NS-3A, NS-3E, NS-4C full Leadership, NS-4D,
+  NS-4E, GEX-3 cadence expansion, NS-6, NS-7, NS-8C/D/E, NS-9D, the ODATA
+  quoting items, the section-registry refactor, and the dormant
+  macro-awareness expansion. No replacement roadmap is manufactured.
+- **PARK ONLY:** NS-8B decision linkage pending real-use evidence; the one
+  possible benchmark-relative movement field. Neither is authorized. Stale
+  NEXT/LATER labels were bookkeeping debt, not implementation authority.
+- **Ownership split:** Market Brief owns narrative / news / relationship
+  interpretation. Cuttingboard owns deterministic market and trading state.
+- **A1-C is FALSIFIED as a current defect** (PRD-325 fixed it; current-main
+  trace and the `prd325` regression tests confirm). No PR B.
+- **Dead-code candidates stay PARKED** (`market_state_panel.py`,
+  `manual_journal.py`, `review_scorecard.py`, the key-level helper, the
+  dormant post-trade path). `CALL_SITE_MAP` now marks the renderer ->
+  `market_state_panel` seam HISTORICAL / INACTIVE (PRD-318 superseded it).
+
+**Merged-provenance truth-sync.** PRD-333 COMPLETE @ #321 (merge
+`23d2e934`); PRD-334 COMPLETE @ #322 (`fa101cc6`); PRD-335 already COMPLETE;
+PRD-337 COMPLETE @ #325 (`62e2f2dc`); `latest_complete=337`, `next_prd=338`
+(338 is a counter only; nothing is opened). PRD-336 merged @ #324
+(`f87bda75`) but its registry row stays IN PROGRESS: it is HIGH-RISK >= 242,
+its only independent review is the genuine fresh-context artifact at
+`audits/prd-336-cockpit-context-polish-material-packet-2026-09/REVIEW.prd.md`
+(CHANGES-REQUIRED at `cf693992`, corrected in-cycle), and the bounded
+session-history search established its author as **`claude-opus-4-8`** (a
+Claude subagent; transcript metadata), which PRD-242 R3 excludes from the
+second-model leg. No waiver was invented and no retrospective review was
+commissioned. **Held for Dustin:** the one narrow decision is whether to
+record the PRD-242 disposition sentence in `PRD-336.md` (a positive owner act)
+so the row can flip. Historical review evidence archived verbatim:
+`PRD-333.review.fable.md` (the genuine Fable 5.1 fresh-context implementation
+review: main report at `6dd0825` + delta disposition attaching CLEAN-WITH-NITS
+to `79187be5`, recovered from session transcripts — the artifact PRD-333's own
+REVIEW PATH names as its PRD-242 disposition), `PRD-334.review.astra.md`
+(genuine Astra design/proposal review at `23d2e934`, "needs correction before
+implementation" — a design review, never an implementation approval),
+`PRD-337.review.astra.md` (the original REQUIRED CHANGES exact-head review at
+`0b5bd551`), and `PRD-337.review.sol.confirmation.md` (the clean corrected-head
+final at `6593accd`; its Codex session's turn context records model
+`gpt-5.6-sol`, so it is NOT labelled Astra despite the session's Astra
+base-instruction provenance). No historical test was re-run to produce these.
+
 ## 2026-09-06 — PRD-337 precursor Gate A GRANTED; fresh-context GOV-2 CLEAN on repaired head `6593accd`; NS-4C/NS-4D NOT authorized (ruled: Dustin / HELM)
 
 Gate A GRANTED for the PRD-337 precursor (Market Structure Universe / NS-4A v2,
