@@ -3,33 +3,24 @@ name: Cuttingboard Pipeline
 # PRD-299: stamp the GitHub-native slot carrier into display_title. Every
 # automatic OPEN/PRE run carries exactly one CB-SLOT:<slot> token; a legacy/
 # operator dispatch without a slot, Sunday, and any non-slot run get the default
-# name (which MUST NOT contain the substring "CB-SLOT:"). The event_name guard
-# keeps inputs.slot from being read on a schedule event.
+# name (which MUST NOT contain the substring "CB-SLOT:"). Completion PR
+# (2026-09-09): workflow_dispatch is the ONLY trigger, so the carrier comes
+# solely from inputs.slot (the Cloudflare clock sets it); the former
+# schedule-cron rows are gone with the schedule triggers.
 run-name: >-
   ${{ (github.event_name == 'workflow_dispatch' && inputs.slot != '') && format('CB-SLOT:{0}', inputs.slot)
-   || github.event.schedule == '20 13 * * 1-5' && 'CB-SLOT:OPEN'
-   || github.event.schedule == '20 14 * * 1-5' && 'CB-SLOT:OPEN'
-   || github.event.schedule == '50 12 * * 1-5' && 'CB-SLOT:PRE'
    || format('Cuttingboard Pipeline {0}', github.run_number) }}
 
 on:
-  schedule:
-    # Prefetch warm-up: 05:50 PT / 12:50 UTC, Monday–Friday (PRE slot)
-    - cron: '50 12 * * 1-5'
-    # PRD-319: DUAL-SEASONAL OPEN/live delayed fallbacks (replace the single
-    # 5 13): 06:20 PT year-round, ~20 min behind the Cloudflare 06:00 dispatch
-    # (owner ruling 2026-08-28 Q2). Both fire every weekday; the season gate
-    # (check_open_fallback_window.py) no-ops the off-season twin and, being
-    # season-keyed, still executes a LATE in-season delivery.
-    - cron: '20 13 * * 1-5'
-    - cron: '20 14 * * 1-5'
-    # Sunday regime-only report: 23:30 UTC (7:30 PM ET, 30 min after futures open)
-    - cron: '30 23 * * 0'
-    # PRD-189: the ORB (50 13) and intraday (*/30 14-21) crons were removed.
-    # Those slots ran the full live pipeline via cli_main, which is NOT their
-    # intended notify path (_execute_notify_run); the intraday window is already
-    # covered by hourly_alert.yml. Correctly homing orb_trajectory / post_orb /
-    # midmorning / power_hour is deferred to a follow-up PRD (see PROJECT_STATE).
+  # Completion PR (2026-09-09): NO schedule triggers. The Cloudflare clock
+  # (workers/cuttingboard-clock) is the AUTHORITATIVE routine clock and
+  # dispatches every automatic arrival: PRE (12:50 UTC, mode=prefetch
+  # slot=PRE), OPEN (06:00 PT, mode=live slot=OPEN) and the Sunday session
+  # (23:30 UTC, mode=sunday, no slot). The former GitHub execution crons
+  # (50 12 PRE, 20 13 / 20 14 seasonal OPEN fallbacks, 30 23 Sunday) are
+  # removed; there is no GitHub execution fallback. The GitHub schedule's only
+  # remaining role is the hourly_alert.yml liveness probe. PRD-189's ORB /
+  # intraday cron removal still stands (see PROJECT_STATE).
   workflow_dispatch:
     inputs:
       mode:
@@ -60,19 +51,20 @@ on:
         type: string
 
 # Never cancel a mid-run pipeline — queue instead.
-# PRD-299: coordination-participating OPEN runs (CF workflow_dispatch slot=OPEN,
-# and the 20 13 / 20 14 delayed fallback crons) use a FIXED DEDICATED group with native
-# non-evicting queuing (queue: max), so a later OPEN-class enqueue (a third valid
-# OPEN, a malformed slot=OPEN dispatch, or a duplicate CF dispatch) can NEVER
-# cancel/replace a pending OPEN fallback (Sol finding C5). All other slots keep
-# the cuttingboard-pipeline group. queue: max is a strict superset of the prior
-# "queue, don't cancel" intent (the old single-pending default silently DROPPED a
-# pending run) and never combines with cancel-in-progress: true.
+# PRD-299: coordination-participating OPEN runs (CF workflow_dispatch slot=OPEN)
+# use a FIXED DEDICATED group with native non-evicting queuing (queue: max), so
+# a later OPEN-class enqueue (a third valid OPEN, a malformed slot=OPEN
+# dispatch, or a duplicate CF dispatch) can NEVER cancel/replace a pending OPEN
+# run (Sol finding C5). All other slots keep the cuttingboard-pipeline group.
+# queue: max is a strict superset of the prior "queue, don't cancel" intent
+# (the old single-pending default silently DROPPED a pending run) and never
+# combines with cancel-in-progress: true. Completion PR: the schedule-cron
+# terms are gone with the schedule triggers.
 # PRD-194: cross-workflow publish races to the `publish` branch are handled by
 # ci_push_artifacts.sh's delta-append + bounded push-retry, NOT a shared lock.
 concurrency:
   group: >-
-    ${{ ((github.event_name == 'workflow_dispatch' && inputs.slot == 'OPEN') || github.event.schedule == '20 13 * * 1-5' || github.event.schedule == '20 14 * * 1-5')
+    ${{ (github.event_name == 'workflow_dispatch' && inputs.slot == 'OPEN')
      && 'cb-open-coordination' || 'cuttingboard-pipeline' }}
   queue: max
 
@@ -82,6 +74,9 @@ permissions:
 
 jobs:
   pipeline:
+    # Completion PR: execution arrives ONLY by workflow_dispatch (Cloudflare
+    # routine dispatch or a manual live/prefetch/sunday/verify dispatch).
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 20
     runs-on: ubuntu-latest
 
@@ -120,12 +115,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      # PRD-189: resolve the slot in scripts/resolve_run_mode.py (stdlib-only,
-      # unit-tested). It keys on github.event.schedule (the cron string), not
-      # wall-clock minutes, so a queue-delayed run still resolves to its slot
-      # (the old exact-minute match resolved every late run to noop). Scope is
-      # the dedicated premarket crons (prefetch/live/sunday); intraday/orb are
-      # deferred to a follow-up PRD (see PROJECT_STATE).
+      # PRD-189: resolve the mode in scripts/resolve_run_mode.py (stdlib-only,
+      # unit-tested). Completion PR: only workflow_dispatch arrives here, so the
+      # mode is the explicit `mode` input; the script's schedule-cron lookup is
+      # retained but dormant (CB_SCHEDULE is always empty). The PRD-299 R2
+      # slot<->mode validation still fails a malformed dispatch closed.
       - name: Determine run mode
         id: mode
         env:
@@ -144,34 +138,14 @@ jobs:
           echo "job_mode=$job_mode" >> "$GITHUB_OUTPUT"
           echo "Resolved mode: $job_mode"
 
-      # PRD-319 R5: season gate for the dual-seasonal OPEN fallback crons.
-      # Runs ONLY for the two schedule-event fallback crons (never for a
-      # workflow_dispatch OPEN, Sunday, or prefetch). Season-keyed — a LATE
-      # in-season delivery still executes; the off-season twin always no-ops.
-      # The script fails closed (non-zero) on an unknown cron, failing the job
-      # visibly rather than guessing.
-      - name: OPEN fallback season gate
-        id: seasongate
-        if: >-
-          github.event_name == 'schedule' &&
-          (github.event.schedule == '20 13 * * 1-5' || github.event.schedule == '20 14 * * 1-5')
-        env:
-          CB_EVENT_SCHEDULE: ${{ github.event.schedule }}
-        run: |
-          set -eo pipefail
-          verdict="$(python3 scripts/check_open_fallback_window.py)"
-          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
-          echo "Season gate: $verdict"
-
-      - name: OPEN fallback off-season (coordinated no-op)
-        if: steps.seasongate.outputs.verdict == 'OFF_SEASON_NOOP'
-        run: |
-          echo "Off-season fallback twin — the other seasonal cron owns 06:20 PT today."
-          echo "This run concludes as a coordinated no-op success; no publish."
+      # Completion PR (2026-09-09): the PRD-319 R5 seasonal OPEN fallback
+      # crons and their season gate (scripts/check_open_fallback_window.py)
+      # are unwired -- no schedule event reaches this workflow. The script is
+      # retained, dormant, per the no-purge ruling.
 
       # PRD-299 R6: automatic-OPEN first-success pre-check. Runs only for an
-      # automatic OPEN invocation (the 20 13 / 20 14 fallback crons OR a workflow_dispatch
-      # slot=OPEN). Uses the ambient github.token (existing actions: read; no new
+      # automatic OPEN invocation (a workflow_dispatch slot=OPEN; the Cloudflare
+      # clock's duplicate-dispatch case). Uses the ambient github.token (existing actions: read; no new
       # credential). FAIL TOWARD AVAILABILITY: never fail the job here — the
       # emitted `state` output is the signal. state==SATISFIED => a prior
       # qualifying OPEN already published today => skip live (coordinated no-op
@@ -182,8 +156,7 @@ jobs:
         id: openslot
         if: >-
           steps.mode.outputs.job_mode == 'live' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP' &&
-          (github.event.schedule == '20 13 * * 1-5' || github.event.schedule == '20 14 * * 1-5' || github.event.inputs.slot == 'OPEN')
+          github.event.inputs.slot == 'OPEN'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -220,8 +193,7 @@ jobs:
           (steps.mode.outputs.job_mode == 'prefetch' ||
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday') &&
-          steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+          steps.openslot.outputs.state != 'SATISFIED'
         run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
 
       - name: Restore OHLCV cache
@@ -229,8 +201,7 @@ jobs:
           (steps.mode.outputs.job_mode == 'prefetch' ||
           steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday') &&
-          steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+          steps.openslot.outputs.state != 'SATISFIED'
         uses: actions/cache/restore@v4
         with:
           path: data/cache
@@ -273,15 +244,13 @@ jobs:
           (steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify') &&
-          steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+          steps.openslot.outputs.state != 'SATISFIED'
         run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json logs/regime_history.jsonl 'logs/run_*.json'
 
       - name: Install dev dependencies
         # PRD-299 (Sol connector P2): skip on an OPEN coordinated no-op so no
         # fallible tail step can fail the run and fire the failure notifier.
-        if: steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+        if: steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           pip install -e ".[dev]"
@@ -291,8 +260,7 @@ jobs:
       # gate). CI_SUCCESS authorizes an observation ATTEMPT only; any other
       # typed state fails named and loud before execution.
       - name: Exact-SHA CI proof
-        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -305,16 +273,14 @@ jobs:
       # parquet backend, entrypoint arg contract, writable dirs). Seconds-fast,
       # no network / market semantics / pytest / ruff / repair.
       - name: Runtime readiness
-        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=runtime_readiness" >> "$GITHUB_ENV"
           python3 scripts/check_runtime_readiness.py
 
       - name: Engine health check
-        if: steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+        if: steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=engine_doctor" >> "$GITHUB_ENV"
@@ -333,8 +299,7 @@ jobs:
         run: echo "CB_STAGE=upload_engine_doctor" >> "$GITHUB_ENV"
 
       - name: Upload engine doctor artifacts
-        if: always() && steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+        if: always() && steps.openslot.outputs.state != 'SATISFIED'
         uses: actions/upload-artifact@v7
         with:
           name: engine-doctor-${{ github.run_id }}
@@ -400,8 +365,7 @@ jobs:
       # (the single checkout makes in-workspace drift near-impossible); the guard
       # is total and red-tested.
       - name: Revision drift guard
-        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+        if: (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') && steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=revision_drift" >> "$GITHUB_ENV"
@@ -414,8 +378,7 @@ jobs:
 
       # --- Premarket full pipeline ---
       - name: Run live pipeline
-        if: steps.mode.outputs.job_mode == 'live' && steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+        if: steps.mode.outputs.job_mode == 'live' && steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=execute" >> "$GITHUB_ENV"
@@ -485,8 +448,7 @@ jobs:
           (steps.mode.outputs.job_mode == 'live' ||
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify') &&
-          steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+          steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           echo "CB_STAGE=verify" >> "$GITHUB_ENV"
@@ -520,8 +482,7 @@ jobs:
         if: >-
           always() &&
           (steps.mode.outputs.job_mode == 'live' || steps.mode.outputs.job_mode == 'sunday') &&
-          steps.openslot.outputs.state != 'SATISFIED' &&
-          steps.seasongate.outputs.verdict != 'OFF_SEASON_NOOP'
+          steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
           python3 - <<'PY'

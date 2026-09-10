@@ -887,26 +887,43 @@ def _workflow_yaml(name: str) -> dict:
     )
 
 
-def test_prd319_pipeline_cron_set_exact() -> None:
+def test_pipeline_has_no_schedule_trigger_dispatch_only() -> None:
+    """Completion PR (2026-09-09): the Cloudflare clock is the authoritative
+    routine clock. cuttingboard.yml has NO schedule triggers (the former PRE /
+    seasonal-OPEN-fallback / Sunday execution crons are gone); the execution
+    job is restricted to workflow_dispatch; no predicate reads
+    github.event.schedule. Manual live/prefetch/sunday/verify dispatch and the
+    OPEN slot coordination inputs are preserved."""
     wf = _workflow_yaml("cuttingboard.yml")
-    crons = sorted(t["cron"] for t in wf[True]["schedule"])
-    assert crons == sorted([
-        "50 12 * * 1-5",   # PRE cache warm (UTC-anchored)
-        "20 13 * * 1-5",   # OPEN delayed fallback, PDT season (06:20 PT)
-        "20 14 * * 1-5",   # OPEN delayed fallback, PST season (06:20 PT)
-        "30 23 * * 0",     # Sunday regime report
-    ])
+    assert list(wf[True]) == ["workflow_dispatch"]
+    assert sorted(wf[True]["workflow_dispatch"]["inputs"]["mode"]["options"]) == [
+        "live", "prefetch", "sunday", "verify",
+    ]
+    assert set(wf[True]["workflow_dispatch"]["inputs"]) == {"mode", "slot", "source"}
+    assert wf["jobs"]["pipeline"]["if"] == "github.event_name == 'workflow_dispatch'"
+    text = (REPO_ROOT / ".github" / "workflows" / "cuttingboard.yml").read_text(encoding="utf-8")
+    predicates = [ln for ln in text.splitlines() if not ln.lstrip().startswith("#")]
+    joined = "\n".join(predicates)
+    assert "github.event.schedule ==" not in joined
+    assert "steps.seasongate" not in joined
+    for retired in ("'50 12 * * 1-5'", "'20 13 * * 1-5'", "'20 14 * * 1-5'", "'30 23 * * 0'"):
+        assert retired not in joined, retired
+    # Dormant season gate is never invoked (retained on disk per no-purge).
+    assert "python3 scripts/check_open_fallback_window.py" not in joined
 
 
-def test_prd319_hourly_cron_set_exact() -> None:
+def test_hourly_probe_cron_set_unchanged_arrival_times() -> None:
+    """The schedule strings are the PRD-319 R4 arrival times, unchanged; only
+    their meaning changed (liveness probes, never execution -- see
+    test_hourly_schedule_is_probe_only_never_executes)."""
     wf = _workflow_yaml("hourly_alert.yml")
     crons = sorted(t["cron"] for t in wf[True]["schedule"])
     assert crons == sorted([
-        "40 13 * * 1-5",   # 06:30 heartbeat, PDT season (06:40 PT)
-        "40 14 * * 1-5",   # 06:30 heartbeat, PST season (06:40 PT)
-        "55 13 * * 1-5",   # 06:45 heartbeat, PDT season (06:55 PT)
-        "55 14 * * 1-5",   # 06:45 heartbeat, PST season (06:55 PT)
-        "10 14-21 * * 1-5",  # hourly heartbeats (07:10-13:10 PT per season)
+        "40 13 * * 1-5",
+        "40 14 * * 1-5",
+        "55 13 * * 1-5",
+        "55 14 * * 1-5",
+        "10 14-21 * * 1-5",
     ])
 
 
@@ -919,17 +936,159 @@ def test_prd319_hourly_dispatch_inputs_shape() -> None:
     assert inputs["slot"]["default"] == ""
 
 
-def test_prd319_hourly_heartbeats_carry_explicit_identity() -> None:
-    text = (REPO_ROOT / ".github" / "workflows" / "hourly_alert.yml").read_text(
-        encoding="utf-8"
+_PRODUCT_EXECUTION_TOKENS = (
+    "alert_runner",
+    "cuttingboard.delivery",
+    "dashboard_renderer",
+    "regime_history",
+    "ci_push_artifacts",
+    "ci_restore_publish_state",
+    "git commit",
+    "git add",
+    "pip install",
+    "actions/cache",
+    "check_readiness",
+    "telegram",
+    "polygon",
+)
+
+
+def _hourly_jobs() -> dict:
+    return _workflow_yaml("hourly_alert.yml")["jobs"]
+
+
+def test_hourly_schedule_is_probe_only_never_executes() -> None:
+    """Completion PR (2026-09-09): a schedule event runs ONLY the `liveness`
+    job -- contents:read, no secrets, no product execution tokens in any step,
+    its own concurrency group -- and the `alert` (execution) job runs ONLY on
+    workflow_dispatch. Mutually exclusive by `if:`; a probe can never enter
+    the hourly dispatch queue or the product path."""
+    wf = _workflow_yaml("hourly_alert.yml")
+    jobs = wf["jobs"]
+    assert set(jobs) == {"alert", "liveness"}
+    assert jobs["alert"]["if"] == "github.event_name == 'workflow_dispatch'"
+    assert jobs["liveness"]["if"] == "github.event_name == 'schedule'"
+    # Job-level permissions/concurrency only (no workflow-level widening).
+    assert "permissions" not in wf and "concurrency" not in wf
+    assert jobs["liveness"]["permissions"] == {"contents": "read"}
+    assert jobs["alert"]["permissions"] == {"contents": "write"}
+    assert jobs["liveness"]["concurrency"]["group"] == "hourly-liveness"
+    assert jobs["alert"]["concurrency"]["group"] == "hourly-alert"
+    assert jobs["alert"]["concurrency"]["cancel-in-progress"] is False
+    # Probe env: no secrets relayed.
+    for key, value in (jobs["liveness"].get("env") or {}).items():
+        assert "secrets." not in str(value), key
+    # Probe steps: read-only checkout + python + the liveness script; nothing else.
+    probe_blob = "\n".join(
+        str(step.get("name", "")) + "\n" + str(step.get("run", "")) + "\n" + str(step.get("uses", ""))
+        for step in jobs["liveness"]["steps"]
+    ).lower()
+    for token in _PRODUCT_EXECUTION_TOKENS:
+        assert token not in probe_blob, f"liveness probe references {token!r}"
+    assert "scripts/check_hourly_liveness.py" in probe_blob
+    # Execution job keeps both dispatch paths and has NO schedule branch.
+    run_step = next(s for s in jobs["alert"]["steps"] if s.get("name") == "Run hourly alert")
+    assert '--routine-slot "$CB_DISPATCH_SLOT"' in run_step["run"]
+    assert "--force-slot" in run_step["run"]
+    assert "CB_EVENT_SCHEDULE" not in run_step.get("env", {})
+    assert "github.event.schedule" not in run_step["run"]
+    assert "case " not in run_step["run"]
+
+
+def _bash_block(job: str, step_name: str) -> str:
+    step = next(s for s in _hourly_jobs()[job]["steps"] if s.get("name") == step_name)
+    return step["run"]
+
+
+def _run_block_with_stub_python(block: str, env: dict, tmp_path: Path) -> list[str]:
+    """Execute a workflow shell block under bash with a stub `python`/`python3`
+    on PATH that records argv instead of executing; return recorded argv lines."""
+    stub_dir = tmp_path / "stubbin"
+    stub_dir.mkdir(exist_ok=True)
+    log = tmp_path / "stub_calls.log"
+    for name in ("python", "python3"):
+        stub = stub_dir / name
+        stub.write_text(f'#!/usr/bin/env bash\necho "$*" >> "{log}"\n', encoding="utf-8")
+        stub.chmod(0o755)
+    full_env = {
+        "PATH": f"{stub_dir}:{Path('/usr/bin')}:{Path('/bin')}",
+        "GITHUB_OUTPUT": str(tmp_path / "gh_output"),
+        **env,
+    }
+    proc = subprocess.run(["bash", "-c", block], cwd=tmp_path, env=full_env, capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    return log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+
+
+@pytest.mark.parametrize(
+    "kind, slot, expected",
+    [
+        ("routine", "06:45", "-m cuttingboard.alert_runner --routine-slot 06:45"),
+        ("routine", "13:00", "-m cuttingboard.alert_runner --routine-slot 13:00"),
+        ("forced", "", "-m cuttingboard.alert_runner --force-slot"),
+        ("", "", "-m cuttingboard.alert_runner --force-slot"),          # manual default
+        ("routine", "", "-m cuttingboard.alert_runner --force-slot"),   # routine without slot -> forced
+    ],
+)
+def test_alert_run_block_routes_dispatch_inputs(tmp_path: Path, kind: str, slot: str, expected: str) -> None:
+    """Executes the ACTUAL `Run hourly alert` shell block with a stub python."""
+    calls = _run_block_with_stub_python(
+        _bash_block("alert", "Run hourly alert"),
+        {"CB_DISPATCH_KIND": kind, "CB_DISPATCH_SLOT": slot},
+        tmp_path,
     )
-    # The four 06:xx heartbeat crons map to explicit intended slots; the
-    # hourly heartbeats keep inference (no slot literal for them).
-    assert '"40 13 * * 1-5"|"40 14 * * 1-5"' in text
-    assert '--routine-slot "06:30"' in text
-    assert '"55 13 * * 1-5"|"55 14 * * 1-5"' in text
-    assert '--routine-slot "06:45"' in text
-    assert "--force-slot" in text  # manual/forced path preserved
+    assert calls == [expected]
+
+
+def test_liveness_run_block_invokes_only_the_probe(tmp_path: Path) -> None:
+    calls = _run_block_with_stub_python(_bash_block("liveness", "Hourly delivery liveness"), {}, tmp_path)
+    assert calls == ["scripts/check_hourly_liveness.py"]
+
+
+def test_freshness_block_reports_no_fresh_payload_without_inferring_suppression(tmp_path: Path) -> None:
+    """Executes the ACTUAL freshness block: the payload-mtime predicate is
+    unchanged (old => fresh=false, current => fresh=true, absent => fresh=false)
+    and the old-payload wording states the factual condition only -- it never
+    claims the runner suppressed the slot."""
+    import os
+    import time
+
+    block = _bash_block("alert", "Detect fresh hourly artifacts")
+    # The block embeds ${{ steps.starttime.outputs.ts }}; substitute a literal.
+    now = int(time.time())
+    block = block.replace("${{ steps.starttime.outputs.ts }}", str(now))
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    payload = logs / "latest_hourly_payload.json"
+    out = tmp_path / "gh_output"
+
+    def run() -> tuple[str, str]:
+        out.write_text("", encoding="utf-8")
+        proc = subprocess.run(["bash", "-c", block], cwd=tmp_path, env={**os.environ, "GITHUB_OUTPUT": str(out)},
+                              capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout, out.read_text(encoding="utf-8")
+
+    stdout, gh = run()  # absent
+    assert "fresh=false" in gh and "no fresh hourly payload detected" in stdout
+
+    payload.write_text("{}", encoding="utf-8")
+    os.utime(payload, (now - 3600, now - 3600))  # old
+    stdout, gh = run()
+    assert "fresh=false" in gh
+    assert "no fresh hourly payload detected" in stdout
+    assert "suppressed" not in stdout.lower()
+    assert f"start={now}" in stdout
+
+    os.utime(payload, (now + 5, now + 5))  # current
+    stdout, gh = run()
+    assert "fresh=true" in gh and "fresh hourly payload detected" in stdout
+
+
+def test_hourly_freshness_wording_never_claims_suppression() -> None:
+    block = _bash_block("alert", "Detect fresh hourly artifacts")
+    assert "alert_runner suppressed slot" not in block
+    assert '"$payload_mtime" -lt "$START_TS"' in block  # predicate unchanged
 
 
 def test_prd319_hourly_has_ohlcv_cache_restore() -> None:

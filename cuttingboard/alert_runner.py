@@ -12,6 +12,19 @@ from cuttingboard.output import send_notification
 
 logger = logging.getLogger(__name__)
 
+# Completion PR (2026-09-09): the runner is the hourly job's process entrypoint
+# (no cli_main, so no runtime logging setup ran before it). Without this, every
+# INFO line -- including the suppression reasons below -- was dropped by the
+# root logger's default WARNING level, and the Actions log showed nothing but
+# "no fresh payload". basicConfig is a no-op when a handler already exists
+# (tests, embedding), so this never double-configures.
+_LOG_FORMAT = "%(asctime)s  %(levelname)-8s  %(name)s - %(message)s"
+_LOG_DATEFMT = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def _configure_logging() -> None:
+    logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT, datefmt=_LOG_DATEFMT)
+
 
 def _ascii_safe(text: str) -> str:
     return text.encode("ascii", errors="replace").decode("ascii")
@@ -42,13 +55,45 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         metavar="HH:MM",
         help=(
             "PRD-319: explicitly named routine PT slot (Cloudflare routine "
-            "dispatch / mapped GitHub heartbeat). Honoured via explicit_pt_slot "
-            "-- window-checked and deduped like a cron arrival, but the slot "
-            "identity never shifts under start-time delay. Ignored when "
-            "--force-slot is set."
+            "dispatch). Honoured via explicit_pt_slot -- window-checked and "
+            "deduped like a cron arrival, but the slot identity never shifts "
+            "under start-time delay. Ignored when --force-slot is set."
         ),
     )
     return parser.parse_args(argv if argv is not None else [])
+
+
+def _signed_minutes(delta_seconds: float) -> str:
+    minutes = int(round(delta_seconds / 60.0))
+    return f"{minutes:+d}m"
+
+
+def _intended_slot_diagnostic(
+    now_pt: datetime, slot_label: str | None, allowed_slots, max_lag_minutes: int
+) -> str:
+    """Describe the intended slot and signed lag for a suppression line.
+
+    Named + valid: ``intended_slot=HH:MM PT (<same-date PT instant>) lag=+Nm``
+    (positive = arrival after the slot; negative = before it). Named but not an
+    allowed HH:MM: ``intended_slot=invalid ('label')``. Unnamed (inference
+    arrival): ``intended_slot=unavailable (inferred ...)``. Never invents a
+    slot the arrival did not name.
+    """
+    if slot_label is None:
+        return (
+            "intended_slot=unavailable (inferred arrival; no allowed slot within "
+            f"{max_lag_minutes}m)"
+        )
+    try:
+        hh_s, mm_s = slot_label.strip().split(":")
+        hour, minute = int(hh_s), int(mm_s)
+    except (AttributeError, ValueError):
+        return f"intended_slot=invalid ({slot_label!r})"
+    if (hour, minute) not in allowed_slots:
+        return f"intended_slot=invalid ({slot_label!r} not an allowed PT slot)"
+    slot_pt = now_pt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    lag = _signed_minutes((now_pt - slot_pt).total_seconds())
+    return f"intended_slot={hour:02d}:{minute:02d} PT ({slot_pt.isoformat()}) lag={lag}"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -58,13 +103,16 @@ def main(argv: list[str] | None = None) -> int:
     ``SUMMARY_STATUS_SUCCESS`` — TRADE, NO_TRADE, or market-stress safety HALT) or
     a suppressed slot; an in-run system failure and a runner-level exception both
     exit 1 (the latter after the unchanged notification/diagnostic backstop).
+    Every exit states its actual reason in the log (completion PR, 2026-09-09).
     """
+    _configure_logging()
     args = _parse_args(argv)
     force_slot = args.force_slot or os.environ.get("CUTTINGBOARD_FORCE_SLOT") == "1"
 
     try:
         from cuttingboard.notifications import NOTIFY_HOURLY
         from cuttingboard.notifications.hourly_slot import (
+            ALLOWED_PT_SLOTS,
             _PT_TZ,
             canonical_slot_utc,
             explicit_pt_slot,
@@ -79,17 +127,23 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         now_utc = datetime.now(timezone.utc)
+        max_lag_minutes = 25  # PRD-149/319 admission window (inclusive), unchanged
 
         if force_slot:
             slot_utc = canonical_slot_utc(now_utc)
+            logger.info(
+                "hourly alert forced: slot_utc=%s now_pt=%s (window and dedup bypassed)",
+                slot_utc.isoformat(),
+                now_utc.astimezone(_PT_TZ).isoformat(),
+            )
         else:
             # PRD-319 R2: an explicitly named routine slot is honoured or the
             # arrival no-ops; identity never shifts to a neighbouring slot the
-            # way start-time inference can. Cron arrivals keep inference.
+            # way start-time inference can.
             if args.routine_slot is not None:
-                slot_utc = explicit_pt_slot(now_utc, args.routine_slot)
+                slot_utc = explicit_pt_slot(now_utc, args.routine_slot, max_lag_minutes)
             else:
-                slot_utc = routine_pt_slot(now_utc)
+                slot_utc = routine_pt_slot(now_utc, max_lag_minutes)
             if slot_utc is None:
                 now_pt = now_utc.astimezone(_PT_TZ)
                 state_key = f"outside:{now_pt.strftime('%Y-%m-%dT%H:%M%z')}"
@@ -106,8 +160,13 @@ def main(argv: list[str] | None = None) -> int:
                     notify_mode=NOTIFY_HOURLY,
                 )
                 logger.info(
-                    "hourly alert suppressed: outside routine window now_pt=%s",
+                    "hourly alert suppressed: reason=outside_routine_window %s now_pt=%s "
+                    "admission_window=+%dm exit=0",
+                    _intended_slot_diagnostic(
+                        now_pt, args.routine_slot, ALLOWED_PT_SLOTS, max_lag_minutes
+                    ),
                     now_pt.isoformat(),
+                    max_lag_minutes,
                 )
                 return 0
             last = load_last_slot()
@@ -122,8 +181,19 @@ def main(argv: list[str] | None = None) -> int:
                     state_key=slot_utc.isoformat(),
                     notify_mode=NOTIFY_HOURLY,
                 )
-                logger.info("hourly alert suppressed: same slot %s", slot_utc.isoformat())
+                logger.info(
+                    "hourly alert suppressed: reason=suppressed_same_slot slot_utc=%s "
+                    "(already delivered; saved_at_utc=%s) now_pt=%s exit=0",
+                    slot_utc.isoformat(),
+                    last.get("saved_at_utc"),
+                    now_utc.astimezone(_PT_TZ).isoformat(),
+                )
                 return 0
+            logger.info(
+                "hourly alert admitted: slot_utc=%s now_pt=%s",
+                slot_utc.isoformat(),
+                now_utc.astimezone(_PT_TZ).isoformat(),
+            )
 
         result = _execute_notify_run(
             mode=MODE_LIVE,
@@ -134,7 +204,16 @@ def main(argv: list[str] | None = None) -> int:
         # PRD-287: exit 0 only on a healthy completion; a non-SUCCESS return
         # (in-run system failure) exits non-zero so the job fails and does not
         # publish. A market-stress safety HALT returns SUCCESS and stays 0.
-        return 0 if result.get("status") == SUMMARY_STATUS_SUCCESS else 1
+        status = result.get("status")
+        if status == SUMMARY_STATUS_SUCCESS:
+            logger.info("hourly alert completed: status=%s slot_utc=%s exit=0", status, slot_utc.isoformat())
+            return 0
+        logger.error(
+            "hourly alert failed: reason=non_success_return status=%s slot_utc=%s exit=1",
+            status,
+            slot_utc.isoformat(),
+        )
+        return 1
     except Exception as exc:
         now_utc = datetime.now(timezone.utc)
         logger.exception("alert runner backstop caught exception")
@@ -156,6 +235,10 @@ def main(argv: list[str] | None = None) -> int:
             logger.exception("alert runner backstop notification failed: %s", notify_exc)
         # PRD-287: runner-level exception is a system failure -- exit non-zero
         # AFTER the notification/diagnostic attempt above (unchanged).
+        logger.error(
+            "hourly alert failed: reason=runner_level_exception error_type=%s exit=1",
+            type(exc).__name__,
+        )
         return 1
 
 

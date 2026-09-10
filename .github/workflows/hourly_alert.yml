@@ -2,23 +2,28 @@ name: Cuttingboard Hourly Alert
 
 on:
   schedule:
-    # PRD-319 R4: DELAYED FALLBACK HEARTBEATS behind the Cloudflare primary
-    # clock (workers/cuttingboard-clock). 06:xx crons carry EXPLICIT intended
-    # slot identity (mapped from github.event.schedule below) so a late start
-    # never shifts slots; off-season twins no-op in explicit_pt_slot. Hourly
-    # heartbeats keep inference (unambiguous on the hour with (6,0) retired).
-    # 06:00 PT has NO hourly cron — the daily pipeline owns it.
-    - cron: '40 13 * * 1-5'   # 06:40 PDT -> intended 06:30 (PST 05:40 -> no-op)
-    - cron: '40 14 * * 1-5'   # 06:40 PST -> intended 06:30 (PDT 07:40 -> no-op)
-    - cron: '55 13 * * 1-5'   # 06:55 PDT -> intended 06:45 (PST 05:55 -> no-op)
-    - cron: '55 14 * * 1-5'   # 06:55 PST -> intended 06:45 (PDT 07:55 -> no-op)
-    - cron: '10 14-21 * * 1-5' # hourly heartbeats, 07:10-13:10 PT per season
+    # Completion PR (2026-09-09): these cron arrivals are LIVENESS PROBES ONLY.
+    # The Cloudflare clock (workers/cuttingboard-clock) is the AUTHORITATIVE
+    # routine clock; every routine execution arrival is its workflow_dispatch
+    # below. A schedule event runs ONLY the `liveness` job, which reads the
+    # published delivery evidence (logs/last_hourly_slot.json on the publish
+    # branch) and fails RED when no same-day hourly delivery exists at/after
+    # 08:00 PT. A probe never runs alert_runner, fetches market data, sends
+    # Telegram, renders, stages, or publishes -- there is NO execution fallback.
+    # The cron strings themselves are unchanged (PRD-319 R4 arrival times);
+    # only their meaning changed. Honesty limit: a probe GitHub never delivers
+    # cannot alarm; nothing here pretends otherwise.
+    - cron: '40 13 * * 1-5'
+    - cron: '40 14 * * 1-5'
+    - cron: '55 13 * * 1-5'
+    - cron: '55 14 * * 1-5'
+    - cron: '10 14-21 * * 1-5'
   workflow_dispatch:
     inputs:
       # PRD-319 R2: kind=routine + slot lets the Cloudflare clock dispatch a
       # ROUTINE arrival that obeys the PT window and slot dedup exactly like a
-      # cron arrival, with explicit slot identity. The default (forced)
-      # preserves today's manual-dispatch behavior byte-for-byte.
+      # cron arrival used to, with explicit slot identity. The default (forced)
+      # preserves manual-dispatch behavior byte-for-byte.
       kind:
         description: 'routine (CF clock; window+dedup enforced) or forced (manual override)'
         required: false
@@ -41,21 +46,27 @@ on:
         default: ''
         type: string
 
-# Per-workflow self-serialization: the heartbeat and routine-dispatch arrivals
-# for one slot must not run concurrently or both could alert before either
-# persists last_hourly_slot (dedup needs the prior run's saved slot). PRD-194: cross-workflow publish races go
-# through ci_push_artifacts.sh's delta-append + push-retry, not a shared lock that
-# would over-serialize this alert behind the pipeline/macro producer (Codex P2).
-concurrency:
-  group: hourly-alert
-  cancel-in-progress: false
-
-permissions:
-  contents: write
-
 jobs:
+  # ---------------------------------------------------------------------------
+  # EXECUTION: workflow_dispatch only (Cloudflare routine dispatch or manual).
+  # ---------------------------------------------------------------------------
   alert:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+
+    # Per-workflow self-serialization of EXECUTION arrivals: two routine
+    # dispatches for one slot must not run concurrently or both could alert
+    # before either persists last_hourly_slot (dedup needs the prior run's
+    # saved slot). Job-level so the liveness probe below has its OWN group and
+    # a delayed probe can never occupy this queue. PRD-194: cross-workflow
+    # publish races go through ci_push_artifacts.sh's delta-append +
+    # push-retry, not a shared lock (Codex P2).
+    concurrency:
+      group: hourly-alert
+      cancel-in-progress: false
+
+    permissions:
+      contents: write
 
     env:
       # PRD-194: artifacts publish to this unprotected branch, not main.
@@ -71,7 +82,7 @@ jobs:
       # PRD-194: pin to main. workflow_dispatch can be triggered from any branch;
       # publishing now targets the UNPROTECTED `publish` branch, so an unpinned
       # checkout would let a dispatch on a feature branch publish that branch's
-      # rendered ui/logs to production. Scheduled runs already run on main.
+      # rendered ui/logs to production.
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -139,30 +150,24 @@ jobs:
 
       - name: Run hourly alert
         env:
-          CB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           CB_DISPATCH_KIND: ${{ github.event.inputs.kind }}
           CB_DISPATCH_SLOT: ${{ github.event.inputs.slot }}
         run: |
-          # PRD-319 R2/R4: routine dispatch -> explicit slot; other dispatch ->
-          # forced (today's behavior); 06:xx heartbeats -> mapped explicit
-          # slot; hourly heartbeats -> inference.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ "$CB_DISPATCH_KIND" = "routine" ] && [ -n "$CB_DISPATCH_SLOT" ]; then
-              python -m cuttingboard.alert_runner --routine-slot "$CB_DISPATCH_SLOT"
-            else
-              python -m cuttingboard.alert_runner --force-slot
-            fi
+          # PRD-319 R2: routine dispatch -> explicit slot (window + dedup
+          # enforced, identity never shifts); any other dispatch -> forced
+          # (manual override, unchanged). No schedule branch exists here: a
+          # schedule event never reaches this job (see the liveness job).
+          if [ "$CB_DISPATCH_KIND" = "routine" ] && [ -n "$CB_DISPATCH_SLOT" ]; then
+            python -m cuttingboard.alert_runner --routine-slot "$CB_DISPATCH_SLOT"
           else
-            case "$CB_EVENT_SCHEDULE" in
-              "40 13 * * 1-5"|"40 14 * * 1-5")
-                python -m cuttingboard.alert_runner --routine-slot "06:30" ;;
-              "55 13 * * 1-5"|"55 14 * * 1-5")
-                python -m cuttingboard.alert_runner --routine-slot "06:45" ;;
-              *)
-                python -m cuttingboard.alert_runner ;;
-            esac
+            python -m cuttingboard.alert_runner --force-slot
           fi
 
+      # Freshness predicate (unchanged): a payload older than the runner start
+      # proves only that NO FRESH HOURLY PAYLOAD was produced this run. It does
+      # NOT identify why the runner exited (suppression reason, slot identity,
+      # lag) -- alert_runner logs that itself in the step above. Never infer a
+      # runner path from filesystem freshness.
       - name: Detect fresh hourly artifacts
         id: freshcheck
         if: ${{ success() }}
@@ -172,13 +177,13 @@ jobs:
           START_TS=${{ steps.starttime.outputs.ts }}
           if [ ! -f "$PAYLOAD" ]; then
             echo "fresh=false" >> "$GITHUB_OUTPUT"
-            echo "alert_runner produced no hourly payload; skipping publish"
+            echo "no fresh hourly payload detected (payload absent); skipping publish"
             exit 0
           fi
           payload_mtime=$(stat -c %Y "$PAYLOAD")
           if [ "$payload_mtime" -lt "$START_TS" ]; then
             echo "fresh=false" >> "$GITHUB_OUTPUT"
-            echo "alert_runner suppressed slot (payload mtime=$payload_mtime < start=$START_TS); skipping publish"
+            echo "no fresh hourly payload detected (payload mtime=$payload_mtime < start=$START_TS); skipping publish -- see the Run hourly alert step for the runner's stated exit reason"
           else
             echo "fresh=true" >> "$GITHUB_OUTPUT"
             echo "fresh hourly payload detected (mtime=$payload_mtime >= start=$START_TS)"
@@ -281,3 +286,42 @@ jobs:
             logs/latest_hourly_payload.json
           if-no-files-found: ignore
           retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # LIVENESS PROBE: schedule only. Read-only, stdlib-only, no secrets, no
+  # product execution. RED (job failure) = no same-day hourly delivery evidence
+  # on the publish branch at/after 08:00 PT (scripts/check_hourly_liveness.py).
+  # ---------------------------------------------------------------------------
+  liveness:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    # Own group: a queue-delayed probe never occupies the execution queue above.
+    concurrency:
+      group: hourly-liveness
+      cancel-in-progress: false
+
+    permissions:
+      contents: read
+
+    env:
+      PUBLISH_BRANCH: publish
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      # No pip install: the probe is stdlib + the stdlib-only hourly_slot leaf.
+      # It fetches origin/$PUBLISH_BRANCH itself and reads the exact blob;
+      # it never runs the restore helper (whose main-copy fallback would let a
+      # frozen record masquerade as delivery evidence).
+      - name: Hourly delivery liveness
+        run: python3 scripts/check_hourly_liveness.py

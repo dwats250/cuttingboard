@@ -266,19 +266,24 @@ def test_struct_run_name_carrier_present() -> None:
     assert "format('CB-SLOT:{0}', inputs.slot)" in text
 
 
-def test_struct_cron_swapped() -> None:
-    # PRD-319 R5: dual-seasonal delayed fallbacks replace the single 5 13; the
-    # exact pair is pinned, both retired live crons are banned, and the season
-    # gate + run-name + concurrency + first-success predicates must all
-    # recognize BOTH new expressions (counted; a partial literal update fails).
+def test_struct_open_coordination_is_dispatch_only() -> None:
+    # Completion PR (2026-09-09): the PRD-319 R5 seasonal fallback crons and
+    # their season gate are unwired. OPEN coordination (run-name carrier,
+    # dedicated concurrency group, first-success pre-check) is keyed SOLELY on
+    # a workflow_dispatch slot=OPEN; no predicate reads github.event.schedule.
     text = _wf()
-    # Quote-delimited: '20 13 * * 1-5' contains the bare "0 13 * * 1-5" substring.
-    assert "'0 13 * * 1-5'" not in text   # old live cron removed (PRD-299 R7)
-    assert "'5 13 * * 1-5'" not in text   # single fallback retired (PRD-319 R5)
-    assert text.count("'20 13 * * 1-5'") >= 4  # cron + run-name + concurrency + gate/openslot ifs
-    assert text.count("'20 14 * * 1-5'") >= 4
-    assert "check_open_fallback_window.py" in text
-    assert "OFF_SEASON_NOOP" in text
+    live = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
+    assert "'0 13 * * 1-5'" not in live   # old live cron removed (PRD-299 R7)
+    assert "'5 13 * * 1-5'" not in live   # single fallback retired (PRD-319 R5)
+    assert "'20 13 * * 1-5'" not in live  # seasonal fallbacks removed (completion PR)
+    assert "'20 14 * * 1-5'" not in live
+    assert "github.event.schedule ==" not in live
+    assert "OFF_SEASON_NOOP" not in live
+    assert "python3 scripts/check_open_fallback_window.py" not in live
+    i_pre = text.index("name: OPEN first-success pre-check")
+    region = text[i_pre : i_pre + 400]
+    assert "github.event.inputs.slot == 'OPEN'" in region
+    assert "(github.event_name == 'workflow_dispatch' && inputs.slot == 'OPEN')" in text  # concurrency
 
 
 def test_struct_slot_and_source_inputs_present() -> None:
