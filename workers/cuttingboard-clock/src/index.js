@@ -15,7 +15,17 @@
 // PT from event.scheduledTime (America/Los_Angeles) is authoritative for slot
 // eligibility and identity; handler execution time is never authority. Dual
 // UTC triggers cover both DST offsets -- at most one resolves per instant.
-// PRE (12:50Z) is the one UTC-anchored row (cache warm-up, not PT cadence).
+// PRE (12:50Z) is the one UTC-anchored weekday row (cache warm-up, not PT
+// cadence).
+//
+// Completion PR (2026-09-09): this Worker is the AUTHORITATIVE routine clock.
+// The GitHub schedule is a liveness PROBE only (never an execution fallback),
+// so a REJECTED / ERROR dispatch here is a MISSED slot until the owner acts.
+// The Sunday session (23:30 UTC, existing pipeline mode=sunday, no slot) is
+// dispatched from here as well (owner ruling "Wire up Sunday session to
+// cloudflare"). Logging is bounded transport metadata: workflow, slot/mode,
+// scheduledTime, HTTP status, error class. Never the credential, request
+// headers, or response bodies.
 // Credential: Actions-write-only token in the GH_DISPATCH_TOKEN secret.
 
 const REPO = "dwats250/cuttingboard";
@@ -52,9 +62,17 @@ const PT_WEEKDAYS = new Set(["Mon", "Tue", "Wed", "Thu", "Fri"]);
 // executes THIS production function over a both-season instant table.
 export function resolveSlot(scheduledTimeMs) {
   const d = new Date(scheduledTimeMs);
-  // PRE: UTC-anchored warm-up, weekday-gated in UTC (matches its 1-5 cron).
+  const utcDay = d.getUTCDay();
+  // Sunday session: UTC-anchored 23:30 Sunday, year-round (matches its SUN
+  // cron). Existing pipeline mode=sunday contract: no slot input.
+  if (utcDay === 0 && d.getUTCHours() === 23 && d.getUTCMinutes() === 30) {
+    return {
+      workflow: PIPELINE_WORKFLOW,
+      inputs: { mode: "sunday", source: SOURCE },
+    };
+  }
+  // PRE: UTC-anchored warm-up, weekday-gated in UTC (matches its MON-FRI cron).
   if (d.getUTCHours() === 12 && d.getUTCMinutes() === 50) {
-    const utcDay = d.getUTCDay();
     if (utcDay === 0 || utcDay === 6) return null;
     return {
       workflow: PIPELINE_WORKFLOW,
@@ -78,6 +96,13 @@ export function resolveSlot(scheduledTimeMs) {
   return null;
 }
 
+// Safe log identity for one resolution: workflow + slot (or mode for the
+// slot-less Sunday session) + the authoritative scheduledTime. No secrets.
+function dispatchIdentity(workflow, inputs, scheduledTimeMs) {
+  const slot = inputs.slot !== undefined ? `slot=${inputs.slot}` : `mode=${inputs.mode}`;
+  return `workflow=${workflow} ${slot} scheduledTime=${new Date(scheduledTimeMs).toISOString()}`;
+}
+
 export default {
   async scheduled(event, env, _ctx) {
     // scheduledTime, never event.cron and never handler wall-clock (PRD-319 R1).
@@ -89,13 +114,14 @@ export default {
       return;
     }
     const { workflow, inputs } = resolution;
+    const identity = dispatchIdentity(workflow, inputs, event.scheduledTime);
 
     const token = env.GH_DISPATCH_TOKEN;
     if (!token) {
-      // A missing credential is a DISPATCH failure only, never an observation
-      // failure. The GitHub fallback crons still cover the slot.
+      // A missing credential is a DISPATCH failure: the slot is MISSED (no
+      // GitHub execution fallback exists). Owner action: bind the secret.
       console.error(
-        `cuttingboard-clock: GH_DISPATCH_TOKEN secret missing; dispatch REJECTED workflow=${workflow} inputs=${JSON.stringify(inputs)}`,
+        `cuttingboard-clock: dispatch REJECTED reason=missing_secret ${identity}`,
       );
       return;
     }
@@ -115,21 +141,24 @@ export default {
         body,
       });
       if (resp.status === 204) {
-        console.log(
-          `cuttingboard-clock: dispatch ACCEPTED workflow=${workflow} inputs=${JSON.stringify(inputs)}`,
-        );
+        console.log(`cuttingboard-clock: dispatch ACCEPTED status=204 ${identity}`);
       } else {
-        const text = await resp.text();
+        // Bounded metadata only: the response body is never logged (it can
+        // echo request material). 401/403 = credential/access problem;
+        // 422 = schema/ref rejection; anything else = GitHub-side failure.
         console.error(
-          `cuttingboard-clock: dispatch REJECTED status=${resp.status} workflow=${workflow} body=${text}`,
+          `cuttingboard-clock: dispatch REJECTED status=${resp.status} ${identity}`,
         );
       }
     } catch (err) {
-      // Network/transport error contacting GitHub -> dispatch failure only.
-      console.error(`cuttingboard-clock: dispatch ERROR workflow=${workflow}: ${err}`);
+      // Network/transport error contacting GitHub -> dispatch failure. Log the
+      // error CLASS only; the message can carry URL/header material.
+      const cls = err && err.name ? err.name : typeof err;
+      console.error(`cuttingboard-clock: dispatch ERROR error=${cls} ${identity}`);
     }
-    // Dispatch acceptance != execution success != observation validity. The
-    // delayed GitHub fallbacks cover a missed/failed CF dispatch; duplicates
-    // are absorbed by first-success (pipeline) / slot dedup (hourly).
+    // Dispatch acceptance != execution success != observation validity.
+    // Duplicates are absorbed by first-success (pipeline) / slot dedup
+    // (hourly). A rejected or errored dispatch is NOT retried and is NOT
+    // covered by any GitHub schedule: the liveness probe surfaces the gap.
   },
 };
