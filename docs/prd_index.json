@@ -1694,6 +1694,12 @@
       "title": "Market Structure Universe (NS-4A v2) precursor for NS-4C Leadership",
       "status": "COMPLETE",
       "commit": "#325"
+    },
+    {
+      "number": 338,
+      "title": "Session-validated permission observations: SHORT session identity and macro valid-quote consumption",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
