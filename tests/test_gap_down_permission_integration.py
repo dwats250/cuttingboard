@@ -237,17 +237,19 @@ def test_prd338_prior_session_bar_is_unavailable_before_state_engine():
     ],
     ids=["naive", "nat", "malformed", "unconvertible"],
 )
-def test_prd338_short_rejects_unusable_timestamps_before_state_engine(bad_timestamp):
-    """All unusable latest timestamps use existing unavailable semantics."""
+@pytest.mark.parametrize("later_rows", [[], [_et_ts(9, 55)]], ids=["latest", "non-latest"])
+def test_prd338_short_rejects_unusable_timestamps_before_state_engine(bad_timestamp, later_rows):
+    """Any unusable index member, latest or earlier, uses existing unavailable semantics."""
+    rows = 1 + len(later_rows)
     frame = pd.DataFrame(
         {
-            "Open": [453.0],
-            "High": [453.5],
-            "Low": [452.5],
-            "Close": [453.0],
-            "Volume": [2_500_000],
+            "Open": [453.0] * rows,
+            "High": [453.5] * rows,
+            "Low": [452.5] * rows,
+            "Close": [453.0] * rows,
+            "Volume": [2_500_000] * rows,
         },
-        index=[bad_timestamp],
+        index=[bad_timestamp, *later_rows],
     )
 
     with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=frame), \

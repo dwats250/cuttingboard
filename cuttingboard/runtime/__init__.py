@@ -1828,11 +1828,11 @@ def _apply_intraday_short_permission(
             continue
 
         try:
-            latest_timestamp = pd.Timestamp(intraday_df.index[-1])
-            if pd.isna(latest_timestamp) or latest_timestamp.tzinfo is None:
-                raise ValueError("latest timestamp is missing, NaT, or naive")
+            timestamps = [pd.Timestamp(value) for value in intraday_df.index]
+            if any(pd.isna(ts) or ts.tzinfo is None for ts in timestamps):
+                raise ValueError("index contains a missing, NaT, or naive timestamp")
             latest_et_date = time_utils.convert_utc_to_et(
-                latest_timestamp.to_pydatetime()
+                timestamps[-1].to_pydatetime()
             ).date()
         except Exception as exc:
             logger.info("Skipping intraday short gate for %s: unusable timestamp: %s", symbol, exc)
