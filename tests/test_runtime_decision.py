@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace as _dc_replace
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -11,7 +11,8 @@ import pytest
 from cuttingboard import audit, output, runtime
 from cuttingboard import validation as validation_mod
 from cuttingboard.normalization import NormalizedQuote
-from cuttingboard.chain_validation import ChainValidationResult, MANUAL_CHECK
+from cuttingboard.chain_validation import ChainValidationResult, MANUAL_CHECK, VALIDATED
+from cuttingboard.ingestion import RawQuote
 from cuttingboard.options import (
     OPTIONS_SIZING,
     SMALLEST_CONTRACT_EXCEEDS_BUDGET,
@@ -472,10 +473,18 @@ def _run_kill_switch_case(
         "compute_regime",
         lambda quotes: _dc_replace(_regime(), vix_level=vix_level, vix_pct_change=vix_pct_change),
     )
+    normalized_quotes = _market_quotes(spy_pct_change)
     monkeypatch.setattr(
         runtime,
         "_load_inputs",
-        lambda mode, fixture_file: ({}, _market_quotes(spy_pct_change)),
+        lambda mode, fixture_file: ({}, normalized_quotes),
+    )
+    monkeypatch.setattr(
+        runtime,
+        "validate_quotes",
+        lambda *args, **kwargs: _dc_replace(
+            _validation_summary(), valid_quotes=normalized_quotes
+        ),
     )
     return runtime._run_pipeline(
         mode=runtime.MODE_FIXTURE,
@@ -702,6 +711,19 @@ def _manual_check_chain(symbol: str) -> ChainValidationResult:
         volume=None,
         expiry_used=None,
         data_source=None,
+    )
+
+
+def _validated_chain(symbol: str) -> ChainValidationResult:
+    return ChainValidationResult(
+        symbol=symbol,
+        classification=VALIDATED,
+        reason="validated test chain",
+        spread_pct=0.01,
+        open_interest=10_000,
+        volume=1_000,
+        expiry_used="2026-05-19",
+        data_source="test",
     )
 
 
@@ -983,6 +1005,141 @@ def test_prd284_runtime_passes_size_blocked_to_report(monkeypatch, tmp_path):
 
 def _raise_value_error(*args, **kwargs):
     raise ValueError("macro computation boom")
+
+
+def _prd338_raw_macro_quotes(*, btc_fetched_at_utc=None, btc_pct_change_raw=0.0):
+    fetched_at_utc = datetime.now(timezone.utc)
+    quote_specs = {
+        "^VIX": (16.0, 0.0),
+        "DX-Y.NYB": (100.0, 0.0),
+        "^TNX": (4.0, 0.0),
+        "SPY": (500.0, 0.0),
+        "QQQ": (450.0, 0.0),
+        "BTC-USD": (60_000.0, btc_pct_change_raw),
+    }
+    raw_quotes = {
+        symbol: RawQuote(
+            symbol=symbol,
+            price=price,
+            pct_change_raw=pct_change,
+            volume=1_000_000.0,
+            fetched_at_utc=(
+                (btc_fetched_at_utc or fetched_at_utc)
+                if symbol == "BTC-USD" else fetched_at_utc
+            ),
+            source="test",
+            fetch_succeeded=True,
+            failure_reason=None,
+        )
+        for symbol, (price, pct_change) in quote_specs.items()
+    }
+    return raw_quotes
+
+
+def _run_prd338_macro_pipeline(monkeypatch, tmp_path, *, btc_fetched_at_utc=None,
+                               btc_pct_change_raw=0.0):
+    _setup_runtime_mocks(monkeypatch, tmp_path)
+    raw_quotes = _prd338_raw_macro_quotes(
+        btc_fetched_at_utc=btc_fetched_at_utc,
+        btc_pct_change_raw=btc_pct_change_raw,
+    )
+    monkeypatch.setattr(
+        runtime,
+        "_load_inputs",
+        lambda mode, fixture_file: (raw_quotes, runtime.normalize_all(raw_quotes)),
+    )
+    monkeypatch.setattr(runtime, "validate_quotes", validation_mod.validate_quotes)
+    monkeypatch.setattr(
+        runtime,
+        "_fixture_chain_results",
+        lambda setups: {setup.symbol: _validated_chain(setup.symbol) for setup in setups},
+    )
+    return runtime._run_pipeline(
+        mode=runtime.MODE_FIXTURE,
+        run_date=date.fromisoformat("2026-04-28"),
+        fixture_file=Path("tests/fixtures/2026-04-12.json"),
+    )
+
+
+def _run_prd338_macro_decision(monkeypatch, valid_quotes):
+    monkeypatch.setattr(
+        runtime,
+        "_load_execution_policy_session_state",
+        lambda *args, **kwargs: runtime.ExecutionSessionState(),
+    )
+    decisions, _, _, _, pressure, _ = runtime._run_decision_gates(
+        option_setups=[_option_setup()],
+        candidates={"SPY": _candidate()},
+        qualification_summary=_qualification_summary(),
+        chain_results={"SPY": _validated_chain("SPY")},
+        execution_structure={
+            "SPY": StructureResult(
+                symbol="SPY",
+                structure="TREND",
+                iv_environment="NORMAL_IV",
+                is_tradeable=True,
+                disqualification_reason=None,
+            )
+        },
+        regime=_regime(),
+        run_at_utc=RUN_AT,
+        date_str="2026-04-28",
+        intraday_metrics={},
+        normalized_quotes=valid_quotes,
+        operator_locked=False,
+    )
+    return decisions, pressure
+
+
+def test_prd338_macro_current_validated_quotes_preserve_pressure_and_policy(
+    monkeypatch, tmp_path
+):
+    result = _run_prd338_macro_pipeline(monkeypatch, tmp_path)
+
+    assert "BTC-USD" in result.validation_summary.valid_quotes
+    assert runtime._compute_overall_pressure(result.validation_summary.valid_quotes) == "NEUTRAL"
+    candidate = result.contract["trade_candidates"][0]
+    assert candidate["decision_status"] == ALLOW_TRADE
+    assert candidate["policy_allowed"] is True
+    assert candidate["policy_reason"] == "orb_unavailable"
+
+
+def test_prd338_stale_btc_cannot_allow_macro_pressure_at_runtime_seam(
+    monkeypatch, tmp_path
+):
+    stale_timestamp = datetime.now(timezone.utc) - timedelta(seconds=1_200)
+    result = _run_prd338_macro_pipeline(
+        monkeypatch,
+        tmp_path,
+        btc_fetched_at_utc=stale_timestamp,
+        btc_pct_change_raw=0.02,
+    )
+
+    assert "BTC-USD" in result.normalized_quotes
+    assert "BTC-USD" not in result.validation_summary.valid_quotes
+    candidate = result.contract["trade_candidates"][0]
+    assert result.outcome == runtime.OUTCOME_NO_TRADE
+    assert candidate["decision_status"] == BLOCK_TRADE
+    assert candidate["policy_allowed"] is False
+    assert candidate["policy_reason"] == "macro_pressure_unavailable"
+    assert candidate["block_reason"] == "macro_pressure_unavailable"
+
+
+def test_prd338_macro_malformed_raw_timestamp_cannot_allow(monkeypatch):
+    raw_quotes = _prd338_raw_macro_quotes(btc_fetched_at_utc="not-a-timestamp")
+    normalized_quotes = runtime.normalize_all(raw_quotes)
+    validation_summary = validation_mod.validate_quotes(normalized_quotes)
+
+    assert "BTC-USD" not in normalized_quotes
+    assert "BTC-USD" not in validation_summary.valid_quotes
+    decisions, pressure = _run_prd338_macro_decision(
+        monkeypatch, validation_summary.valid_quotes
+    )
+
+    assert pressure == runtime.MACRO_PRESSURE_UNAVAILABLE
+    assert decisions[0].status == BLOCK_TRADE
+    assert decisions[0].policy_allowed is False
+    assert decisions[0].policy_reason == "macro_pressure_unavailable"
 
 
 def test_prd286_compute_pressure_unavailable_when_build_drivers_raises(monkeypatch):

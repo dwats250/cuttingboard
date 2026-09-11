@@ -1421,7 +1421,7 @@ def _run_pipeline(
                 run_at_utc=run_at_utc,
                 date_str=date_str,
                 intraday_metrics=intraday_metrics,
-                normalized_quotes=normalized_quotes,
+                normalized_quotes=validation_summary.valid_quotes,
                 operator_locked=operator_locked,
             )
 
@@ -1824,6 +1824,22 @@ def _apply_intraday_short_permission(
 
         intraday_df = fetch_intraday_bars(symbol)
         if intraday_df is None or intraday_df.empty:
+            _resolve_unavailable(symbol)
+            continue
+
+        try:
+            latest_timestamp = pd.Timestamp(intraday_df.index[-1])
+            if pd.isna(latest_timestamp) or latest_timestamp.tzinfo is None:
+                raise ValueError("latest timestamp is missing, NaT, or naive")
+            latest_et_date = time_utils.convert_utc_to_et(
+                latest_timestamp.to_pydatetime()
+            ).date()
+        except Exception as exc:
+            logger.info("Skipping intraday short gate for %s: unusable timestamp: %s", symbol, exc)
+            _resolve_unavailable(symbol)
+            continue
+
+        if latest_et_date != now_et.date():
             _resolve_unavailable(symbol)
             continue
 
