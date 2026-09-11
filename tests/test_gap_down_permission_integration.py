@@ -109,6 +109,7 @@ _LONG_CANDIDATE = TradeCandidate(
 _NOW_IN_WINDOW = _et_ts(9, 35)   # inside the opening window
 _NOW_POST = _et_ts(10, 0)        # after the window (state-driven path / fail-open)
 _NOW_BOUNDARY = _et_ts(9, 45)    # exactly _NOISE_END — half-open, so post-window
+_NOW_PRE_OPEN = _et_ts(9, 0)
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +201,66 @@ def test_case4_sparse_bars_blocks_short():
     assert "TSLA" not in filtered
     assert context["TSLA"]["intraday_state_available"] is True
     assert context["TSLA"]["downside_permission"] is False
+
+
+def test_prd338_prior_session_bar_is_unavailable_before_state_engine():
+    """A prior ET date cannot provide SHORT permission evidence."""
+    previous_session_df = pd.DataFrame(
+        {
+            "Open": [453.0],
+            "High": [453.5],
+            "Low": [452.5],
+            "Close": [453.0],
+            "Volume": [2_500_000],
+        },
+        index=[ET.localize(datetime(2026, 4, 17, 15, 30, 0))],
+    )
+
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=previous_session_df), \
+         patch("cuttingboard.runtime.compute_intraday_state") as state_engine:
+        filtered, context = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_PRE_OPEN
+        )
+
+    assert "TSLA" in filtered  # outside the opening window remains fail-open
+    assert context["TSLA"] == {"intraday_state_available": False}
+    state_engine.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "bad_timestamp",
+    [
+        datetime(2026, 4, 18, 15, 30, 0),
+        pd.NaT,
+        "not-a-timestamp",
+        object(),
+    ],
+    ids=["naive", "nat", "malformed", "unconvertible"],
+)
+@pytest.mark.parametrize("later_rows", [[], [_et_ts(9, 55)]], ids=["latest", "non-latest"])
+def test_prd338_short_rejects_unusable_timestamps_before_state_engine(bad_timestamp, later_rows):
+    """Any unusable index member, latest or earlier, uses existing unavailable semantics."""
+    rows = 1 + len(later_rows)
+    frame = pd.DataFrame(
+        {
+            "Open": [453.0] * rows,
+            "High": [453.5] * rows,
+            "Low": [452.5] * rows,
+            "Close": [453.0] * rows,
+            "Volume": [2_500_000] * rows,
+        },
+        index=[bad_timestamp, *later_rows],
+    )
+
+    with patch("cuttingboard.runtime.fetch_intraday_bars", return_value=frame), \
+         patch("cuttingboard.runtime.compute_intraday_state") as state_engine:
+        filtered, context = _apply_intraday_short_permission(
+            {"TSLA": _SHORT_CANDIDATE}, {"TSLA": _GAP_DOWN_QUOTE}, _NOW_POST
+        )
+
+    assert "TSLA" in filtered
+    assert context["TSLA"] == {"intraday_state_available": False}
+    state_engine.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
