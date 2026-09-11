@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 337,
-  "next_prd": 338,
+  "latest_complete": 338,
+  "next_prd": 339,
   "entries": [
     {
       "number": 56,
@@ -1698,8 +1698,8 @@
     {
       "number": 338,
       "title": "Session-validated permission observations: SHORT session identity and macro valid-quote consumption",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "d237cad15bf26e7a3b9b4131ee673226ecf380e6"
     }
   ]
 }
