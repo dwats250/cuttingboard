@@ -355,7 +355,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-335 | #323 | Market context completion and second editorial pass | COMPLETE | [PRD-335](prd_history/PRD-335.md) |
 | PRD-336 | — | Cockpit context polish (final pre-live pass) | IN PROGRESS | [PRD-336](prd_history/PRD-336.md) |
 | PRD-337 | #325 | Market Structure Universe (NS-4A v2) precursor for NS-4C Leadership | COMPLETE | [PRD-337](prd_history/PRD-337.md) |
-| PRD-338 | — | Session-validated permission observations: SHORT session identity and macro valid-quote consumption | IN PROGRESS | [PRD-338](prd_history/PRD-338.md) |
+| PRD-338 | d237cad15bf26e7a3b9b4131ee673226ecf380e6 | Session-validated permission observations: SHORT session identity and macro valid-quote consumption | COMPLETE | [PRD-338](prd_history/PRD-338.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
