@@ -1,17 +1,23 @@
 # PRD-339 Effective-Permission MATERIAL Packet (2026-09-12)
 
-STATUS: PROVISIONAL, CORRECTED (rev 2, GOV-2 s2/s6). Not review-clean until the
-exact-corrected-head confirmation records CLEAN. Grants no downstream authority. No
-implementation, Gate A, or design-direction ruling is created by this packet.
+STATUS: DESIGN INCOMPLETE (GOV-2 s6/s7 -- SECOND boundary reset). NOT review-clean. Grants
+no downstream authority: no design-direction ruling, no PRD drafting/review, no Gate A, no
+implementation may proceed. The bounded packet cycle (one review + one refresh + one
+confirmation) is EXHAUSTED. What is ready for Dustin now is the s6 rebuild / narrow / park
+decision (see s12).
 
-BOUNDARY-RESET NOTICE (GOV-2 s6): the INITIAL PACKET REVIEW (Codex/Sol, EXACT SHA
-d35220461a93ede62a3719ab1da89d1a3f0d61c9) returned DESIGN INCOMPLETE -- it found a
-previously-omitted permission-consumer CLASS (delivery payload + text/HTML report + CLI +
-premarket/postmarket reports + the live notification seam). Per GOV-2 s6, the FIRST
-newly-discovered class triggers ONE complete producer-to-final-consumer inventory refresh;
-this rev 2 is that refresh. If the exact-corrected-head confirmation discovers YET ANOTHER
-omitted class, the packet returns to DESIGN INCOMPLETE and Dustin chooses rebuild / narrow /
-park (s6). See CODEX_EVENT_1_REVIEW_2026-09-12.md for the review record and dispositions.
+BOUNDARY-RESET HISTORY (GOV-2 s6):
+- INITIAL PACKET REVIEW (Sol @ d35220461a93ede62a3719ab1da89d1a3f0d61c9): DESIGN INCOMPLETE
+  -- omitted permission-consumer CLASS (delivery payload + text/HTML report + CLI +
+  premarket/postmarket + the live notification seam). First discovery -> one complete
+  inventory refresh (this rev 2). See CODEX_EVENT_1_REVIEW_2026-09-12.md.
+- EXACT-CORRECTED-HEAD CONFIRMATION (Sol @ e006141c14a6733854ffb537f35b540303bc1e55):
+  F1-F6 all RESOLVED, but a FURTHER omitted class found -- the MARKET-MAP decision-guidance
+  artifact/schema + candidate-card renderer (market_map.py:187-225,479-509 emits
+  trade_framing.if_now="TAKE" from proxies; dashboard_renderer.py:2410-2421,2465-2480
+  renders IF NOW / PLAY; logs/market_map.json is published). This SECOND discovery returns
+  the packet to DESIGN INCOMPLETE per s6/s7; incremental patching STOPS.
+  See CODEX_EVENT_2_CONFIRMATION_2026-09-12.md.
 
 Author capability: provisional drafting / mechanical reconciliation / option generation
 (GOV-2 s11). This author does NOT certify boundary completeness; the independent Codex
@@ -362,11 +368,42 @@ invented for matters already determined by code.
 3. INITIAL PACKET REVIEW (Sol @ d3522046): DESIGN INCOMPLETE / boundary reset ->
    CODEX_EVENT_1_REVIEW_2026-09-12.md.
 4. ONE consolidated correction = the s6 inventory refresh: THIS rev 2.
-5. EXACT-CORRECTED-HEAD CONFIRMATION (Sol @ corrected head): pending ->
-   CODEX_EVENT_2_CONFIRMATION_2026-09-12.md. Scope: confirm findings resolved AND detect any
-   remaining omitted class. If another class is found -> DESIGN INCOMPLETE -> Dustin chooses
-   rebuild / narrow / park (s6).
-6. STOP for Dustin's design-direction ruling (not in this charge's scope to proceed past).
+5. EXACT-CORRECTED-HEAD CONFIRMATION (Sol @ e006141c): DONE. F1-F6 RESOLVED, but a SECOND
+   omitted class (market_map/candidate-card) found -> DESIGN INCOMPLETE (s6/s7).
+   CODEX_EVENT_2_CONFIRMATION_2026-09-12.md.
+6. STOP. The bounded cycle is exhausted and the packet is NOT review-clean, so the s2-step-6
+   design-direction ruling cannot be issued yet. Instead, the s6 rebuild/narrow/park owner
+   decision is now required (s12).
 
 PRD-339 remains PROVISIONAL and non-authoritative; the post-ruling fresh-context independent
 PRD review (GOV-2 s2 step 7) has NOT run and is not run here.
+
+---
+
+## 12. DESIGN INCOMPLETE -- owner decision required (GOV-2 s6)
+
+The bounded MATERIAL cycle found TWO independent omitted permission-consumer classes (the
+delivery payload/report/CLI/premarket-postmarket class at the initial review; the
+market_map decision-guidance artifact/candidate-card class at the confirmation). Per GOV-2
+s6, incremental patching stops and Dustin chooses ONE of:
+
+- REBUILD (recommended): commission a truly EXHAUSTIVE producer-to-final-consumer
+  permission inventory FIRST (all of s4 A-H PLUS market_map/if_now/PLAY, and any surface a
+  fresh exhaustive sweep finds), then re-frame the boundary and re-open the packet cycle.
+  The two resets indicate the surface is large enough that the boundary must be established
+  by exhaustive inventory, not incremental discovery.
+- NARROW: restrict the packet's authoritative claim to a named subset of served decision
+  surfaces (e.g. board decision-state + contract viewer + Telegram + payload summary) and
+  DOCUMENT every other surface (reports, CLI, premarket/postmarket, market_map if_now/PLAY,
+  A+ tier, market_control_card) as explicitly NON-AUTHORITATIVE analytical context that must
+  not assert current permission. This makes the boundary small and provable but requires
+  the owner to accept those surfaces as non-authoritative.
+- PARK: shelve the packet.
+
+Q8 (consumer scope) must, on any rebuild, be extended to include the market_map
+`trade_framing.if_now` / `preferred_trade_structure` (PLAY) seam and its published artifact.
+
+This packet makes no recommendation on Q1/Q3/Q4/Q6/Q7 beyond those already stated as
+author recommendations (non-authority), and issues no ruling. The provisional PRD-339 design
+(0348cee1) is now known to rest on an incomplete boundary and must be reconciled to whatever
+frame Dustin selects before it can become authoritative.
