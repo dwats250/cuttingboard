@@ -8,8 +8,16 @@ registry re-introduces enumeration). Per GOV-2 (this is a MECHANISM correction w
 ruled method, not an enumeration boundary reset -- the owner listed schema/dependency
 constraints among the options and delegated the choice), the mechanism is CORRECTED to the
 DATA / OUTPUT-CHANNEL BOUNDARY in s12; resolver placement corrected (finding 4); Q9(c)
-dropped; estimate expanded. Recorded in CODEX_EVENT_1_REVIEW_STRUCTURAL_2026-09-12.md. Not
-review-clean until the exact-corrected-head confirmation records it. Grants no downstream
+dropped; estimate expanded. Recorded in CODEX_EVENT_1_REVIEW_STRUCTURAL_2026-09-12.md. The EXACT-CORRECTED-HEAD
+CONFIRMATION (Sol @ c69ccd56, CODEX_EVENT_2_CONFIRMATION_STRUCTURAL_2026-09-12.md) returned
+DESIGN INCOMPLETE (still mechanism-unsound): the Markdown report is an authoritative output
+channel written BEFORE the resolver (runtime:1464/1483 before :1488) and omitted from the
+finite set (F4 NOT resolved); provenance is forgeable (plain dataclass + JSON, no
+capability/signature); and namespacing proxies does not strip decision-derivability. The
+bounded GOV-2 cycle is EXHAUSTED -> STOP (no forced clean verdict). These residuals are
+BOUNDED and CLOSABLE with a precise 4-point spec (see EVENT-2); the structural approach is
+converging (F3/F6 resolved). DECISION returns to Dustin: authorize one more bounded correction
+cycle applying the 4 constraints, or rule the mechanism, or park. Grants no downstream
 authority: no PRD drafting/review, no Gate A, no implementation.
 
 SUPERSEDES the enumeration framing of PRD_339_DECISION_AUTHORITY_REBUILD_PACKET_2026-09-12.md
