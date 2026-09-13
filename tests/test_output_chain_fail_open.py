@@ -10,7 +10,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from cuttingboard.chain_validation import ChainValidationResult, VALIDATED
-from cuttingboard.output import OUTCOME_TRADE, render_report
+from cuttingboard.output import render_report
+from tests.ep_test_helpers import make_ep
 
 from tests.test_contract import (
     _option_setup,
@@ -43,7 +44,7 @@ def _render(option_setups, chain_results):
         validation_summary=_val_summary(),
         qualification_summary=_qual_summary(qualified=1),
         option_setups=option_setups,
-        outcome=OUTCOME_TRADE,
+        effective_permission=make_ep(outcome="TRADE"),
         chain_results=chain_results,
     )
 

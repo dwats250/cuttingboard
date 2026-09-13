@@ -126,15 +126,16 @@ def _isolate_real_log_paths(monkeypatch, tmp_path):
     _safe_json_path = str(logs_dir / "latest_payload.json")
     _safe_html_path = str(tmp_path / "reports" / "output" / "report.html")
 
-    def _safe_deliver_json(payload, output_path=None):
+    def _safe_deliver_json(payload, output_path=None, **kwargs):
+        # PRD-340: forward the required effective_permission (R1) transparently.
         if output_path is None:
             output_path = _safe_json_path
-        return _orig_deliver_json(payload, output_path=output_path)
+        return _orig_deliver_json(payload, output_path=output_path, **kwargs)
 
-    def _safe_deliver_html(payload, output_path=None):
+    def _safe_deliver_html(payload, output_path=None, **kwargs):
         if output_path is None:
             output_path = _safe_html_path
-        return _orig_deliver_html(payload, output_path=output_path)
+        return _orig_deliver_html(payload, output_path=output_path, **kwargs)
 
     monkeypatch.setattr(_transport, "deliver_json", _safe_deliver_json)
     monkeypatch.setattr(_transport, "deliver_html", _safe_deliver_html)

@@ -54,6 +54,30 @@ def _payload(
     }
 
 
+_RUN_TS = "2026-04-28T12:00:00Z"
+
+
+def ep_envelope(
+    *, session_date: str, outcome: str = "NO_TRADE",
+    system_halted: bool = False, permission: object = None,
+) -> dict:
+    """PRD-340 Slice 2: a session-valid EffectivePermission envelope for dashboard
+    fixtures, resolved by the SAME resolver production uses so the board's
+    EP-derived verdict matches the fixture's intended (outcome / halt / lock)
+    state. Lock is signalled by ``permission == OPERATOR_LOCK_PERMISSION``."""
+    from cuttingboard import config
+    from cuttingboard import effective_permission as _ep
+    locked = permission == config.OPERATOR_LOCK_PERMISSION
+    return _ep.resolve_effective_permission(
+        mode="live", outcome_is_trade=(outcome == "TRADE"),
+        system_halted=bool(system_halted), operator_locked=locked,
+        session_date=session_date, run_uid="d" * 32,
+        posture_permission_line=("Longs allowed." if outcome == "TRADE"
+                                 else "No new trades permitted."),
+        operator_lock_line=config.OPERATOR_LOCK_PERMISSION,
+    ).to_envelope()
+
+
 def _run(
     *,
     status: str = "SUCCESS",
@@ -81,8 +105,12 @@ def _run(
         "outcome":      outcome,
         "permission":   permission,
         "mode":         "LIVE",
-        "timestamp":    "2026-04-28T12:00:00Z",
+        "timestamp":    _RUN_TS,
         "warnings":     [],
+        # PRD-340: the resolver-provenanced authority the board reads (session-aligned).
+        "effective_permission": ep_envelope(
+            session_date=_RUN_TS[:10], outcome=outcome,
+            system_halted=system_halted, permission=permission),
     }
 
 

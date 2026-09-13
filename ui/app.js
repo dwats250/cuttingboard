@@ -81,15 +81,90 @@ function display(val) {
 }
 
 // ---------------------------------------------------------------------------
-// Sole allowed derivation (PRD-024 §EXECUTION POSTURE)
+// PRD-340 Slice 2 (R1/R4/R3c + fail-closed): the browser channel derives the
+// authoritative execution posture ONLY from the resolver-provenanced
+// effective_permission envelope, routed through the validated accessor
+// admitAuthority() below (never status + system_state.tradable). An absent,
+// malformed, prior-session, or unknown-verdict envelope fails closed to
+// UNAVAILABLE. This mirrors cuttingboard.authority_projection.admit_projection.
 // ---------------------------------------------------------------------------
 
-function derivePosture(status, tradable) {
-  if (status === 'ERROR') return 'ERROR';
-  if (status === 'STAY_FLAT') return 'STAY_FLAT';
-  if (status === 'OK' && tradable === true) return 'TRADE_READY';
-  if (status === 'OK' && tradable === false) return 'WATCHLIST';
-  return 'N/A';
+// verdict -> authoritative posture (mirrors _VERDICT_MAP in authority_projection.py)
+var _VERDICT_POSTURE = {
+  PERMITTED: 'TRADE_READY',
+  NO_TRADE: 'STAY_FLAT',
+  OBSERVE_ONLY: 'OBSERVE_ONLY',
+  HALT: 'HALT',
+  UNAVAILABLE: 'UNAVAILABLE',
+};
+
+// verdict -> restriction rank (mirrors _RANK in effective_permission.py). Also the
+// canonical CLOSED key set and the recovery-basis schema, mirrored so the browser
+// enforces the SAME closed-schema + cross-field admission the Python read boundary
+// (effective_permission._valid_canonical) does -- a forged/partial envelope missing
+// any canonical field (or with a cross-field mismatch) fails closed here too.
+var _RANK = { PERMITTED: 0, NO_TRADE: 1, OBSERVE_ONLY: 1, HALT: 2, UNAVAILABLE: 3 };
+var _CANONICAL_KEYS = ['authority_version', 'decision_seq', 'decision_uid',
+  'permission_line', 'recovery_basis', 'restriction_rank', 'run_uid',
+  'session_date', 'valid_until', 'verdict'];
+
+function _isInt(x) { return typeof x === 'number' && Number.isInteger(x); }
+
+function _recoveryBasisWellFormed(rb) {
+  if (rb === null) return true;                          // None is well-formed
+  if (typeof rb !== 'object' || Array.isArray(rb)) return false;
+  var keys = Object.keys(rb).sort();
+  var want = ['reason', 'superseded_authority_version', 'superseding_decision_uid'];
+  if (keys.length !== want.length) return false;
+  for (var i = 0; i < want.length; i++) { if (keys[i] !== want[i]) return false; }
+  if (rb.reason !== 'REDECISION') return false;
+  if (typeof rb.superseding_decision_uid !== 'string' || !rb.superseding_decision_uid.trim()) return false;
+  var sav = rb.superseded_authority_version;
+  return Array.isArray(sav) && sav.length === 3
+    && typeof sav[0] === 'string' && !!sav[0] && _isInt(sav[1]) && _isInt(sav[2]);
+}
+
+function isCanonicalEnvelope(env) {
+  if (!env || typeof env !== 'object' || Array.isArray(env)) return false;
+  var keys = Object.keys(env).sort();                    // EXACT closed key set, no extras
+  if (keys.length !== _CANONICAL_KEYS.length) return false;
+  for (var i = 0; i < _CANONICAL_KEYS.length; i++) { if (keys[i] !== _CANONICAL_KEYS[i]) return false; }
+  if (!Object.prototype.hasOwnProperty.call(_RANK, env.verdict)) return false;   // known verdict
+  if (typeof env.decision_uid !== 'string' || !env.decision_uid) return false;
+  if (typeof env.run_uid !== 'string' || !env.run_uid) return false;
+  if (typeof env.session_date !== 'string' || !env.session_date) return false;
+  if (typeof env.valid_until !== 'string') return false;
+  if (typeof env.permission_line !== 'string') return false;
+  if (!_recoveryBasisWellFormed(env.recovery_basis)) return false;
+  if (!_isInt(env.restriction_rank) || !_isInt(env.decision_seq) || env.decision_seq < 1) return false;
+  if (env.restriction_rank !== _RANK[env.verdict]) return false;                 // rank == _RANK[verdict]
+  var av = env.authority_version;                        // == [session_date, decision_seq, restriction_rank]
+  return Array.isArray(av) && av.length === 3
+    && av[0] === env.session_date && av[1] === env.decision_seq && av[2] === env.restriction_rank;
+}
+
+// The SOLE reader of the canonical projection field on the served contract (T4
+// routing): validate + return the admitted envelope, else null (fail-closed).
+function admitAuthority(contract) {
+  var env = safeGet(contract, 'effective_permission');
+  // closed-schema + cross-field admission (mirrors effective_permission._valid_canonical):
+  // a forged/partial envelope is rejected before any posture is derived.
+  if (!isCanonicalEnvelope(env)) return null;
+  if (env.verdict === 'UNAVAILABLE') return null;        // sentinel is never a grant
+  // prior-session fail-closed: the authority must be for THIS served session.
+  var sessionDate = safeGet(contract, 'session_date');
+  if (sessionDate && env.session_date !== sessionDate) return null;
+  // fail-closed freshness (mirrors admit_persisted's now-vs-valid_until compare):
+  // an unparseable or already-expired valid_until is never a live grant.
+  var validUntilMs = Date.parse(env.valid_until);
+  if (isNaN(validUntilMs) || Date.now() > validUntilMs) return null;
+  return env;
+}
+
+function derivePosture(contract) {
+  var env = admitAuthority(contract);
+  if (env === null) return 'UNAVAILABLE';
+  return _VERDICT_POSTURE[env.verdict] || 'UNAVAILABLE';
 }
 
 // ---------------------------------------------------------------------------
@@ -118,9 +193,8 @@ function setText(id, val) {
 // ---------------------------------------------------------------------------
 
 function renderSignalBar(contract) {
-  const status = safeGet(contract, 'status');
-  const tradable = safeGet(contract, 'system_state', 'tradable');
-  const posture = derivePosture(status, tradable);
+  // PRD-340 R4: posture is the EP-derived authoritative action, not status+tradable.
+  const posture = derivePosture(contract);
 
   const postureEl = document.getElementById('sig-posture');
   postureEl.textContent = posture;
@@ -140,7 +214,11 @@ function renderSignalBar(contract) {
 function renderPrimaryTrade(contract) {
   const block = document.getElementById('primary-trade-block');
   const candidates = safeGet(contract, 'trade_candidates');
-  if (!Array.isArray(candidates) || candidates.length === 0) {
+  // PRD-340 F3 (fail-closed grant): the PRIMARY TRADE surface shows ONLY when the
+  // admitted authority is PERMITTED (TRADE_READY posture) -- never on candidate
+  // presence alone. A stale/invalid/absent authority hides the grant surface.
+  if (derivePosture(contract) !== 'TRADE_READY'
+      || !Array.isArray(candidates) || candidates.length === 0) {
     block.style.display = 'none';
     return;
   }
@@ -165,9 +243,12 @@ function renderPrimaryTrade(contract) {
 
 function renderNoTrade(contract) {
   const block = document.getElementById('no-trade-block');
-  const status = safeGet(contract, 'status');
-  const tradable = safeGet(contract, 'system_state', 'tradable');
-  if (derivePosture(status, tradable) !== 'STAY_FLAT') {
+  // PRD-340 F4: authority is the admitted EP posture (derivePosture(contract)),
+  // not status+tradable. NO_TRADE (STAY_FLAT) with NO gated candidates is the pure
+  // no-setup state; a STAY_FLAT with candidates present is the watchlist below.
+  const candidates = safeGet(contract, 'trade_candidates');
+  const hasCandidates = Array.isArray(candidates) && candidates.length > 0;
+  if (derivePosture(contract) !== 'STAY_FLAT' || hasCandidates) {
     block.style.display = 'none';
     return;
   }
@@ -178,8 +259,7 @@ function renderNoTrade(contract) {
   const stayFlatReason = safeGet(contract, 'system_state', 'stay_flat_reason');
   if (stayFlatReason) reasons.push(stayFlatReason);
 
-  const candidates = safeGet(contract, 'trade_candidates');
-  if (!Array.isArray(candidates) || candidates.length === 0) reasons.push('No valid setups');
+  if (!hasCandidates) reasons.push('No valid setups');
 
   const corrState = safeGet(contract, 'correlation', 'state');
   if (corrState === 'CONFLICT') reasons.push('Correlation conflict');
@@ -190,21 +270,20 @@ function renderNoTrade(contract) {
 
 function renderWatchlist(contract) {
   const block = document.getElementById('watchlist-block');
-  const status = safeGet(contract, 'status');
-  const tradable = safeGet(contract, 'system_state', 'tradable');
-  if (derivePosture(status, tradable) !== 'WATCHLIST') {
+  // PRD-340 F4: the WATCHLIST posture is retired (no such EP verdict). The
+  // watchlist is NON-AUTHORITATIVE evidence: candidates were present but the
+  // admitted authority is STAY_FLAT (no grant). It is framing, never a permission
+  // -- so it shows only under the admitted STAY_FLAT posture with candidates.
+  const candidates = safeGet(contract, 'trade_candidates');
+  const hasCandidates = Array.isArray(candidates) && candidates.length > 0;
+  if (derivePosture(contract) !== 'STAY_FLAT' || !hasCandidates) {
     block.style.display = 'none';
     return;
   }
   block.style.display = '';
 
-  const candidates = safeGet(contract, 'trade_candidates');
-  const reason = (Array.isArray(candidates) && candidates.length > 0)
-    ? 'Candidates present but system not tradable'
-    : 'No valid setups';
-
   document.getElementById('watchlist-reasons').innerHTML =
-    `<div class="reason-item">${reason}</div>`;
+    `<div class="reason-item">Candidates present but no execution authority</div>`;
 }
 
 function renderSecondarySetups(contract) {

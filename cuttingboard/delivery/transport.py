@@ -10,8 +10,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from cuttingboard import config
+from cuttingboard import authority_projection
 from cuttingboard.delivery.payload import assert_valid_payload
+from cuttingboard.effective_permission import EffectivePermission
 
 _DEFAULT_HTML_PATH = "reports/output/report.html"
 _DEFAULT_JSON_PATH = "logs/latest_payload.json"
@@ -21,10 +22,16 @@ _VALID_MODES = frozenset({"html", "json", "cli"})
 
 def deliver_html(
     payload: dict,
+    *,
+    effective_permission: EffectivePermission,
     output_path: str = _DEFAULT_HTML_PATH,
 ) -> None:
-    """Render payload to HTML and write to output_path."""
+    """Render payload to HTML and write to output_path. PRD-340 R1: an
+    EffectivePermission is required (render-before-resolve is an argument error);
+    the rendered wording derives from the payload's resolver-written EP via the
+    read boundary (render_html -> render_report_from_payload)."""
     assert_valid_payload(payload)
+    authority_projection.assert_in_process_ep(effective_permission)
     from cuttingboard.delivery.html_renderer import render_html
 
     content = render_html(payload)
@@ -33,17 +40,26 @@ def deliver_html(
 
 def deliver_json(
     payload: dict,
+    *,
+    effective_permission: EffectivePermission,
     output_path: str = _DEFAULT_JSON_PATH,
 ) -> None:
-    """Serialize payload to JSON and write to output_path."""
+    """Serialize payload to JSON and write to output_path. PRD-340 R1: an
+    EffectivePermission is required; the payload carries the resolver-written
+    authority field (Slice-1 exclusive writer / persist_copy)."""
     assert_valid_payload(payload)
+    authority_projection.assert_in_process_ep(effective_permission)
     content = json.dumps(payload, indent=2, sort_keys=True) + "\n"
     _write_file(output_path, content)
 
 
-def deliver_cli(payload: dict) -> None:
-    """Print structured payload summary to stdout."""
+def deliver_cli(payload: dict, *, effective_permission: EffectivePermission) -> None:
+    """Print structured payload summary to stdout. PRD-340 R1/R4: the EXECUTION
+    line derives ONLY from the resolved EffectivePermission projection, never from
+    summary.tradable/permission. TRADABLE remains an analytical (non-authoritative)
+    fact."""
     assert_valid_payload(payload)
+    _proj = authority_projection.project(effective_permission)
 
     summary = payload.get("summary", {})
     sections = payload.get("sections", {})
@@ -52,11 +68,8 @@ def deliver_cli(payload: dict) -> None:
     print(f"STATUS:          {payload.get('run_status')}")
     print(f"MARKET_REGIME:   {summary.get('market_regime')}")
     print(f"TRADABLE:        {summary.get('tradable')}")
-    # PRD-304 R8: under the operator lock, render OBSERVATION ONLY. The analytical
-    # TRADABLE fact above is preserved (the lock does not falsify it); this line
-    # asserts the locked-consumer precedence so the CLI never reads as actionable.
-    if summary.get("permission") == config.OPERATOR_LOCK_PERMISSION:
-        print("EXECUTION:       OBSERVATION ONLY")
+    # PRD-340 R4: EXECUTION is the authoritative posture from the EP projection.
+    print(f"EXECUTION:       {_proj.posture}")
     print(f"ROUTER_MODE:     {summary.get('router_mode')}")
     print(f"SYMBOLS_SCANNED: {meta.get('symbols_scanned')}")
     print(f"TOP_TRADES:      {len(sections.get('top_trades', []))}")
@@ -74,7 +87,7 @@ def deliver_cli(payload: dict) -> None:
             )
 
 
-def deliver(payload: dict, mode: str) -> None:
+def deliver(payload: dict, mode: str, *, effective_permission: EffectivePermission) -> None:
     """Dispatch payload to the named transport mode.
 
     Modes: "html" | "json" | "cli"
@@ -82,11 +95,11 @@ def deliver(payload: dict, mode: str) -> None:
     if mode not in _VALID_MODES:
         raise ValueError(f"Unknown delivery mode {mode!r}; must be one of {sorted(_VALID_MODES)}")
     if mode == "html":
-        deliver_html(payload, output_path=_DEFAULT_HTML_PATH)
+        deliver_html(payload, effective_permission=effective_permission, output_path=_DEFAULT_HTML_PATH)
     elif mode == "json":
-        deliver_json(payload, output_path=_DEFAULT_JSON_PATH)
+        deliver_json(payload, effective_permission=effective_permission, output_path=_DEFAULT_JSON_PATH)
     else:
-        deliver_cli(payload)
+        deliver_cli(payload, effective_permission=effective_permission)
 
 
 # ---------------------------------------------------------------------------

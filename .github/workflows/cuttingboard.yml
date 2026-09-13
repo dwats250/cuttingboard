@@ -498,15 +498,21 @@ jobs:
 
           s = json.loads(p.read_text())
           date_str  = s.get("timestamp", "")[:10]
-          regime    = s.get("regime", "UNKNOWN")
-          qualified = s.get("candidates_qualified", 0)
-          status    = s.get("status", "UNKNOWN")
-          chain     = s.get("chain_validation", {})
-          symbols   = sorted(
-              k for k, v in chain.items()
-              if isinstance(v, dict) and v.get("classification") == "TOP_TRADE_VALIDATED"
-          )
-          msg = f"CB report: {date_str} | {regime} | {qualified} trades [{', '.join(symbols)}] | {status}"
+          regime    = s.get("regime", "UNKNOWN")  # NON-authoritative posture evidence
+          # PRD-340 R4 (channel 8): ALL authoritative action wording -- the decision
+          # state AND the trade count/symbols -- derives ONLY from the resolved
+          # effective-permission projection, routed through the approved validator's
+          # CLI. The workflow no longer reads any candidate-count or chain-
+          # classification proxy for authoritative wording; the CLI emits an EP-gated
+          # count (zero unless PERMITTED) and keeps the canonical field-read inside
+          # authority_projection. Fails closed on an absent/invalid carrier.
+          import subprocess
+          authoritative = subprocess.run(
+              [sys.executable, "-m", "cuttingboard.authority_projection",
+               "commit-status", "logs/latest_run.json"],
+              capture_output=True, text=True,
+          ).stdout.strip() or "STATE UNAVAILABLE | 0 trades []"
+          msg = f"CB report: {date_str} | {regime} | {authoritative}"
           Path(".cb_commit_msg").write_text(msg + "\n")
           print(msg)
           PY

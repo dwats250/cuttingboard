@@ -13,6 +13,22 @@
     "rejected_count": 0
   },
   "correlation": null,
+  "effective_permission": {
+    "authority_version": [
+      "2026-06-12",
+      1,
+      1
+    ],
+    "decision_seq": 1,
+    "decision_uid": "sample-20260612",
+    "permission_line": "No new trades permitted.",
+    "recovery_basis": null,
+    "restriction_rank": 1,
+    "run_uid": "sample-run-20260612",
+    "session_date": "2026-06-12",
+    "valid_until": "2026-06-13T08:00:00+00:00",
+    "verdict": "NO_TRADE"
+  },
   "generated_at": "2026-06-12T17:21:10Z",
   "generation_id": "hourly-20260612T172110Z",
   "macro_drivers": {

@@ -123,6 +123,9 @@ class MarketControlCard:
         _validate_xor_cell("STATE", self.state, VALID_SPY_STATE_VALUES, VALID_SPY_STATE_UNAVAILABLE_REASONS)
 
         # PERMISSION is a total projection: value-only, NO unavailable branch.
+        # PRD-340 R4: the value is SOURCED from the resolved EffectivePermission
+        # projection at the build call site (runtime), never from a regime/grade
+        # proxy; this cell is non-authoritative evidence mirroring that authority.
         if set(self.permission) != {"value"}:
             raise ValueError(f"PERMISSION: value-only cell required; got keys {sorted(self.permission)!r}")
         if self.permission["value"] not in VALID_PERMISSION_VALUES:

@@ -31,6 +31,20 @@ from cuttingboard.structure import StructureResult
 from cuttingboard.trade_decision import ALLOW_TRADE, BLOCK_TRADE
 from cuttingboard.validation import HaltCause, ValidationSummary
 from cuttingboard.watch import WatchSummary
+from tests.ep_test_helpers import make_ep, ep_for_payload
+
+
+def _contract_ep(contract):
+    """PRD-340 Slice 2: resolve the EffectivePermission a contract's declared
+    decision implies (halt > operator-lock > trade). Caller tests exercise the
+    real EP-required channels with the EP production would resolve from the same
+    inputs, never a hand-built look-alike."""
+    ss = contract.get("system_state") or {}
+    locked = ss.get("permission") == config.OPERATOR_LOCK_PERMISSION
+    halted = contract.get("outcome") == runtime.OUTCOME_HALT or bool(ss.get("system_halted"))
+    trade = contract.get("outcome") == runtime.OUTCOME_TRADE
+    return make_ep(outcome="TRADE" if trade else "NO_TRADE",
+                   system_halted=halted, operator_locked=locked)
 
 
 RUN_AT = datetime(2026, 4, 28, 13, 0, tzinfo=timezone.utc)
@@ -539,7 +553,8 @@ def test_kill_switch_trip_forces_full_halt_escalation(monkeypatch, tmp_path):
     # R5: trade content suppressed; the alert is a STAY FLAT, not a trade alert.
     assert result.contract["outcome"] == runtime.OUTCOME_HALT
     assert result.contract["trade_candidates"] == []
-    title, body = runtime.build_notification_message(result.contract)
+    title, body = runtime.build_notification_message(
+        result.contract, effective_permission=_contract_ep(result.contract))
     assert "STAY FLAT" in title
     assert "No trade." in body
 
@@ -584,7 +599,8 @@ def test_validation_halt_unchanged_when_kill_switch_not_tripped(monkeypatch, tmp
 
     # Notification regression: a validation HALT still produces a STAY FLAT alert
     # with no trade content (unchanged by PRD-180).
-    title, body = runtime.build_notification_message(result.contract)
+    title, body = runtime.build_notification_message(
+        result.contract, effective_permission=_contract_ep(result.contract))
     assert "STAY FLAT" in title
     assert "No trade." in body
 
@@ -630,7 +646,7 @@ def _render_halt_report(halt_cause, halt_reason):
         validation_summary=vs,
         qualification_summary=None,
         option_setups=[],
-        outcome=runtime.OUTCOME_HALT,
+        effective_permission=make_ep(system_halted=True),
         halt_reason=halt_reason,
         chain_results={},
     )
@@ -868,17 +884,21 @@ def test_prd283_sizing_refusal_reaches_every_consumer(monkeypatch, tmp_path, cap
 
     # 5. HTML delivery renders the refusal (not "no qualifying setups").
     payload = build_report_payload(result.contract)
+    # PRD-340 Slice 2: stamp the resolver-provenanced EP the deliver path carries
+    # onto the payload (persist_copy) so the cross-process readers admit it.
+    _ep = ep_for_payload(payload)
     html_text = render_report_from_payload(payload)
     assert "REFUSED" in html_text
     assert "no qualifying setups" not in html_text
 
     # 6. Notification names the refusal, not a generic "no setups".
-    _title, body = build_notification_message(result.contract)
+    _title, body = build_notification_message(
+        result.contract, effective_permission=_contract_ep(result.contract))
     assert "Reason: no setups" not in body
     assert "refused" in body.lower()
 
     # 7. CLI names the refusal reason.
-    deliver_cli(payload)
+    deliver_cli(payload, effective_permission=_ep)
     cli_out = capsys.readouterr().out
     assert "REFUSED SPY" in cli_out
     assert SMALLEST_CONTRACT_EXCEEDS_BUDGET in cli_out
@@ -1403,7 +1423,11 @@ def test_m12_fixture_run_card_is_additive_only(monkeypatch, tmp_path):
         result.contract, spy_observation=result.spy_observation, market_control_card=card
     )
     carded = with_card["sections"].pop("market_control_card")
-    assert carded["permission"]["value"] == result.contract["system_state"]["permission"]
+    # PRD-340 R4: the card PERMISSION cell is EP-derived, no longer the
+    # system_state proxy. Fixture is an unauthorized daily mode, so the resolver
+    # fails closed to UNAVAILABLE and the card shows the no-trade cell (never a
+    # proxy posture claim).
+    assert carded["permission"]["value"] == "No new trades permitted."
     assert with_card == base  # the section is the ONLY delta
 
 
@@ -1613,8 +1637,10 @@ def _daily_report(*, operator_locked: bool, outcome=None) -> str:
         validation_summary=_validation_summary(),
         qualification_summary=_qualification_summary("SPY"),
         option_setups=[_option_setup("SPY")],
-        outcome=outcome if outcome is not None else runtime.OUTCOME_NO_TRADE,
-        operator_locked=operator_locked,
+        effective_permission=make_ep(
+            outcome=("TRADE" if (outcome or runtime.OUTCOME_NO_TRADE) == runtime.OUTCOME_TRADE
+                     else "NO_TRADE"),
+            operator_locked=operator_locked),
     )
 
 
@@ -1653,8 +1679,8 @@ def test_prd304_locked_daily_report_halt_still_wins():
     report = output.render_report(
         date_str="2026-04-28", run_at_utc=RUN_AT, regime=None,
         validation_summary=vs, qualification_summary=None, option_setups=[],
-        outcome=runtime.OUTCOME_HALT, halt_reason="Failed: ^VIX (stale)",
-        chain_results={}, operator_locked=True,
+        effective_permission=make_ep(system_halted=True, operator_locked=True),
+        halt_reason="Failed: ^VIX (stale)", chain_results={},
     )
     assert "OPERATOR LOCK — CANNOT MONITOR" not in report
     assert "SYSTEM HALT" in report or "MACRO DATA INVALID" in report
@@ -1843,7 +1869,8 @@ def test_prd305_locked_daily_notification_strips_posture_and_uses_canonical_titl
     monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "CANNOT_MONITOR")
     _actionable_run_setup(monkeypatch, tmp_path)
     result = _run_fixture()
-    title, body = build_notification_message(result.contract)
+    title, body = build_notification_message(
+        result.contract, effective_permission=_contract_ep(result.contract))
     # Canonical title verbatim — no appended timestamp (finding 3).
     assert title == config.OPERATOR_LOCK_TITLE
     # Lock sentence leads the body.
@@ -1864,7 +1891,8 @@ def test_prd305_available_daily_notification_exposes_posture_anchor(monkeypatch,
     monkeypatch.setenv("CB_OPERATOR_AVAILABILITY", "AVAILABLE")
     _actionable_run_setup(monkeypatch, tmp_path)
     result = _run_fixture()
-    _title, body = build_notification_message(result.contract)
+    _title, body = build_notification_message(
+        result.contract, effective_permission=_contract_ep(result.contract))
     assert " | " in body
     assert "AGGRESSIVE" in body
 

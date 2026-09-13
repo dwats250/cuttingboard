@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from cuttingboard.output import OUTCOME_TRADE, render_report
+from cuttingboard.output import render_report
+from tests.ep_test_helpers import make_ep
 from cuttingboard.qualification import (
     GATE_EARNINGS,
     GATE_EXTENSION,
@@ -122,7 +123,7 @@ def test_report_renders_gate_skipped_line():
         validation_summary=_val_summary(),
         qualification_summary=summary,
         option_setups=[_option_setup("SPY")],
-        outcome=OUTCOME_TRADE,
+        effective_permission=make_ep(outcome="TRADE"),
         chain_results={"SPY": ChainValidationResult(
             symbol="SPY", classification=VALIDATED, reason=None,
             spread_pct=None, open_interest=None, volume=None,

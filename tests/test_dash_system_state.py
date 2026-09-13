@@ -200,25 +200,28 @@ def test_decision_title_system_halt_system_halted_true() -> None:
 # ---------------------------------------------------------------------------
 
 def test_prd280_status_fail_system_halted_false_renders_halt_color() -> None:
-    # R1 (red pre-change): a status=FAIL run with system_halted=False and a
-    # RISK_ON regime must still color both verdicts sys-halt, not the
-    # regime's own (green) class.
+    # PRD-280: a status=FAIL run with system_halted=False must still COLOR the
+    # verdict sys-halt (run-health alert), not the regime's green class. PRD-340
+    # R4: the decision-state TEXT is now the EP-derived authority -- with
+    # system_halted=False and no trade the resolved verdict is NO_TRADE, so the
+    # state reads STAY FLAT, not the old status-proxy HALT (the SYSTEM HALT run
+    # title survives as the halt-color source in data-raw-title).
     html = render_dashboard_html(
         _payload(market_regime="RISK_ON"), _run(status="FAIL", system_halted=False)
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
-    assert "SYSTEM HALT" in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="STAY FLAT"' in state and '>STAY FLAT</div>' in state
+    assert "SYSTEM HALT" in state          # data-raw-title still carries the FAIL title
     assert "sys-up" not in state
 
 
 def test_prd280_status_error_system_halted_false_renders_halt_color() -> None:
-    # R1 (red pre-change): same as above for status=ERROR.
+    # Same as above for status=ERROR (PRD-340 R4: EP-derived STAY FLAT text, sys-halt color).
     html = render_dashboard_html(
         _payload(market_regime="RISK_ON"), _run(status="ERROR", system_halted=False)
     )
     state = _header_block(html)
-    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="HALT"' in state and '>HALT</div>' in state
+    assert 'class="decision-state sys-halt"' in state and 'data-raw-state="STAY FLAT"' in state and '>STAY FLAT</div>' in state
     assert "SYSTEM HALT" in state
     assert "sys-up" not in state
 

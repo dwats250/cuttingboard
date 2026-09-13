@@ -66,12 +66,17 @@ def build_report_payload(
     rejections: list[dict] = list(contract.get("rejections") or [])
 
     # --- summary ---
+    # PRD-340 R4: tradable, permission and top_trades-presence are NON-AUTHORITATIVE
+    # EVIDENCE on the payload. Execution authority lives ONLY in the canonical
+    # effective_permission envelope (Slice-1 exclusive writer / persist_copy carries
+    # it onto this payload); no channel derives authoritative action wording from
+    # these summary fields — the EP projection (authority_projection) is the source.
     market_regime = ss.get("market_regime")
-    tradable = ss.get("tradable")         # bool | None — preserve semantics
+    tradable = ss.get("tradable")         # bool | None — preserve semantics (evidence)
     router_mode = ss.get("router_mode")   # str | None
     outcome_val = ss.get("outcome")
     confidence_val = ss.get("confidence")
-    permission_val = ss.get("permission")
+    permission_val = ss.get("permission")  # evidence only (see R4 note above)
 
     # --- sections ---
     # PRD-162: top_trades is the *actionable* projection — tradable, ALLOW_TRADE,

@@ -140,6 +140,20 @@ EffectivePermissionEnvelope = TypedDict("EffectivePermissionEnvelope", {
 })
 
 
+# PRD-340 Slice 2 (R2/R4): the authoritative-action projection that channels read
+# as the SOLE source of execution-permission wording. It is DERIVED at the read
+# boundary from the canonical EffectivePermissionEnvelope above by
+# cuttingboard.authority_projection (project / admit_projection); it is never a
+# builder key and never a second persisted authority (the envelope is the one
+# persisted authority carrier). This TypedDict is the schema of
+# ActionProjection.to_served() -- the served/testable projection mirror.
+AuthoritativeActionProjection = TypedDict("AuthoritativeActionProjection", {
+    "verdict": str, "available": bool, "permission_line": str,
+    "decision_state": str, "posture": str, "report_outcome": str,
+    "operator_locked": bool,
+})
+
+
 class PipelineContract(TypedDict):
     """The canonical pipeline output contract (schema_version v2). The persisted
     carrier also carries a write-layer-only ``effective_permission`` field

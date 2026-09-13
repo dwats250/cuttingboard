@@ -76,6 +76,20 @@ authority_guard() {
       echo "artifact publish: authority non-regression REFUSED (R5) on $carrier" >&2
       return 1
     fi
+    # PRD-340 Slice 2 (publish read-boundary): fail closed on a bundle whose
+    # incoming authority carrier is absent/malformed/UNAVAILABLE -- it must project
+    # to a genuine (non-UNAVAILABLE) authority through the approved validator before
+    # publish, beyond the R5 non-regression compare above.
+    # Invoke as a MODULE from the repo root so `from cuttingboard import ...`
+    # inside authority_projection.py resolves in a clean workflow env (no editable
+    # install / no PYTHONPATH). $inc is an absolute mktemp path, so the subshell cd
+    # does not disturb it. Guard/exit-code semantics unchanged.
+    if ! ( cd "$SCRIPT_DIR/.." && python3 -m cuttingboard.authority_projection \
+           admit "$inc" ); then
+      rm -f "$acc" "$inc"
+      echo "artifact publish: authority read-boundary REFUSED (Slice 2) on $carrier" >&2
+      return 1
+    fi
     rm -f "$acc" "$inc"
   done
   return 0
