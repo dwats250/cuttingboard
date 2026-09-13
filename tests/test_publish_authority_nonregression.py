@@ -1,10 +1,7 @@
 """PRD-339 Slice 1 (R5): publication non-regression. Unit tests on
-``publication_admits`` (lexicographic authority_version gate, Q4 recovery M5c,
-equal-version GOVERNED-identity M5b + finding 2) + a bounded OFFLINE replay of
-ci_push_artifacts.sh against a temp bare remote across ALL routes (bootstrap,
-daily overlay, hourly overlay, retry) and BOTH carriers, with CROSSED-ORDER
-fixtures whose generated_at + commit order disagree with authority_version,
-proving the guard orders by authority_version, never a timestamp (M5)."""
+``publication_admits`` + a bounded OFFLINE replay of ci_push_artifacts.sh (temp
+bare remote) across all routes (bootstrap/daily/hourly overlay/retry) and both
+carriers, with crossed-order fixtures proving ordering by authority_version (M5)."""
 
 from __future__ import annotations
 
@@ -19,9 +16,12 @@ SD = "2026-04-12"
 SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "ci_push_artifacts.sh"
 
 
+_VERDICT_BY_RANK = {0: "PERMITTED", 1: "NO_TRADE", 2: "HALT", 3: "UNAVAILABLE"}
+
+
 def _env(**av):
     return {
-        "verdict": av.get("verdict", "NO_TRADE"),
+        "verdict": av.get("verdict", _VERDICT_BY_RANK[av["rank"]]),  # cross-field consistent
         "restriction_rank": av["rank"], "decision_uid": av.get("uid", "LIVE-1"),
         "session_date": av["date"], "run_uid": av.get("run_uid", "r1"),
         "authority_version": [av["date"], av["seq"], av["rank"]],
@@ -29,6 +29,11 @@ def _env(**av):
         "recovery_basis": av.get("recovery_basis"),
         "permission_line": av.get("permission_line", "x"), "decision_seq": av["seq"],
     }
+
+
+def _tomorrow():
+    from datetime import datetime, timezone, timedelta
+    return (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
 
 
 # --- unit: publication_admits (R5 a-d) ---------------------------------------
@@ -42,8 +47,22 @@ def test_bootstrap_refuses_malformed_incoming() -> None:  # D2
     assert ep.publication_admits(None, None) is False
 
 
-def test_refuses_future_session_on_both_routes() -> None:  # D2
-    fut = _env(date="2099-01-01", seq=1, rank=1)
+def test_full_key_but_structurally_invalid_refused_both_routes() -> None:  # D2
+    # full key set but structurally invalid -> refused on BOTH bootstrap and overlay.
+    acc = _env(date=SD, seq=1, rank=1)
+    for bad in (
+        _env(date=SD, seq=1, rank=1, verdict="GO"),                 # unknown verdict
+        {**_env(date=SD, seq=1, rank=1), "restriction_rank": 2},    # rank/verdict mismatch
+        _env(date=SD, seq=1, rank=1, uid=""),                       # blank identity
+        {**_env(date=SD, seq=1, rank=1), "extra": 1},               # extra field
+        {**_env(date=SD, seq=1, rank=1), "valid_until": None},      # null expiry
+    ):
+        assert ep.publication_admits(None, bad) is False, "bootstrap admitted invalid"
+        assert ep.publication_admits(acc, bad) is False, "overlay admitted invalid"
+
+
+def test_refuses_future_session_on_both_routes() -> None:  # D2 (no today+1 grace)
+    fut = _env(date=_tomorrow(), seq=1, rank=1)
     assert ep.publication_admits(None, fut) is False                       # bootstrap
     assert ep.publication_admits(_env(date=SD, seq=1, rank=1), fut) is False  # overlay
 

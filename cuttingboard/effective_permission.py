@@ -104,12 +104,14 @@ def resolve_effective_permission(
     accepted: Optional[EffectivePermission] = None,
 ) -> EffectivePermission:
     """ONLY constructor for an admitted DAILY decision (R1). Fail-closed for
-    unauthorized modes (finding 7). A same-session daily decision that LOWERS
-    restriction is a genuine Q4 REDECISION (a retry reproduces the same rank, so it
-    cannot be one): it mints a fresh collision-free decision_uid, increments
-    decision_seq, and attaches recovery_basis (D3/R3). Any other same-session run is
-    a retry/rerun and REUSES the accepted identity (incl. run_uid) so its persisted
-    canonical envelope is byte-identical (R5(d)/D1). A new session starts seq=1."""
+    unauthorized modes (finding 7). Every genuine new admitted daily decision is a
+    full LIVE/SUNDAY chain resolve carrying a FRESH per-invocation run_uid; it mints a
+    new decision_uid, increments decision_seq (D3 -- even at the SAME rank), and
+    attaches recovery_basis when it LOWERS restriction (Q4/R3, valid for any genuine
+    new decision incl. a changed-input re-dispatch). An idempotent same-run re-resolve
+    (run_uid == accepted.run_uid) REUSES the identity -> byte-identical envelope
+    (R5(d)/D1); a publish-retry re-pushes the prior artifact and never re-resolves.
+    A new session starts seq=1. Redecision is NEVER inferred from rank."""
     if mode not in AUTHORIZED_DAILY_MODES:
         return unavailable(session_date)
     if system_halted:
@@ -122,14 +124,14 @@ def resolve_effective_permission(
     rank = _RANK[verdict]
     recovery: Optional[dict[str, Any]] = None
     same_session = accepted is not None and accepted.session_date == session_date
-    if same_session and rank < accepted.restriction_rank:
-        decision_uid, seq = run_uid, accepted.decision_seq + 1            # Q4 recovery redecision
-        recovery = {"superseded_authority_version": list(accepted.authority_version),
-                    "superseding_decision_uid": run_uid,
-                    "reason": RECOVERY_REASON_REDECISION}
+    if same_session and run_uid == accepted.run_uid:
+        decision_uid, seq = accepted.decision_uid, accepted.decision_seq  # idempotent re-resolve
     elif same_session:
-        decision_uid, seq, run_uid = (accepted.decision_uid, accepted.decision_seq,
-                                      accepted.run_uid)                    # retry (idempotent)
+        decision_uid, seq = run_uid, accepted.decision_seq + 1            # genuine new daily decision
+        if rank < accepted.restriction_rank:
+            recovery = {"superseded_authority_version": list(accepted.authority_version),
+                        "superseding_decision_uid": run_uid,
+                        "reason": RECOVERY_REASON_REDECISION}
     else:
         decision_uid, seq = run_uid, 1                                    # new session
     return _mint(verdict=verdict, restriction_rank=rank, decision_uid=decision_uid,
@@ -184,50 +186,56 @@ def _recovery_basis_wellformed(rb: Any) -> bool:
             and isinstance(sav[2], int) and not isinstance(sav[2], bool))
 
 
+def _valid_canonical(env: Any) -> bool:
+    """Closed-schema + cross-field validation shared by admit_persisted and the
+    publisher (D2, DRY): the EXACT canonical key set (no extra fields), a known
+    verdict, non-empty typed identity, string valid_until/permission_line, a
+    recovery_basis that is None or well-formed, rank == _RANK[verdict], decision_seq
+    >= 1, and authority_version == [session_date, decision_seq, restriction_rank]."""
+    if not isinstance(env, dict) or set(env.keys()) != _KEYS:
+        return False
+    verdict, sd = env["verdict"], env["session_date"]
+    du, ru, vu, pl, rb = (env["decision_uid"], env["run_uid"], env["valid_until"],
+                          env["permission_line"], env["recovery_basis"])
+    if verdict not in _VALID_VERDICTS:
+        return False
+    if not all(isinstance(x, str) and x for x in (du, ru, sd)):
+        return False
+    if not (isinstance(vu, str) and isinstance(pl, str)):
+        return False
+    if rb is not None and not _recovery_basis_wellformed(rb):
+        return False
+    try:
+        rank, seq = int(env["restriction_rank"]), int(env["decision_seq"])
+        av = env["authority_version"]
+        av_t = (str(av[0]), int(av[1]), int(av[2]))
+        datetime.fromisoformat(vu)
+    except (KeyError, TypeError, ValueError, IndexError):
+        return False
+    return rank == _RANK[verdict] and seq >= 1 and av_t == (sd, seq, rank)
+
+
 def admit_persisted(
     envelope: Any, *, current_session_date: str, now: Optional[datetime] = None,
 ) -> Optional[EffectivePermission]:
     """Fail-closed admission at the read boundary (R7): the admitted EP, else None
-    (absent/malformed/unknown-verdict/verdict-rank or version mismatch/empty identity/
-    missing-or-stale valid_until/malformed recovery/prior-session). Never raises
-    (tz-normalized compare), fabricates, or retains a grant across sessions."""
-    if not isinstance(envelope, dict) or not _KEYS.issubset(envelope.keys()):
+    (malformed per _valid_canonical / prior-session / missing-or-stale freshness).
+    Never raises (tz-normalized compare), fabricates, or retains a grant."""
+    if not _valid_canonical(envelope) or envelope["session_date"] != current_session_date:
         return None
-    verdict = envelope.get("verdict")
-    du, ru, sd = envelope.get("decision_uid"), envelope.get("run_uid"), envelope.get("session_date")
-    vu, rb = envelope.get("valid_until"), envelope.get("recovery_basis")
-    if verdict not in _VALID_VERDICTS:
-        return None
-    if not (isinstance(du, str) and du and isinstance(ru, str) and ru
-            and isinstance(sd, str) and sd):
-        return None
-    if not isinstance(vu, str):  # a valid authority always carries a freshness bound
-        return None
-    if rb is not None and not _recovery_basis_wellformed(rb):
-        return None
-    try:
-        rank, seq = int(envelope["restriction_rank"]), int(envelope["decision_seq"])
-        av = envelope["authority_version"]
-        av_t = (str(av[0]), int(av[1]), int(av[2]))
-        vu_dt = datetime.fromisoformat(vu)
-    except (KeyError, TypeError, ValueError, IndexError):
-        return None
-    if rank != _RANK[verdict] or seq < 1:          # verdict/rank agreement + admitted seq
-        return None
-    if av_t != (sd, seq, rank):                    # authority_version cross-field agreement
-        return None
-    if sd != current_session_date:                 # prior-session
-        return None
+    vu_dt = datetime.fromisoformat(envelope["valid_until"])
     if vu_dt.tzinfo is None:
         vu_dt = vu_dt.replace(tzinfo=timezone.utc)
     if now is not None:
         now_dt = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
         if now_dt > vu_dt:                          # stale/expired
             return None
-    return _mint(verdict=verdict, restriction_rank=rank, decision_uid=du, session_date=sd,
-                 run_uid=ru, authority_version=av_t, valid_until=vu, recovery_basis=rb,
-                 permission_line=str(envelope.get("permission_line", _DEFAULT_LINE)),
-                 decision_seq=seq)
+    av = envelope["authority_version"]
+    return _mint(verdict=envelope["verdict"], restriction_rank=int(envelope["restriction_rank"]),
+                 decision_uid=envelope["decision_uid"], session_date=envelope["session_date"],
+                 run_uid=envelope["run_uid"], authority_version=(str(av[0]), int(av[1]), int(av[2])),
+                 valid_until=envelope["valid_until"], recovery_basis=envelope["recovery_basis"],
+                 permission_line=envelope["permission_line"], decision_seq=int(envelope["decision_seq"]))
 
 
 def _recovery_authorized(*, recovery_basis: Any, incoming_decision_uid: Any,
@@ -260,26 +268,15 @@ def _av(env: dict[str, Any]) -> tuple[str, int, int]:
     return (str(av[0]), int(av[1]), int(av[2]))
 
 
-def _canonical_shape(env: Any) -> bool:
-    """A well-formed canonical envelope: a dict carrying every canonical key with a
-    parseable authority_version (D2 -- rejects garbage/non-canonical dicts)."""
-    if not isinstance(env, dict) or not _KEYS.issubset(env.keys()):
-        return False
-    try:
-        _av(env)
-    except (KeyError, TypeError, ValueError, IndexError):
-        return False
-    return True
-
-
 def _is_future_session(session_date: str) -> bool:
-    """D2: a session_date beyond today+1 (ET/UTC skew grace) -- or unparseable -- is
-    a future/invalid bundle and must be refused."""
+    """D2: a session_date later than the current authoritative (UTC) date -- or
+    unparseable -- is a future/invalid bundle and is refused (no today+1 grace;
+    ET is behind UTC, so a real ET session_date is never past UTC today)."""
     try:
         d = date.fromisoformat(session_date)
     except (ValueError, TypeError):
         return True
-    return d > datetime.now(timezone.utc).date() + timedelta(days=1)
+    return d > datetime.now(timezone.utc).date()
 
 
 def publication_admits(accepted_envelope: Optional[dict[str, Any]],
@@ -292,12 +289,12 @@ def publication_admits(accepted_envelope: Optional[dict[str, Any]],
     ONLY when the FULL persisted envelope is byte/structurally identical (run_uid and
     every field, D1). Missing/malformed incoming -> refuse; a well-formed non-future
     incoming with no accepted (bootstrap) -> admit."""
-    if not _canonical_shape(incoming_envelope):
+    if not _valid_canonical(incoming_envelope):
         return False
     inc = _av(incoming_envelope)
     if _is_future_session(inc[0]):
         return False
-    if not _canonical_shape(accepted_envelope):
+    if not _valid_canonical(accepted_envelope):
         return not isinstance(accepted_envelope, dict)  # bootstrap admits; malformed accepted refuses
     acc = _av(accepted_envelope)
     (inc_d, inc_s, inc_r), (acc_d, acc_s, acc_r) = inc, acc

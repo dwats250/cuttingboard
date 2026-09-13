@@ -1,7 +1,6 @@
 """PRD-339 Slice 1 (Authority Core) unit tests: resolver / carry / identity /
-monotonic / Q4 recovery / admission, and the discriminating tests for mutation
-proofs M1 (carry originates), M2 (rank max), M3 (recovery predicate), M6 (run_uid),
-M7 (fail-closed admission). See PRD-339.md R1-R8 + the impl-review findings."""
+monotonic / Q4 recovery / admission + discriminating tests for M1-M7 and D1-D5.
+See PRD-339.md R1-R8 + the impl-review findings."""
 
 from __future__ import annotations
 
@@ -109,35 +108,33 @@ def test_decision_uid_collision_free_same_second_new_decisions() -> None:
     assert a.decision_uid != b.decision_uid and a.decision_uid and b.decision_uid
 
 
-def test_retry_reuses_identity_not_misclassified_as_redecision() -> None:
+def test_idempotent_same_run_reresolve_does_not_increment() -> None:  # D3
     first = _daily(trade=False, run_uid="R1")
-    retry = _daily(trade=False, run_uid="R2", accepted=first)  # same session, same rank -> retry
-    assert retry.decision_uid == first.decision_uid  # reuse identity
-    assert retry.decision_seq == first.decision_seq  # no seq bump
-    assert retry.run_uid == first.run_uid            # idempotent (D1): byte-identical envelope
-    assert retry.to_envelope() == first.to_envelope()
-    assert retry.recovery_basis is None
+    reresolve = _daily(trade=False, run_uid="R1", accepted=first)  # same run_uid -> idempotent
+    assert reresolve.decision_uid == first.decision_uid
+    assert reresolve.decision_seq == first.decision_seq  # no increment
+    assert reresolve.run_uid == first.run_uid
+    assert reresolve.to_envelope() == first.to_envelope()
+    assert reresolve.recovery_basis is None
 
 
-# --- D3: production redecision wiring (auto-detected by a restriction-lowering run) --
+# --- D3: production redecision wiring (genuine new admitted daily decision) ----
 
-def test_production_recovery_wired_lower_rank_is_redecision() -> None:
-    accepted = _daily(halted=True, run_uid="A1")           # rank 2, seq 1
-    # a genuine later daily decision that clears the halt -> auto-detected Q4 recovery
-    redec = _daily(trade=True, run_uid="A2", accepted=accepted)
-    assert redec.decision_uid == "A2" != accepted.decision_uid  # new identity minted
+def test_same_rank_new_daily_decision_increments_seq() -> None:  # D3(b)
+    first = _daily(trade=False, run_uid="R1")                       # NO_TRADE, seq 1
+    second = _daily(trade=False, run_uid="R2", accepted=first)      # fresh run_uid, same rank
+    assert second.decision_seq == 2 and second.decision_uid == "R2"
+    assert second.recovery_basis is None                           # same rank -> no recovery
+
+
+def test_new_daily_decision_lowering_rank_recovers() -> None:  # D3 / Q4
+    accepted = _daily(halted=True, run_uid="A1")                    # rank 2, seq 1
+    redec = _daily(trade=True, run_uid="A2", accepted=accepted)     # fresh invocation, clears halt
+    assert redec.decision_uid == "A2" != accepted.decision_uid
     assert redec.decision_seq == 2 and redec.recovery_basis is not None
     assert redec.recovery_basis["superseding_decision_uid"] == "A2"
     assert redec.verdict == ep.VERDICT_PERMITTED
     assert ep.is_authorized_redecision(incoming=redec, accepted=accepted) is True
-
-
-def test_production_retry_same_rank_is_not_a_redecision() -> None:
-    accepted = _daily(halted=True, run_uid="A1")
-    retry = _daily(halted=True, run_uid="A2", accepted=accepted)  # reproduces the halt -> retry
-    assert retry.decision_seq == accepted.decision_seq
-    assert retry.decision_uid == accepted.decision_uid
-    assert retry.recovery_basis is None
 
 
 def test_redecision_predicate_rejects_mismatched_superseding_uid() -> None:

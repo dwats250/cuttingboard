@@ -1,10 +1,8 @@
-"""PRD-339 Slice 1 (R4, packet s14): the EXCLUSIVE-WRITER structural guard. The
-canonical ``effective_permission`` field may be AUTHORED only by the two approved
-functions in cuttingboard/effective_permission.py (persist / persist_copy). Any
-other module that authors it -- by subscript-assign, dict literal, ``.update({...})``,
-``.setdefault(...)`` or ``.__setitem__(...)`` -- makes this RED (mutation proof M4).
-The carrier seams must route through persist/persist_copy, and ui/contract.json is a
-verbatim workflow cp. Modeled on test_runtime_layering / test_dash_boundary (AST)."""
+"""PRD-339 Slice 1 (R4, packet s14): the EXCLUSIVE-WRITER structural guard. Only
+persist/persist_copy in cuttingboard/effective_permission.py may AUTHOR the canonical
+field; any other authorship (subscript/dict/update/setdefault/__setitem__, at
+function/module/class scope) makes this RED (M4/D5). Seams must route through
+persist/persist_copy; ui/contract.json is a verbatim workflow cp."""
 
 from __future__ import annotations
 
@@ -64,9 +62,8 @@ def test_no_module_authors_the_field_outside_the_approved_functions() -> None:
     for path in sorted(PKG.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         if path == APPROVED_PATH:
-            # In the approved file, authoring is allowed ONLY inside persist/persist_copy.
-            # Node-identity diff catches MODULE-scope and CLASS-scope authorship (D5),
-            # not just function-scope.
+            # authoring allowed ONLY inside persist/persist_copy; node-identity diff
+            # catches module-scope and class-scope authorship too (D5).
             approved = _approved_authoring_ids(tree)
             stray = [n.lineno for n in ast.walk(tree)
                      if _is_authoring(n) and id(n) not in approved]
