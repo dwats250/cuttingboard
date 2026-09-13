@@ -1,8 +1,14 @@
 # PRD-339 DECISION-AUTHORITY MATERIAL Packet -- FRESH-FRAME REBUILD (2026-09-12)
 
-STATUS: PROVISIONAL (GOV-2 s6 fresh-frame rebuild; owner ruling REBUILD). Not review-clean
-until the exact-corrected-head confirmation records it. Grants no downstream authority: no
-design-direction ruling, no PRD drafting/review, no Gate A, no implementation.
+STATUS: PROVISIONAL, CORRECTED once (GOV-2 s6 fresh-frame rebuild; owner ruling REBUILD).
+The INITIAL PACKET REVIEW of the rebuild (Sol @ f2c2497e) returned DESIGN INCOMPLETE -- the
+THIRD boundary reset of this effort -- finding a live workflow/Git commit-message delivery
+class, a fourth independent origin (watch._execution_posture), omitted carriers
+(audit.jsonl, run_<ts>.json, ui/contract.json), and an A7 misclassification. Per GOV-2 s6
+this first-in-cycle discovery gets ONE consolidated correction, recorded in s14 (with a
+method-level META-FINDING on the three resets). Not review-clean until the exact-corrected-
+head confirmation records it. Grants no downstream authority: no design-direction ruling, no
+PRD drafting/review, no Gate A, no implementation.
 
 SUPERSEDES: PRD_339_EFFECTIVE_PERMISSION_MATERIAL_PACKET_2026-09-12.md (that packet reached
 DESIGN INCOMPLETE after two boundary resets: initial review found the delivery/report/CLI/
@@ -56,10 +62,17 @@ six seams. This is the boundary:
 - S6 OPERATOR-LOCK / HALT restriction: config.py:69-115; execution_policy.py:245-289
   (+ thesis/invalidation/entry-quality/intraday-short gates B5-B8).
 
-COMPLETENESS TEST (GOV-2, answered): "Can any code path tell Dustin to act without passing
-through S1-S6?" ANSWER: no live production path bypasses the seams. Telegram is the only
-outbound channel (no email/slack/webhook exists). The near-bypass risks are stale committed
-UI HTML and unsurfaced reports (s9 F-items), not live bypasses.
+COMPLETENESS TEST (GOV-2) -- CORRECTED after the initial packet review (see s14): the
+initial review found this section OVERSTATED completeness. Corrected answer: every
+DECISION-ORIGIN resolves to seams S1-S6, but the OUTBOUND surface enumeration was
+incomplete. Telegram is the only MESSAGING transport, but it is NOT the only outbound
+decision-bearing surface: the daily workflow also emits an action-bearing commit message
+("... N trades [symbols] ...") to the GitHub Actions log and persists it as the artifact
+commit metadata pushed to `publish` (.github/workflows/cuttingboard.yml:481-509, git commit
+-F :545-548, push :564-569), and Pages deploys ui/ (pages.yml). And `watch._execution_posture`
+(watch.py:641-646) is a further INDEPENDENT origin rendered as "Execution posture" in the
+report. See s14 for the corrected inventory. This third boundary reset is itself a
+method-level finding (s14 META-FINDING).
 
 ---
 
@@ -79,8 +92,9 @@ that independently reconstructs actionability from a proxy.
 - A6 market_map grade=A+/setup=ACTIONABLE (market_map.py:196-198) + if_now=TAKE (:479-509,
   guard actionable_now :490) -> PARALLEL "actionable now" origin from a DIFFERENT computation
   (regime_aligned + strong_structure + near_key_level); NOT lock/HALT/policy constrained.
-- A7 market_control_card ACTIONABLE_CANDIDATES (market_control_card.py:241-252) -> derived
-  from A5 (shares A5 identity).
+- A7 [RECLASSIFIED to C per s14/initial-review finding 5] market_control_card
+  ACTIONABLE_CANDIDATES (market_control_card.py:241-252) is DERIVED solely from the resolved
+  `outcome` argument (A5), not an independent origin. It belongs in class C (derived), not A.
 - A8 permission-text producer _PERMISSION_LINES (runtime/_constants.py:96-103) -> positive
   permission sentences (contract/summary carriers).
 
@@ -370,3 +384,75 @@ already determined by code.
 
 No downstream authority (ruling, PRD review, Gate A, implementation) proceeds until the packet
 is review-clean and Dustin rules.
+
+---
+
+## 14. CONSOLIDATED CORRECTION (rebuild cycle, post initial review) + META-FINDING
+
+The INITIAL PACKET REVIEW (Sol @ f2c2497e, DESIGN INCOMPLETE, THIRD boundary reset) findings,
+each verified against source and dispositioned ACTIONED here:
+
+NEWLY-INVENTORIED SURFACES (fold into the boundary; the inventory in s2-s6 is corrected to
+include these):
+- DELIVERY (E), boundary-reset class: WORKFLOW/GIT COMMIT-MESSAGE delivery. The daily
+  workflow reads candidates_qualified + TOP_TRADE_VALIDATED chain symbols from
+  logs/latest_run.json and builds "CB report: {date} | {regime} | {qualified} trades
+  [{symbols}] | {status}", prints it to the Actions log, writes .cb_commit_msg, and
+  `git commit -F .cb_commit_msg` (.github/workflows/cuttingboard.yml:481-509, :545-548), then
+  pushes to `publish` (:564-569). An action-bearing outbound decision surface. Consumes seam
+  S1 (outcome/qualified) + S4 (chain classification); no lock/HALT gating on the message text.
+- ORIGIN (A), fourth independent parallel origin: watch._execution_posture (watch.py:641-646)
+  returns "A+ Only" / "No Trade" from regime.regime/posture ALONE (bypasses outcome, execution
+  policy, operator lock, canonical permission); persisted in WatchSummary (:305-311); rendered
+  verbatim as "Execution posture: {..}" in the report (output.py:601-612). This is a THIRD/
+  FOURTH parallel origin alongside market_map if_now (A6) and _action_label -- add to the s5
+  duplicate-origin cluster.
+- CARRIER (restore/regression, s6 corrected): logs/audit.jsonl -- append/history carrier
+  (audit.py:216-248) holding outcome/posture/qualification/qualified_trades/trade_decisions
+  (decision_status/policy_allowed); restored (cuttingboard.yml:242-248), delta-appended onto
+  the moving publish tip (ci_push_artifacts.sh:71-115), read back by the post-trade evaluator
+  (evaluation.py:37-137, selects persisted ALLOW_TRADE). NEITHER plain-overwrite NOR monotonic
+  -> needs append/history ordering treatment.
+- CARRIER: logs/run_<second>.json -- plain overwrite at a second-resolution filename
+  (runtime:2305-2313; fields :1749-1777) carrying outcome/permission/qualified; restored +
+  published. logs ui/contract.json -- completion-order overwrite copied by BOTH daily
+  (cuttingboard.yml:529-533) and hourly (hourly_alert.yml:203-215,247-256) workflows, consumed
+  directly by the browser (app.js:344,557). Both are permission-bearing carriers MCB-3 must
+  guard; add to s6.
+- CLASSIFICATION FIX: A7 (market_control_card ACTIONABLE_CANDIDATES) is DERIVED from outcome
+  (market_control_card.py:241-252) -> reclassified to C (done in s3).
+- FACTUAL FIX: "Telegram is the only outbound channel" corrected in s2 (it is the only
+  MESSAGING transport; the commit-message + Pages are also outbound decision surfaces).
+- ESTIMATE FIX (s11): add .github/workflows/pages.yml, cuttingboard/audit.py,
+  cuttingboard/evaluation.py, cuttingboard/watch.py, and the workflow commit-message step to
+  the ESTIMATED SURFACE. Full-scope now ~30-36 production files.
+- OWNER-FRAMING FIX (s12): Q8/Q10 -- documenting a still-LIVE action-bearing surface (e.g.
+  "Execution posture: A+ Only", the commit-message "N trades") as "non-authoritative" does NOT
+  change its semantics; the genuine owner choice is DERIVE-from-canonical / REMOVE-action-
+  vocabulary / RETIRE, not relabel. The stale committed HTML's serve-ability is a source fact,
+  not an owner-selectable classification (its remedy -- regenerate/retire/guard -- is the owner
+  choice). Q1/Q3/Q4/Q6/Q7/Q9 remain genuine owner choices.
+
+META-FINDING (method-level; the most important result of this cycle):
+THREE boundary resets have now occurred -- twice on the first packet and once on a fresh-frame
+rebuild built by FOUR independent recon sweeps plus a semantic completeness sweep that itself
+claimed no bypass. Each pass discovered further decision-authority surfaces (dashboard ->
+payload/report/CLI -> market_map -> workflow commit message -> watch execution-posture -> audit
+carrier). CONCLUSION: the decision-authority surface is large and resistant to complete
+enumeration by inspection; asserting completeness by hand-inventory keeps failing. The robust
+strategy is COMPLETENESS BY CONSTRUCTION, not by inventory:
+- define ONE canonical resolved effective-permission state at the producer; AND
+- add a STRUCTURAL guard/lint (a CI check + a test) that FAILS if any surface emits action/
+  permission vocabulary (the S-vocabulary) without consuming that canonical state -- so a
+  newly-added or newly-discovered surface cannot silently bypass. This converts "did we find
+  every consumer?" (unprovable by inventory) into "no surface can bypass the carrier"
+  (enforceable and regression-proof).
+This is offered as a design-direction option for Dustin (a refinement of Q8/Q9), NOT a ruling.
+It likely reduces the FILES/LOC surface too, because the guard -- not per-consumer edits --
+becomes the completeness mechanism.
+
+GOV-2 NEXT: this consolidated correction is committed; the exact-corrected-head confirmation
+(Sol) runs against it. If the confirmation discovers ANOTHER previously-omitted class, the
+packet returns to DESIGN INCOMPLETE and STOPS (no forced clean verdict) -- and the META-FINDING
+above becomes the recommended basis for Dustin's next decision (adopt the structural approach,
+narrow the claim, or park).
