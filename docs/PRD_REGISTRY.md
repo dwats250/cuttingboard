@@ -383,3 +383,5 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-330 | [docs/prd_history/PRD-330.confirmation1.fable.md](prd_history/PRD-330.confirmation1.fable.md) |
 | PRD-315 | [docs/prd_history/PRD-315.impl-review.claude.md](prd_history/PRD-315.impl-review.claude.md) |
 | PRD-332 | [docs/prd_history/PRD-332.impl-review.claude.md](prd_history/PRD-332.impl-review.claude.md) |
+| PRD-339 | [docs/prd_history/PRD-339.review.codex.md](prd_history/PRD-339.review.codex.md) |
+| PRD-339 | [docs/prd_history/PRD-339.impl-review.codex.md](prd_history/PRD-339.impl-review.codex.md) |
