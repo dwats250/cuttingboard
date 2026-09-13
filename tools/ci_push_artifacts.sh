@@ -23,6 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PUBLISH_BRANCH="${PUBLISH_BRANCH:-publish}"
 AUDIT_PATH="logs/audit.jsonl"
+AUTH_CARRIER="logs/latest_contract.json"   # PRD-339 Slice 1 authority carrier (R5)
 MAX_ATTEMPTS="${CB_PUBLISH_MAX_ATTEMPTS:-5}"
 
 pre_sha="${PRE_SHA:-}"
@@ -93,6 +94,23 @@ attempt_publish() {
   git fetch origin "$PUBLISH_BRANCH"
   git fetch origin main   # for the static ui/ sync below (latest reviewed assets)
   git worktree add --force "$wt" "origin/$PUBLISH_BRANCH"
+
+  # PRD-339 Slice 1 (R5): refuse a bundle whose $AUTH_CARRIER authority_version regresses the tip.
+  case " ${changed[*]} " in
+    *" $AUTH_CARRIER "*)
+      local acc_tmp inc_tmp
+      acc_tmp="$(mktemp)"; inc_tmp="$(mktemp)"
+      git show "origin/$PUBLISH_BRANCH:$AUTH_CARRIER" > "$acc_tmp" 2>/dev/null || : > "$acc_tmp"
+      git show "$post_sha:$AUTH_CARRIER" > "$inc_tmp" 2>/dev/null || : > "$inc_tmp"
+      if ! python3 "$SCRIPT_DIR/../cuttingboard/effective_permission.py" \
+             publication-admits "$acc_tmp" "$inc_tmp"; then
+        rm -f "$acc_tmp" "$inc_tmp"
+        echo "artifact publish: authority non-regression REFUSED (R5) — not publishing" >&2
+        return 1
+      fi
+      rm -f "$acc_tmp" "$inc_tmp"
+      ;;
+  esac
 
   local path dest
   for path in "${changed[@]}"; do

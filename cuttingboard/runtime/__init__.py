@@ -55,6 +55,7 @@ from cuttingboard.intraday_state_engine import (
     _ORB_START,
     compute_intraday_state,
 )
+from cuttingboard import effective_permission as ep_authority
 from cuttingboard.market_map import build_market_map
 from cuttingboard.delivery.primary_selection import select_primary_card_symbol
 from cuttingboard.trend_structure import build_trend_structure_snapshot
@@ -465,6 +466,7 @@ def execute_run(
             error_detail=str(exc)[:200],
         )
         error_contract["outcome"] = OUTCOME_HALT
+        # PRD-339 Slice 1: crash writes no canonical field; a reader fail-closes (R7).
         _write_contract_file(error_contract)
         _write_payload_artifacts(error_contract)
         timestamped_path, latest_path = _write_summary_files(
@@ -743,6 +745,16 @@ def _execute_notify_run(
                 kill_switch=hourly_kill_switch,
                 operator_locked=operator_locked and not validation_summary.system_halted,
             )
+            # PRD-339 Slice 1 (Q1/Q4): hourly carries the admitted daily decision (rank=max), else UNAVAILABLE.
+            _huid = ep_authority.new_run_uid()
+            _acc = _load_accepted_authority(run_date.isoformat(), run_at_utc)
+            _hourly_ep = ep_authority.carry_forward(
+                accepted=_acc, run_uid=_huid, observed_halted=validation_summary.system_halted,
+                observed_operator_locked=operator_locked and not validation_summary.system_halted,
+                operator_lock_line=config.OPERATOR_LOCK_PERMISSION,
+            ) if _acc is not None else ep_authority.unavailable(run_date.isoformat(), _huid)
+            ep_authority.persist(contract, _hourly_ep)
+            ep_authority.persist(summary, _hourly_ep)
             _write_hourly_artifacts(summary, contract)
             # PRD-323: bind before the try so the A1-P producer below can always
             # read it (None when build_market_map itself raised).
@@ -1092,6 +1104,7 @@ def _build_and_finalize_contract(
     fixture_backed: bool,
     notify_mode: str,
     operator_locked: bool = False,
+    effective_permission: Optional["ep_authority.EffectivePermission"] = None,
 ) -> tuple[dict[str, Any], bool]:
     """PRD-236: contract build + every post-build runtime mutation,
     extracted verbatim from _run_pipeline — the injection cluster the
@@ -1133,18 +1146,11 @@ def _build_and_finalize_contract(
         options_refusals=option_refusals,
     )
     contract["outcome"] = outcome
-    # Inject dashboard-readable fields into system_state
-    _ss_regime_label, _ss_posture_label, _ss_conf, _ = _summary_regime_fields(regime)
-    _ss_perm = _PERMISSION_LINES.get(_ss_posture_label, "No new trades permitted.")
-    if validation_summary.system_halted:
-        _ss_perm = "No trades permitted. System halted."
-    elif operator_locked:
-        # PRD-304 R5: the locked permission carrier. System-halt permission
-        # continues to win (the halt branch above precedes this).
-        _ss_perm = config.OPERATOR_LOCK_PERMISSION
+    # PRD-339 Slice 1: permission-authority derivation MOVED to the pre-render resolver (byte-identical).
     contract["system_state"]["outcome"] = outcome
-    contract["system_state"]["permission"] = _ss_perm
+    contract["system_state"]["permission"] = effective_permission.permission_line
     contract["system_state"]["reason"] = contract["system_state"].get("stay_flat_reason")
+    ep_authority.persist(contract, effective_permission)
     contract = apply_overnight_policy(
         contract=contract,
         market_map=market_map,
@@ -1215,6 +1221,25 @@ def _build_and_finalize_contract(
     # or the audit log.
     assert_valid_contract(contract, finalized=True)
     return contract, alert_sent
+
+
+def _load_accepted_authority(
+    session_date: str, now: datetime, *paths: Path
+) -> Optional["ep_authority.EffectivePermission"]:
+    """PRD-339 Slice 1: restore + fail-closed admit the accepted-authority carrier (R7)."""
+    if not paths:
+        paths = (LATEST_RUN_PATH, LATEST_CONTRACT_PATH)
+    for path in paths:
+        try:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        ep = ep_authority.admit_persisted(
+            (data or {}).get(ep_authority.CANONICAL_FIELD),
+            current_session_date=session_date, now=now)
+        if ep is not None:
+            return ep
+    return None
 
 
 def _run_pipeline(
@@ -1461,6 +1486,18 @@ def _run_pipeline(
         if decision.block_reason == POLICY_SIZE_ROUNDS_TO_ZERO
     }
 
+    # PRD-339 Slice 1: resolve EffectivePermission ONCE at the converged pre-render boundary.
+    effective_permission = ep_authority.resolve_effective_permission(
+        outcome_is_trade=(outcome == OUTCOME_TRADE),
+        system_halted=validation_summary.system_halted,
+        operator_locked=operator_locked, session_date=date_str,
+        decision_uid=generation_id, run_uid=ep_authority.new_run_uid(),
+        posture_permission_line=_PERMISSION_LINES.get(
+            _summary_regime_fields(regime)[1], "No new trades permitted."),
+        operator_lock_line=config.OPERATOR_LOCK_PERMISSION,
+        accepted=_load_accepted_authority(date_str, run_at_utc),
+    )
+
     report = render_report(
         date_str=date_str,
         run_at_utc=run_at_utc,
@@ -1513,6 +1550,7 @@ def _run_pipeline(
         fixture_backed=fixture_backed,
         notify_mode=notify_mode,
         operator_locked=operator_locked,
+        effective_permission=effective_permission,
     )
 
     # PRD-296: emit the FAIL-owned ownership signal HERE, immediately after the send and BEFORE
@@ -1596,6 +1634,7 @@ def _run_pipeline(
         outcome=outcome,
         operator_locked=operator_locked,
     )
+    ep_authority.persist(summary, effective_permission)  # PRD-339 Slice 1 (R4)
 
     # PRD-123: refresh trend_structure_snapshot.json on every MODE_LIVE
     # pipeline run. The helper gates internally on mode == MODE_LIVE; the
@@ -2541,6 +2580,7 @@ def _write_hourly_artifacts(summary: dict[str, Any], contract: dict[str, Any]) -
         from cuttingboard.delivery.transport import deliver_html, deliver_json
 
         payload = build_report_payload(contract, fixture_mode=_fixture_mode)
+        ep_authority.persist_copy(payload, contract)  # PRD-339 Slice 1 (R4 copy)
         _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
         deliver_json(payload, output_path=str(LATEST_HOURLY_PAYLOAD_PATH))
@@ -2974,6 +3014,7 @@ def _write_payload_artifacts(contract: dict[str, Any], spy_observation=None, mar
             contract, fixture_mode=_fixture_mode,
             spy_observation=spy_observation, market_control_card=market_control_card,
         )
+        ep_authority.persist_copy(payload, contract)  # PRD-339 Slice 1 (R4 copy)
         _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
         deliver_json(payload)

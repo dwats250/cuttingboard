@@ -9,6 +9,18 @@ model in `CLAUDE.md`, full PRD history in `docs/PRD_REGISTRY.md`, and rationale 
 
 ## Current state
 
+- **PRD-339 Slice 1 (Authority Core):** IMPLEMENTED on branch
+  `claude/prd-339-effective-permission-design` (Gate A granted for Slice 1 only),
+  pending fresh-context implementation review + Helm merge. Introduces the
+  canonical `cuttingboard/effective_permission.py` carrier + resolver + Q1 carry
+  + Q4 recovery + R5 publication non-regression (`tools/ci_push_artifacts.sh`) +
+  s14 exclusive-writer persistence + fail-closed admission; the resolver runs
+  ONCE at the converged pre-render boundary in `_run_pipeline` and the envelope is
+  persisted onto the contract/summary/payload carriers. ADDITIVE and inert until
+  Slice 2 (Authority Projection, separate PRD, not yet allocated); operator
+  availability stays CLOSED until BOTH slices land. See `docs/SCHEMA_MAP.md`
+  (`effective_permission`) and `docs/CALL_SITE_MAP.md` (resolver / exclusive
+  writer / publisher guard seams).
 - **Review and merge policy:** `GOV-1` — MERGED AND EFFECTIVE (`faada24`,
   PR #171, 2026-07-25). Dustin merges every PR (no auto-merge, any lane);
   routine gate is one fresh-context review plus the connector's; deep

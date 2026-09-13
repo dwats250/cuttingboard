@@ -127,8 +127,23 @@ class ContractCandidate(TypedDict):
     overnight_policy: NotRequired[OvernightPolicyDecision]
 
 
+# PRD-339 Slice 1: the canonical effective-permission field on the persisted
+# carriers (contract/summary/payload + hourly). WRITE-LAYER only -- authored solely
+# by cuttingboard.effective_permission.persist, never by the builder -- so it is
+# intentionally NOT a PipelineContract key (the PRD-233 drift guards track builder
+# keys only); functional TypedDict keeps it off the tracked PipelineContract shape.
+EffectivePermissionEnvelope = TypedDict("EffectivePermissionEnvelope", {
+    "verdict": str, "restriction_rank": int, "decision_uid": str,
+    "session_date": str, "run_uid": str, "authority_version": list,
+    "valid_until": Optional[str], "recovery_basis": Optional[dict[str, Any]],
+    "permission_line": str, "decision_seq": int,
+})
+
+
 class PipelineContract(TypedDict):
-    """The canonical pipeline output contract (schema_version v2)."""
+    """The canonical pipeline output contract (schema_version v2). The persisted
+    carrier also carries a write-layer-only ``effective_permission`` field
+    (EffectivePermissionEnvelope, PRD-339 Slice 1); not a builder key."""
 
     schema_version: str
     generation_id: Optional[str]

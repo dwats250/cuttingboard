@@ -120,6 +120,9 @@ jobs:
       #     absent) instead of wiping it to null; without the restore, preserve-prior
       #     reads only main's frozen 3-row fallback and the wipe still happens.
       # The restore step also records CB_PUBLISH_BASE_SHA for the audit delta-append.
+      # PRD-339 Slice 1: the accepted-authority field rides in the restored
+      # latest_run.json (carry_forward reads it); the carried-forward field is
+      # force-added onto latest_hourly_contract.json below.
       - name: Restore publish state
         run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json logs/regime_history.jsonl 'logs/run_*.json'
 

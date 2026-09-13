@@ -13,7 +13,10 @@ always current).
 | Function | Purpose |
 |---|---|
 | `cli_main` | Entry point; resolves command and runtime mode |
-| `_run_pipeline` | Orchestrates regime → qualification → output → artifacts |
+| `_run_pipeline` | Orchestrates regime → qualification → output → artifacts. PRD-339 Slice 1: calls `effective_permission.resolve_effective_permission` ONCE at the converged pre-render boundary (immediately before `render_report`) and `persist`s the envelope onto the contract + summary |
+| `_load_accepted_authority` | PRD-339 Slice 1: restore + fail-closed admit (`admit_persisted`, R7) the accepted-authority carrier from `latest_contract.json`/`latest_run.json` |
+| `_execute_notify_run` (hourly seam) | PRD-339 Slice 1: `carry_forward` the admitted daily decision (Q1/Q4, rank=max) or fail-closed `unavailable`, then `persist` onto the hourly contract + summary |
+| `effective_permission` (module) | PRD-339 Slice 1 Authority Core: `resolve_effective_permission` (sole daily constructor), `carry_forward` (Q1 carry), `admit_persisted` (R7), `is_authorized_redecision` (R3), `publication_admits` (R5 gate + `_cli` for the publisher), `persist`/`persist_copy` (s14 exclusive writer, R4) |
 | `_resolve_effective_mode` | Handles live/sunday mode resolution |
 | `_fetch_intraday_card_bars` | PRD-323 A1-P: the DISTINCT, patchable card-fetch reference (SEPARATE from the daily :1250 SPY fetch) → `fetch_intraday_session_bars(sym, timeout_seconds=25, retries=1)`; conftest autouse defaults it to a no-op so the whole `_execute_notify_run` cone is network-free (R3/R12) |
 | `_intraday_symbol_bars` / `_write_intraday_bars_snapshot` | PRD-323 A1-P: whole-symbol validation (R4/R5) + atomic write of `logs/intraday_bars_snapshot.json` (`INTRADAY_BARS_PATH`, R6). Called only from the hourly seam inside the one R7 isolation boundary; consumer is PRD-324 A1-C (below) |
@@ -139,6 +142,14 @@ The `gold`/`silver` macro_drivers are **display-only** (front-month futures
 | **FENCE** `_COMPONENT_FIELDS` | macro_pressure.py | macro_pressure components — excludes gold/silver (no decision read) |
 | **FENCE** `MACRO_BIAS_DRIVERS` | macro_tape_layout.py | bias-vote drivers — excludes gold/silver (no decision read) |
 | `TapeSlot.display` | macro_tape_layout.py | Visible label (`GC`/`SI` for metals); `label`/`data-symbol` stay `XAU`/`XAG` (PRD-211) |
+
+---
+
+## tools/ci_push_artifacts.sh (PRD-339 Slice 1 R5)
+
+| Function | Purpose |
+|---|---|
+| `attempt_publish` | Overlay + push onto the publish branch; retried by the loop. PRD-339 R5: before committing, when the bundle publishes `logs/latest_contract.json` it calls `python3 cuttingboard/effective_permission.py publication-admits <accepted-tip> <incoming>` and REFUSES (fail-closed) an authority-regressing bundle. Bootstrap route (branch absent) is exempt |
 
 ---
 
