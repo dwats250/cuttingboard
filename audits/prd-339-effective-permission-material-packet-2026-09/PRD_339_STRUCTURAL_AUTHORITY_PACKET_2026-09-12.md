@@ -23,7 +23,10 @@ bounded correction 2026-09-12; R1-R4 closure is s13. Sol confirmation @ 941bbf24
 -- serialized canonical fields remain self-assertable by an in-scope downstream code path;
 shape+freshness does not prove ORIGIN. STOP per owner charter (no second correction without
 explicit ruling). Single residual R3, closable NON-crypto via a code-enforced EXCLUSIVE-WRITER
-boundary (EVENT-3 Option A). Decision to Dustin.] Grants no downstream authority: no PRD drafting/review, no Gate
+boundary (EVENT-3 Option A). Decision to Dustin.] [OWNER RULED Option A 2026-09-13 (FINAL
+correction, no crypto); R3 closure is s14 (exclusive-writer boundary); pending ONE fresh Sol
+confirmation, then HARD STOP (freeze on CLEAN/CLEAN-WITH-NITS, else return to Dustin).] Grants
+no downstream authority: no PRD drafting/review, no Gate
 A, no implementation.
 
 SUPERSEDES the enumeration framing of PRD_339_DECISION_AUTHORITY_REBUILD_PACKET_2026-09-12.md
@@ -525,3 +528,76 @@ send_telegram:729, resolver convergence ~1136-1147/pre-1464) are verified agains
 GOV-2 NEXT (s13): committed; ONE fresh Sol exact-head confirmation asks only whether R1-R4 are
 closed (A-E of the owner charge). No second correction after that without Dustin's explicit
 ruling.
+
+[UPDATE: the s13 confirmation (EVENT-3 @ 941bbf24) closed R1/R2/R4 but R3 remained NOT closed
+("single write path + shape validation" does not prove cross-process ORIGIN). Owner ruled
+Option A. R3's binding closure is s14; s13's R3 cross-process clause is superseded by s14.]
+
+---
+
+## 14. R3 CLOSURE -- EXCLUSIVE-WRITER BOUNDARY (owner Option A ruling; FINAL correction)
+
+Per Dustin's R3 ruling (2026-09-13): adopt Option A; this is the FINAL authorized design
+correction; NO crypto, MAC, secret, signing, or broader capability system. Trust boundary =
+the same-project repository; out-of-project malicious writers are OUT OF SCOPE.
+
+### R3 invariant (binding)
+
+Exactly ONE approved resolver/persistence path may WRITE canonical effective-permission state
+to the authoritative carriers. Every other module may READ that state but may NOT author,
+serialize, replace, mutate, or self-assert it.
+
+### The approved writer (grounded in the actual carrier/writer structure)
+
+The authoritative carriers and their current write helpers (verified at HEAD):
+latest_run.json via `_write_summary_files` -> `safe_write_latest` (runtime:411-414/2305/2267);
+latest_contract.json via `_write_contract_file` -> `safe_write_latest` (runtime:2352-2354);
+latest_payload.json via `_write_payload_artifacts` -> `deliver_json` (runtime:2973-2980;
+transport.py:34); the hourly variants via `_write_hourly_artifacts` (runtime:2533-2547); the
+Markdown/HTML report via `_write_markdown_report` (runtime:2259) / `deliver_html`
+(transport.py:22); ui/contract.json via the workflow `cp` of latest_contract.json
+(cuttingboard.yml:529 / hourly_alert.yml:209).
+
+Design: the canonical effective_permission ENVELOPE (the resolved field written by
+resolve_effective_permission) is persisted by a SINGLE approved persistence function -- e.g.
+`effective_permission.persist(carrier, ep)` -- and every one of the above authoritative-carrier
+writers routes the canonical field ONLY through that function (both the daily and hourly lanes
+use the same path; carry_forward is still the resolver path). No other code assigns or
+serializes the canonical field. The workflow `cp` of ui/contract.json is a byte COPY of the
+resolver-written contract (it carries the field, it does not author it) -- the R3 test treats a
+verbatim copy as a read, and forbids the workflow from rewriting/synthesizing the field.
+
+### Smallest structural enforcement (CI/test; field-structure, not vocabulary)
+
+ADD to tests/test_effective_permission_boundary.py (AST, the repo idiom; runs in ci.yml +
+drift):
+- assert the canonical effective_permission field key / envelope is ASSIGNED or SERIALIZED only
+  within the approved persistence module/function; ANY assignment, mutation, dict-set, or
+  serialize of that key in any other module FAILS.
+- assert the authoritative-carrier write helpers persist the canonical field ONLY via the
+  approved persistence function (a second writer of the field, or a direct carrier write that
+  sets the field outside the approved path, FAILS CI).
+- assert the ui/contract.json workflow step is a copy (no field synthesis/rewrite).
+This is based on the actual writer/API/field structure (the field key + the approved persistence
+function + the enumerated carrier writers), NOT a semantic action-vocabulary scan. Adding a
+second writer causes CI to fail -- that is the origin guarantee for the same-project trust
+boundary: a downstream module cannot author/serialize/replace the canonical field, so it cannot
+manufacture accepted persisted canonical permission state.
+
+### Fail-closed (retained from s13)
+
+A reader that finds the canonical field absent, malformed, prior-session, or stale resolves
+UNAVAILABLE (no proxy re-derivation). Combined with R4 (proxies not present), a downstream
+module has neither a proxy to derive from nor a way to author the canonical field.
+
+### Scope discipline
+
+This closes R3 ONLY. It introduces no crypto/secret/broader capability system and does not
+touch R1/R2/R4 (which remain: required-EP signatures, closed channel registry, proxy-strip). It
+does not broaden into any other architecture mechanism.
+
+GOV-2 NEXT (s14): committed; ONE fresh Sol exact-head confirmation asks only (1) is R3 closed;
+(2) can any same-project downstream module still manufacture accepted persisted canonical
+permission state without the exclusive writer; (3) did this weaken R1/R2/R4; (4) review-clean?
+HARD STOP after: CLEAN / CLEAN WITH NITS with no invariant weakness -> freeze; DESIGN INCOMPLETE
+/ REJECT -> return to Dustin. No further correction cycle is authorized.
