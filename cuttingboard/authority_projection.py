@@ -222,6 +222,25 @@ def _current_session(carrier: Any, argv: list[str]) -> str:
     return str(carrier.get("session_date")) if isinstance(carrier, dict) else "None"
 
 
+def _authoritative_trade_set(carrier: Any) -> tuple[int, list[str]]:
+    """The trade COUNT + SYMBOLS for the commit-message channel, reported ONLY when
+    the caller has confirmed a PERMITTED authority (EP-gated). The candidate count
+    (candidates_qualified) and the chain-validated symbols are evidence made
+    AUTHORITATIVE solely by that EP gate -- a non-PERMITTED / unadmitted authority
+    yields (0, []) regardless of the proxies present on the carrier (fail-closed),
+    so 'N trades' is never a proxy-derived authoritative claim (R4)."""
+    if not isinstance(carrier, dict):
+        return 0, []
+    qualified = carrier.get("candidates_qualified")
+    count = int(qualified) if isinstance(qualified, int) and not isinstance(qualified, bool) else 0
+    chain = carrier.get("chain_validation")
+    symbols = sorted(
+        k for k, v in (chain.items() if isinstance(chain, dict) else [])
+        if isinstance(v, dict) and v.get("classification") == "TOP_TRADE_VALIDATED"
+    )
+    return count, symbols
+
+
 def _cli(argv: list[str]) -> int:
     if len(argv) >= 2 and argv[0] == "admit":
         # Publish read boundary: exit 0 iff the carrier admits a non-UNAVAILABLE
@@ -230,10 +249,15 @@ def _cli(argv: list[str]) -> int:
         proj = admit_projection(carrier, current_session_date=_current_session(carrier, argv))
         return 0 if proj.verdict != VERDICT_UNAVAILABLE else 1
     if len(argv) >= 2 and argv[0] == "commit-status":
-        # Daily workflow commit-message wording, derived ONLY from the projection.
+        # Daily workflow commit-message AUTHORITATIVE wording, derived ONLY from the
+        # projection (R4): the decision-state AND the trade count/symbols. The
+        # count/symbols are EP-GATED -- emitted only under a PERMITTED authority,
+        # else '0 trades []' -- so the workflow never reads candidate/chain proxies
+        # for authoritative wording.
         carrier = _read_carrier(argv[1])
         proj = admit_projection(carrier, current_session_date=_current_session(carrier, argv))
-        print(proj.decision_state)
+        count, symbols = _authoritative_trade_set(carrier) if proj.available else (0, [])
+        print(f"{proj.decision_state} | {count} trades [{', '.join(symbols)}]")
         return 0
     print("usage: authority_projection.py (admit|commit-status) <carrier.json> [current_session_date]")
     return 2

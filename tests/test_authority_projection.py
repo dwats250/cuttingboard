@@ -316,8 +316,40 @@ def test_cli_admit_explicit_workflow_session_overrides_envelope_claim(tmp_path) 
 
 def test_cli_commit_status_fail_closed_on_session_mismatch(tmp_path, capsys) -> None:
     ep = _ep(trade=True, session="2026-06-12")
-    carrier = {"session_date": "2026-06-13", ep_authority.CANONICAL_FIELD: ep.to_envelope()}
+    carrier = {"session_date": "2026-06-13", "candidates_qualified": 3,
+               "chain_validation": {"SPY": {"classification": "TOP_TRADE_VALIDATED"}},
+               ep_authority.CANONICAL_FIELD: ep.to_envelope()}
     p = tmp_path / "m.json"
     p.write_text(json.dumps(carrier), encoding="utf-8")
     assert ap._cli(["commit-status", str(p)]) == 0
-    assert capsys.readouterr().out.strip() == ap.DECISION_UNAVAILABLE
+    # F1: a session mismatch fails closed -> UNAVAILABLE decision-state AND the
+    # EP-gated count is 0 (never the candidate proxy's 3 / SPY).
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_UNAVAILABLE} | 0 trades []"
+
+
+def test_cli_commit_status_permitted_emits_ep_gated_count(tmp_path, capsys) -> None:
+    # F1: under a PERMITTED authority for the matching session, the count/symbols
+    # ARE reported -- authoritative because they are gated on the admitted EP.
+    ep = _ep(trade=True, session="2026-06-12")
+    carrier = {"session_date": "2026-06-12", "candidates_qualified": 2,
+               "chain_validation": {"SPY": {"classification": "TOP_TRADE_VALIDATED"},
+                                    "QQQ": {"classification": "TOP_TRADE_VALIDATED"},
+                                    "IWM": {"classification": "MANUAL_CHECK"}},
+               ep_authority.CANONICAL_FIELD: ep.to_envelope()}
+    p = tmp_path / "ok.json"
+    p.write_text(json.dumps(carrier), encoding="utf-8")
+    assert ap._cli(["commit-status", str(p)]) == 0
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_TRADE_PERMITTED} | 2 trades [QQQ, SPY]"
+
+
+def test_cli_commit_status_no_trade_gates_count_to_zero(tmp_path, capsys) -> None:
+    # F1: a NO_TRADE authority reports 0 trades EVEN WHEN candidate proxies are
+    # present -- the count is EP-gated, never proxy-derived.
+    ep = _ep(trade=False, session="2026-06-12")
+    carrier = {"session_date": "2026-06-12", "candidates_qualified": 5,
+               "chain_validation": {"SPY": {"classification": "TOP_TRADE_VALIDATED"}},
+               ep_authority.CANONICAL_FIELD: ep.to_envelope()}
+    p = tmp_path / "nt.json"
+    p.write_text(json.dumps(carrier), encoding="utf-8")
+    assert ap._cli(["commit-status", str(p)]) == 0
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_STAY_FLAT} | 0 trades []"

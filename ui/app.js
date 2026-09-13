@@ -98,18 +98,62 @@ var _VERDICT_POSTURE = {
   UNAVAILABLE: 'UNAVAILABLE',
 };
 
+// verdict -> restriction rank (mirrors _RANK in effective_permission.py). Also the
+// canonical CLOSED key set and the recovery-basis schema, mirrored so the browser
+// enforces the SAME closed-schema + cross-field admission the Python read boundary
+// (effective_permission._valid_canonical) does -- a forged/partial envelope missing
+// any canonical field (or with a cross-field mismatch) fails closed here too.
+var _RANK = { PERMITTED: 0, NO_TRADE: 1, OBSERVE_ONLY: 1, HALT: 2, UNAVAILABLE: 3 };
+var _CANONICAL_KEYS = ['authority_version', 'decision_seq', 'decision_uid',
+  'permission_line', 'recovery_basis', 'restriction_rank', 'run_uid',
+  'session_date', 'valid_until', 'verdict'];
+
+function _isInt(x) { return typeof x === 'number' && Number.isInteger(x); }
+
+function _recoveryBasisWellFormed(rb) {
+  if (rb === null) return true;                          // None is well-formed
+  if (typeof rb !== 'object' || Array.isArray(rb)) return false;
+  var keys = Object.keys(rb).sort();
+  var want = ['reason', 'superseded_authority_version', 'superseding_decision_uid'];
+  if (keys.length !== want.length) return false;
+  for (var i = 0; i < want.length; i++) { if (keys[i] !== want[i]) return false; }
+  if (rb.reason !== 'REDECISION') return false;
+  if (typeof rb.superseding_decision_uid !== 'string' || !rb.superseding_decision_uid.trim()) return false;
+  var sav = rb.superseded_authority_version;
+  return Array.isArray(sav) && sav.length === 3
+    && typeof sav[0] === 'string' && !!sav[0] && _isInt(sav[1]) && _isInt(sav[2]);
+}
+
+function isCanonicalEnvelope(env) {
+  if (!env || typeof env !== 'object' || Array.isArray(env)) return false;
+  var keys = Object.keys(env).sort();                    // EXACT closed key set, no extras
+  if (keys.length !== _CANONICAL_KEYS.length) return false;
+  for (var i = 0; i < _CANONICAL_KEYS.length; i++) { if (keys[i] !== _CANONICAL_KEYS[i]) return false; }
+  if (!Object.prototype.hasOwnProperty.call(_RANK, env.verdict)) return false;   // known verdict
+  if (typeof env.decision_uid !== 'string' || !env.decision_uid) return false;
+  if (typeof env.run_uid !== 'string' || !env.run_uid) return false;
+  if (typeof env.session_date !== 'string' || !env.session_date) return false;
+  if (typeof env.valid_until !== 'string') return false;
+  if (typeof env.permission_line !== 'string') return false;
+  if (!_recoveryBasisWellFormed(env.recovery_basis)) return false;
+  if (!_isInt(env.restriction_rank) || !_isInt(env.decision_seq) || env.decision_seq < 1) return false;
+  if (env.restriction_rank !== _RANK[env.verdict]) return false;                 // rank == _RANK[verdict]
+  var av = env.authority_version;                        // == [session_date, decision_seq, restriction_rank]
+  return Array.isArray(av) && av.length === 3
+    && av[0] === env.session_date && av[1] === env.decision_seq && av[2] === env.restriction_rank;
+}
+
 // The SOLE reader of the canonical projection field on the served contract (T4
 // routing): validate + return the admitted envelope, else null (fail-closed).
 function admitAuthority(contract) {
   var env = safeGet(contract, 'effective_permission');
-  if (!env || typeof env !== 'object') return null;
-  var verdict = env.verdict;
-  if (!Object.prototype.hasOwnProperty.call(_VERDICT_POSTURE, verdict)) return null;
-  if (verdict === 'UNAVAILABLE') return null;            // sentinel is never a grant
+  // closed-schema + cross-field admission (mirrors effective_permission._valid_canonical):
+  // a forged/partial envelope is rejected before any posture is derived.
+  if (!isCanonicalEnvelope(env)) return null;
+  if (env.verdict === 'UNAVAILABLE') return null;        // sentinel is never a grant
   // prior-session fail-closed: the authority must be for THIS served session.
   var sessionDate = safeGet(contract, 'session_date');
-  if (!env.session_date || (sessionDate && env.session_date !== sessionDate)) return null;
-  if (!env.decision_uid || !env.run_uid || typeof env.valid_until !== 'string') return null;
+  if (sessionDate && env.session_date !== sessionDate) return null;
   // fail-closed freshness (mirrors admit_persisted's now-vs-valid_until compare):
   // an unparseable or already-expired valid_until is never a live grant.
   var validUntilMs = Date.parse(env.valid_until);

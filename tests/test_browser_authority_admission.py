@@ -139,6 +139,44 @@ def test_absent_authority_fails_closed() -> None:
     assert out["primary"] == "none"
 
 
+# ------------------------------------------------- F2 forged/partial-schema envelopes
+
+def test_partial_envelope_missing_canonical_fields_fails_closed() -> None:
+    # A forged/partial envelope carrying only verdict + IDs + session + valid_until
+    # (MISSING restriction_rank, authority_version, recovery_basis, permission_line,
+    # decision_seq) must NOT admit as TRADE_READY -- the browser mirrors the canonical
+    # closed-schema admission (effective_permission._valid_canonical).
+    env = _envelope(trade=True)
+    forged = {"verdict": "PERMITTED", "session_date": _SESSION,
+              "decision_uid": env["decision_uid"], "run_uid": env["run_uid"],
+              "valid_until": env["valid_until"]}
+    contract = {"session_date": _SESSION, "effective_permission": forged, "trade_candidates": _CANDS}
+    out = _run(contract, _valid_until_ms(env) - 3_600_000)
+    assert out["posture"] == "UNAVAILABLE"
+    assert out["primary"] == "none"
+
+
+def test_cross_field_mismatch_envelope_fails_closed() -> None:
+    # A full-key envelope whose cross-fields are inconsistent (authority_version does
+    # not equal [session_date, decision_seq, restriction_rank]) fails closed.
+    env = _envelope(trade=True)
+    env["authority_version"] = [_SESSION, 9, 9]  # != [session, seq=1, rank=0]
+    contract = {"session_date": _SESSION, "effective_permission": env, "trade_candidates": _CANDS}
+    out = _run(contract, _valid_until_ms(_envelope(trade=True)) - 3_600_000)
+    assert out["posture"] == "UNAVAILABLE"
+    assert out["primary"] == "none"
+
+
+def test_extra_key_envelope_fails_closed() -> None:
+    # A NON-closed envelope with an extra key is rejected (exact canonical key set).
+    env = _envelope(trade=True)
+    env["injected"] = "surprise"
+    contract = {"session_date": _SESSION, "effective_permission": env, "trade_candidates": _CANDS}
+    out = _run(contract, _valid_until_ms(_envelope(trade=True)) - 3_600_000)
+    assert out["posture"] == "UNAVAILABLE"
+    assert out["primary"] == "none"
+
+
 # ------------------------------------------------------- F4 posture-mapped blocks
 
 def test_no_trade_posture_shows_no_trade_block() -> None:

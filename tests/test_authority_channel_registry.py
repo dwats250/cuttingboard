@@ -121,6 +121,47 @@ def test_no_raw_authoritative_token_outside_the_projection_module() -> None:
         f"outside the projection module (unregistered authoritative writer): {sorted(stray)}")
 
 
+# INTERPOLATED/formatted authoritative count vocabulary. The exact-literal scans
+# above miss `f"{qualified} trades"` / `${n} trades` because the count is a variable,
+# not a constant. The sanctioned author of "N trades" wording is the projection CLI
+# (EP-gated); any channel building it inline from a proxy is an unregistered emitter.
+_INTERPOLATED_COUNT = re.compile(r"\{[^}\n]*\}\s*trades")
+
+
+def _channel_source_files() -> list[pathlib.Path]:
+    files = [REPO / "ui" / "app.js", REPO / "tools" / "ci_push_artifacts.sh",
+             REPO / ".github" / "workflows" / "cuttingboard.yml"]
+    files += [p for p in sorted(PKG.rglob("*.py"))
+              if p.name != "authority_projection.py" and "__pycache__" not in p.parts]
+    return files
+
+
+def test_no_interpolated_trade_count_wording_outside_projection() -> None:
+    # (a-d) INDEPENDENT discovery of INTERPOLATED authoritative count vocabulary
+    # across all four seam classes (Python channel modules + JS + shell + workflow).
+    # M2 (interpolated): a channel that builds `{proxy} trades` wording is discovered
+    # here even though it is not an exact string constant -> RED.
+    offenders: list[str] = []
+    for p in _channel_source_files():
+        for m in _INTERPOLATED_COUNT.finditer(p.read_text(encoding="utf-8")):
+            offenders.append(f"{p.relative_to(REPO)}: {m.group(0)!r}")
+    assert not offenders, (
+        "PRD-340 R4: interpolated authoritative trade-count wording ('N trades') is "
+        f"emitted outside the projection CLI (unregistered authoritative writer): {offenders}")
+
+
+def test_workflow_commit_message_sources_count_from_cli_not_proxies() -> None:
+    # Channel 8: the daily commit-message step must source ALL authoritative wording
+    # (decision + trade count/symbols) from the projection CLI, never candidate/chain
+    # proxies. A regression that rebuilds the "N trades" segment from a proxy reddens.
+    daily = (REPO / ".github" / "workflows" / "cuttingboard.yml").read_text(encoding="utf-8")
+    assert "commit-status" in daily, "commit message must derive authority from the CLI"
+    assert "candidates_qualified" not in daily, (
+        "PRD-340 R4: the daily workflow reads a candidate-count proxy for authoritative wording")
+    assert "TOP_TRADE_VALIDATED" not in daily, (
+        "PRD-340 R4: the daily workflow reads a chain-classification proxy for authoritative wording")
+
+
 def test_no_raw_authority_token_in_non_python_seams() -> None:
     # (b/c/d) JS/shell/workflow independence: the frozen tokens must NOT appear as
     # raw literals in the browser, publish, or commit-message seams -- those channels
