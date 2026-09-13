@@ -1,10 +1,16 @@
 # PRD-339 EFFECTIVE-PERMISSION -- COMPLETENESS-BY-CONSTRUCTION Packet (2026-09-12)
 
-STATUS: PROVISIONAL (GOV-2 s6 rebuild under Dustin's METHOD RULING of 2026-09-12:
-"REBUILD -- COMPLETENESS BY CONSTRUCTION"). Not review-clean until the GOV-2 cycle
-(initial Codex review -> one consolidated correction -> exact-corrected-head confirmation)
-records it. Grants no downstream authority: no PRD drafting/review, no Gate A, no
-implementation.
+STATUS: PROVISIONAL, CORRECTED once (GOV-2 s6 rebuild under Dustin's METHOD RULING of
+2026-09-12: "REBUILD -- COMPLETENESS BY CONSTRUCTION"). The INITIAL PACKET REVIEW (Sol @
+e5fdc624) returned DESIGN INCOMPLETE (mechanism unsound): the AST/vocabulary guard cannot
+prove SEMANTIC completeness (assembled/synonymous/proxy-derived verdicts evade it; a sink
+registry re-introduces enumeration). Per GOV-2 (this is a MECHANISM correction within the
+ruled method, not an enumeration boundary reset -- the owner listed schema/dependency
+constraints among the options and delegated the choice), the mechanism is CORRECTED to the
+DATA / OUTPUT-CHANNEL BOUNDARY in s12; resolver placement corrected (finding 4); Q9(c)
+dropped; estimate expanded. Recorded in CODEX_EVENT_1_REVIEW_STRUCTURAL_2026-09-12.md. Not
+review-clean until the exact-corrected-head confirmation records it. Grants no downstream
+authority: no PRD drafting/review, no Gate A, no implementation.
 
 SUPERSEDES the enumeration framing of PRD_339_DECISION_AUTHORITY_REBUILD_PACKET_2026-09-12.md
 (GOV-2 s10). That packet's boundary-COMPLETENESS CLAIM is SUPERSEDED (three boundary resets
@@ -69,10 +75,14 @@ dataclasses are frozen; SystemState already declares outcome/permission fields):
   design-v6 carrier fields: decision_uid, session_date, restriction_rank, authority_version,
   run_uid, valid_until, recovery_basis).
 - `resolve_effective_permission(...)` -- the ONLY constructor of EffectivePermission, called
-  ONCE at the producer boundary (runtime/__init__.py:1051-1055, right where
-  decision_is_actionable already computes the canonical outcome). It consumes the decision +
-  operator snapshot + safety state + market_map/qualification EVIDENCE (which become inputs,
-  not origins).
+  ONCE at the CONVERGED finalization boundary [CORRECTED per initial-review finding 4; see
+  s12]. That boundary is runtime/__init__.py:~1136-1147 (the "Inject dashboard-readable fields
+  into system_state" block), where ALL paths converge -- validation-HALT (:1300-1302),
+  kill-switch-HALT (:1303-1318), operator-lock (:1141-1144), and the decision-gate outcome --
+  and outcome/permission are set uniformly, BEFORE contract finalization and any publication.
+  It is NOT runtime:1051 (inside the non-HALT actionable expression, which the HALT branches
+  skip). It consumes the decision + operator snapshot + safety state + market_map/qualification
+  EVIDENCE (which become inputs, not origins), and it produces the HALT/UNAVAILABLE verdicts too.
 - THE APPROVED ACTIONABILITY INTERFACE -- a small set of functions in this module that RENDER
   / FORMAT authoritative action wording, each accepting ONLY an EffectivePermission (e.g.
   authoritative_verdict(ep), action_directive(ep) [IF NOW / PLAY], tier_label(ep),
@@ -108,7 +118,13 @@ dataclasses are frozen; SystemState already declares outcome/permission fields):
 
 ---
 
-## 5. STRUCTURAL COMPLETENESS PROOF (the smallest genuinely-enforcing mechanism)
+## 5. STRUCTURAL COMPLETENESS PROOF (SUPERSEDED by s12 -- read s12 first)
+
+[SUPERSEDED per initial-review: the AST/vocabulary-guard mechanism below was found UNSOUND
+(a sink can assemble/synonymize/proxy-derive an authoritative verdict without importing the
+carrier or containing a banned literal; a sink registry re-introduces enumeration). The
+CORRECTED primary mechanism is the DATA / OUTPUT-CHANNEL BOUNDARY in s12; the AST + lexical
+guards below are retained ONLY as defense-in-depth. The text below is kept for provenance.]
 
 Chosen mechanism = frozen carrier (typed) + IMPORT/AST BOUNDARY guard, delivered as a pytest
 test -- the repo's OWN proven enforcement idiom. Rationale: ruff has no plugin mechanism
@@ -244,11 +260,15 @@ is_actionable_trade in trade_decision.py. (Both idiomatic; the new module is the
 import target for the guard.)
 Q7 CLASSIFICATION: confirm MATERIAL; rule CLASS (CONTRACT vs EXECUTION) + lane (HIGH-RISK); set
 the PRD-242 / commissioned-review record for the post-ruling PRD review.
-Q9 NON-PYTHON ENFORCEMENT SCOPE (NEW): how far to extend structural enforcement beyond Python
--- (a) contract/summary carries ONLY the resolved authoritative field so the JS viewer + the
-workflow have nothing else to derive from (structural-by-data), plus (b) light companion checks
-(node assertion for app.js; a guard on the workflow step), vs (c) accept the Python AST guard as
-primary and treat JS/workflow as monitored-not-guaranteed. Author rec: (a)+(b).
+Q9 NON-PYTHON ENFORCEMENT IMPLEMENTATION (NEW) [CORRECTED per initial-review finding 3/6:
+"monitored-not-guaranteed" is NOT a valid option -- the ruled invariant must hold for JS +
+workflow too; the owner chooses the IMPLEMENTATION, not whether it holds]: (a) the served
+contract/summary carries ONLY the provenanced resolved authoritative field(s), with the
+proxy/evidence fields the viewer/workflow currently derive from (status+tradable at
+ui/app.js:87; chain classification at cuttingboard.yml:497) REMOVED or moved to a clearly
+non-authoritative namespace the output boundary rejects as decision-bearing; PLUS (b) a
+companion boundary check for each (a node assertion for app.js; a guard on the workflow
+commit-message step). Author rec: (a)+(b), both mandatory.
 Q11 DEFENSE-IN-DEPTH SCANNER (NEW, pending your truncated tail): confirm the lexical action-
 vocabulary scanner is secondary/optional, and whether it gates CI or only warns. (Send the
 truncated ruling tail if it constrained this.)
@@ -274,3 +294,87 @@ ruled; these are the residual design/semantic + classification choices).
 
 No downstream authority proceeds until review-clean and Dustin rules. PRD-339 design (0348cee1)
 remains provisional and must be reconciled to this architecture.
+
+---
+
+## 12. CONSOLIDATED CORRECTION -- mechanism redesign (initial-review response)
+
+The initial review (Sol @ e5fdc624, DESIGN INCOMPLETE / mechanism unsound; STRUCTURAL
+COMPLETENESS SOUND: NO) proved the AST/vocabulary guard (s4/s5) cannot prove SEMANTIC
+completeness. All findings verified and dispositioned ACTIONED:
+
+- F1/F5 (mechanism gap): a sink can emit an authoritative verdict by assembling fragments
+  (`"".join(...)`, `.format`), mapping a proxy (grade/tradable/candidate-presence) to a
+  SYNONYM (`GO`/`DO NOT ENTER`), or publishing a boolean/number another layer word-maps -- with
+  NO carrier import and NO banned literal. Rule (iv)'s sink registry re-introduces enumeration.
+  A finite word blacklist cannot prove the property.
+- F2 (schema ambiguity): "authoritative vocabulary" is not precisely separable from analytical
+  evidence (ACTIONABLE_CANDIDATES market_control_card.py:66; grade-derived actionability
+  market_map.py:489); exact-string misses compounds, substring rejects legitimate evidence.
+- F3 (non-Python gap): app.js derives TRADE_READY from status+tradable (ui/app.js:87); the
+  workflow derives "N trades" from chain classification (cuttingboard.yml:497); adding one
+  canonical field does not remove those proxies. Q9(c) contradicted the ruling -> dropped.
+- F4 (factual): resolver cannot be at runtime:1051 -> corrected to the converged finalization
+  boundary ~1136-1147 (s3).
+- F6: Q9(c) insufficient (dropped); estimate omits test surface + contract/SCHEMA_MAP/
+  CALL_SITE_MAP -> added below. Q1/Q3/Q4/Q6/Q7 confirmed genuine owner choices.
+
+### CORRECTED PRIMARY MECHANISM -- DATA / OUTPUT-CHANNEL BOUNDARY (structural, semantic)
+
+Completeness is enforced at the DATA layer and the OUTPUT-CHANNEL boundary, NOT by scanning
+words. Three constraints, each testable:
+
+1. CANONICAL PROVENANCED PROJECTION IS THE ONLY DECISION-BEARING DATA. resolve_effective_
+   permission() produces the EffectivePermission with a PROVENANCE marker (it is the only code
+   that can stamp it). The persisted/served carriers (contract, run summary, payload,
+   ui/contract.json) carry the resolved authoritative field(s) AS THE ONLY decision-bearing
+   data. The raw proxies sinks currently re-derive authority from -- system_state.tradable-as-
+   authority, duplicated raw outcome, market_map if_now/grade-as-authority, the permission
+   text tables, candidate/top_trades-presence-as-permission, watch execution-posture -- are
+   REMOVED from the authoritative carriers or moved to a clearly NON-authoritative evidence
+   namespace. A sink (Python, JS, or workflow) then has NO proxy to derive authority from.
+2. OUTPUT-CHANNEL BOUNDARY VALIDATION. Enforce at every AUTHORITATIVE OUTPUT CHANNEL -- a
+   FINITE, STABLE set, unlike the many/growing consumers: (i) publish (ci_push_artifacts.sh /
+   the publish workflow step), (ii) Telegram send (output.py:729 send_telegram), (iii) the
+   report/HTML file write (transport.deliver_html / deliver_json), (iv) CLI stdout
+   (transport.deliver_cli), (v) the workflow commit message (cuttingboard.yml step), (vi) the
+   served contract/board for the viewer. Each channel accepts and emits authoritative action
+   state ONLY from a provenanced EffectivePermission projection, and REJECTS (fails closed) any
+   bundle carrying an alternate decision-bearing field or a projection lacking provenance. A
+   test asserts every output channel routes through this boundary validator (enumerating
+   OUTPUT CHANNELS is tractable and stable; enumerating consumers is not).
+3. RESOLVER AT THE CONVERGED BOUNDARY (s3, finding 4): one resolve call after all decision/
+   HALT/lock/safety inputs converge (~1136-1147), before publication, producing every verdict
+   incl. HALT/UNAVAILABLE.
+
+WHY THIS IS SOUND WHERE THE GUARD WAS NOT: a sink cannot emit authoritative action from a proxy
+because (1) removes the proxy from the authoritative data it receives, and (2) makes every
+output channel reject any authoritative claim not backed by a provenanced projection. Bypass
+would require inventing a provenance stamp (only resolve_effective_permission can) or adding a
+new OUTPUT CHANNEL (finite set, guarded by the channel-coverage test). Completeness rests on the
+FINITE output-channel set + the data invariant, not on finding every consumer.
+
+DEFENSE-IN-DEPTH (secondary): the typed carrier (s3), an AST/import guard (s5, demoted), and a
+lexical scanner (Q11) catch regressions/stragglers but are explicitly NOT the primary proof.
+
+### CORRECTED MIGRATION (s6 reframed)
+
+Enumerate the FINITE OUTPUT CHANNELS (i-vi above) and route each through the boundary validator;
+STRIP the proxy/decision-bearing fields from the authoritative carriers (or namespace them
+non-authoritative); demote the parallel origins to evidence; stamp provenance in the resolver.
+The completeness gate is: (a) channel-coverage test green, (b) no-alternate-decision-field data
+invariant green -- both pass/fail in CI.
+
+### CORRECTED ESTIMATE (s8, finding 6)
+
+Add: the broader affected-test surface; contract_types.py + docs/SCHEMA_MAP.md +
+docs/CALL_SITE_MAP.md changes for the new persisted typed carrier + provenance; the
+output-channel boundary validator (new, ~tools/ or a delivery module) + its channel-coverage
+test. Full-scope ~30-36 production files + the test/schema surface; LOC large. ESTIMATE only;
+not a Gate-A ceiling.
+
+GOV-2 NEXT: this consolidated correction is committed; the exact-corrected-head confirmation
+(Sol) runs against it -- the question is whether the DATA/OUTPUT-CHANNEL mechanism is now
+sound (can a sink still emit authoritative action without a provenanced projection?). If it
+finds the corrected mechanism ALSO unsound -> DESIGN INCOMPLETE, STOP, back to Dustin (no
+forced clean verdict).
