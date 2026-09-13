@@ -1,7 +1,7 @@
 {
   "artifacts": {
     "log_path": "logs/latest_run.json",
-    "notification_sent": true,
+    "notification_sent": false,
     "report_path": "reports/2026-09-13.md"
   },
   "audit_summary": {
@@ -22,21 +22,21 @@
   "effective_permission": {
     "authority_version": [
       "2026-09-13",
-      1,
+      2,
       1
     ],
-    "decision_seq": 1,
-    "decision_uid": "0d8d38e79cbc4f9bacb16c029a288c41",
+    "decision_seq": 2,
+    "decision_uid": "5ec906431ec0435cbf6b695d5d9defdb",
     "permission_line": "No new trades permitted \u2014 operator cannot monitor.",
     "recovery_basis": null,
     "restriction_rank": 1,
-    "run_uid": "0d8d38e79cbc4f9bacb16c029a288c41",
+    "run_uid": "5ec906431ec0435cbf6b695d5d9defdb",
     "session_date": "2026-09-13",
     "valid_until": "2026-09-14T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-09-13T21:53:20Z",
-  "generation_id": "sunday-20260913T215320Z",
+  "generated_at": "2026-09-13T23:30:45Z",
+  "generation_id": "sunday-20260913T233045Z",
   "macro_drivers": {},
   "market_context": {
     "continuation_enabled": false,
