@@ -17,8 +17,10 @@ capability/signature); and namespacing proxies does not strip decision-derivabil
 bounded GOV-2 cycle is EXHAUSTED -> STOP (no forced clean verdict). These residuals are
 BOUNDED and CLOSABLE with a precise 4-point spec (see EVENT-2); the structural approach is
 converging (F3/F6 resolved). DECISION returns to Dustin: authorize one more bounded correction
-cycle applying the 4 constraints, or rule the mechanism, or park. Grants no downstream
-authority: no PRD drafting/review, no Gate A, no implementation.
+cycle applying the 4 constraints, or rule the mechanism, or park. [OWNER AUTHORIZED one more
+bounded correction 2026-09-12; R1-R4 closure is s13 (the binding mechanism), pending ONE fresh
+Sol exact-head confirmation.] Grants no downstream authority: no PRD drafting/review, no Gate
+A, no implementation.
 
 SUPERSEDES the enumeration framing of PRD_339_DECISION_AUTHORITY_REBUILD_PACKET_2026-09-12.md
 (GOV-2 s10). That packet's boundary-COMPLETENESS CLAIM is SUPERSEDED (three boundary resets
@@ -386,3 +388,136 @@ GOV-2 NEXT: this consolidated correction is committed; the exact-corrected-head 
 sound (can a sink still emit authoritative action without a provenanced projection?). If it
 finds the corrected mechanism ALSO unsound -> DESIGN INCOMPLETE, STOP, back to Dustin (no
 forced clean verdict).
+
+[UPDATE: confirmation @ c69ccd56 returned DESIGN INCOMPLETE with R1-R4 residuals; owner
+authorized ONE more bounded correction. The authoritative corrected mechanism is now s13.]
+
+---
+
+## 13. OWNER-AUTHORIZED CORRECTION 2 -- R1-R4 closure (the binding mechanism)
+
+Per Dustin's authorization (one further bounded correction + one fresh Sol confirmation), the
+mechanism is corrected ONLY on the four confirmed residuals. This s13 is the AUTHORITATIVE
+mechanism; s5 and the s12 output-channel description are superseded where they conflict.
+
+### THREAT / TRUST BOUNDARY (stated explicitly, per the R3 instruction)
+
+The adversary is NOT external and NOT cross-tenant/network. The authoritative carriers
+(latest_run.json, latest_contract.json, ui/contract.json, latest_payload.json, the report
+files) are written and read entirely within the project's own trust domain (the pipeline
+process, the render step, the workflow shell, the operator's browser loading published bytes).
+The real threat is a DOWNSTREAM CODE PATH -- a renderer, notifier, report writer, CLI, workflow
+step, or browser script -- that emits authoritative actionability WITHOUT going through the
+canonical resolver, either by (a) constructing an EffectivePermission look-alike, or (b)
+re-deriving a verdict from a proxy. Because there is no external forger in scope, a
+cryptographic signature/MAC or new secret is NOT required and is deliberately NOT introduced;
+the guarantee is achieved by construction-capability + data-shape + fail-closed validation.
+(If a future change moves an authoritative projection across a genuine trust boundary -- e.g.
+an untrusted third party could write the carrier -- that would be a new threat model requiring
+integrity verification; it is out of scope today and noted as a boundary condition.)
+
+### R1 -- RESOLUTION-BEFORE-EVERY-RENDER/WRITE (structural ordering)
+
+resolve_effective_permission() runs ONCE at the converged point where outcome, HALT
+(validation :1300-1302 / kill-switch :1303-1318), operator-lock, and safety inputs are final,
+BEFORE any authoritative render/write -- i.e. before render_report (runtime:1464) and before
+the execute_run report writes (:417, :481), not at contract finalization (:1488).
+STRUCTURAL GUARANTEE (not "call it earlier"): every authoritative render/write function is
+changed to REQUIRE an EffectivePermission parameter (today render_report takes a raw
+`outcome: str` at output.py:293-300; it will instead require the resolved EffectivePermission,
+and the raw proxy is removed from its signature). Since an EffectivePermission can exist only
+after resolution (R3), a call that renders/writes before resolution is a TYPE/argument error,
+not a review concern. Rendering before resolving becomes impossible by signature.
+
+### R2 -- CLOSED AUTHORITATIVE CHANNEL MODEL (precise)
+
+The AUTHORITATIVE OUTPUT CHANNELS are a CLOSED, REGISTERED, FINITE set (finite and stable,
+unlike consumers): (1) publish (ci_push_artifacts.sh / the publish workflow step); (2) Telegram
+send (output.py:729 send_telegram); (3) the Markdown report writer (_write_markdown_report,
+runtime:2259, called at :417/:481/:1483) -- NOW INCLUDED; (4) the HTML report writer
+(html_renderer / transport.deliver_html); (5) the JSON payload writer insofar as it carries
+authoritative fields (transport.deliver_json / delivery.payload); (6) CLI stdout
+(transport.deliver_cli); (7) the served contract for the browser viewer (ui/contract.json ->
+ui/app.js); (8) the workflow commit message (cuttingboard.yml:481-509/:545-548). Each channel
+function requires an EffectivePermission (R1) and emits authoritative wording only via the
+approved interface. A structural test asserts the registry is CLOSED: every module that writes
+an authoritative output is registered and requires EP; adding a new authoritative writer
+outside the registry fails the test.
+
+### R3 -- NON-FORGEABLE PROVENANCE (per the actual trust boundary)
+
+Guarantee: "No ordinary downstream producer or renderer can manufacture an accepted
+authoritative permission projection without passing through the canonical resolver/validator
+path." Realized in two layers matched to the data flow:
+- IN-PROCESS (Python, same run): a PROCESS-LOCAL CONSTRUCTION CAPABILITY. EffectivePermission is
+  constructed ONLY by resolve_effective_permission -- enforced by a guarded constructor
+  (module-private construction; the public surface exposes only the resolver + the interface
+  functions that require an existing instance), backed by the repo's AST import-boundary test
+  (defense-in-depth) that fails if any other module constructs it or imports the vocabulary.
+  Downstream self-assertion fails because the interface type-requires the real instance and no
+  other code can construct one.
+- CROSS-PROCESS / PERSISTED (disk -> render step / workflow / browser): NO integrity signature
+  (trust boundary does not require it). The guarantee is instead: (a) the persisted
+  authoritative carrier contains ONLY the resolved authoritative field(s), with decision
+  proxies STRIPPED (R4), so a reader has NOTHING to re-derive from; (b) the ONLY writer of that
+  field is the producer via the resolver (a single write path); (c) a READ/OUTPUT-BOUNDARY
+  VALIDATOR at each channel that FAIL-CLOSES to UNAVAILABLE if the field is absent, malformed,
+  prior-session, stale/expired, or if the bundle carries any alternate decision-bearing field.
+  A downstream process cannot forge because it has no proxy to derive from and any alternate
+  decision-bearing field is rejected.
+WHY DOWNSTREAM SELF-ASSERTION FAILS (explicit): a plain dataclass/dict/JSON marker set by a
+downstream path is not accepted because (Python) the interface only accepts the capability-
+constructed instance, and (persisted) the reader ignores everything except the single resolver-
+written authoritative field and fail-closes on anything anomalous. Naming conventions /
+Python-private attributes alone are NOT relied upon; the construction capability + the stripped-
+carrier data shape + fail-closed read validation together carry the guarantee.
+
+### R4 -- STRIP PROXIES FROM AUTHORITATIVE RENDERERS
+
+Authoritative renderers/channels do not namespace or relabel decision proxies -- they do not
+RECEIVE them. The proxy fields (system_state.tradable-as-authority, regime posture-as-permission,
+grade/setup_state -> if_now/TAKE, candidate/top_trades-presence-as-permission, the permission
+text tables, watch execution-posture) are removed from the authoritative render/write inputs and
+from the authoritative persisted carrier. Evidence/ranking/posture/framing/qualification may
+still be shown as NON-authoritative facts/context, but authoritative action wording (TRADE
+PERMITTED / IF NOW=TAKE / PLAY / A+ ACTIONABLE / READY / directional LONG-SHORT permission /
+"N trades" / EXECUTION) derives ONLY from the EffectivePermission. The s12 "non-authoritative
+namespace" ALTERNATIVE IS WITHDRAWN (it did not strip decision-derivability). A structural test
+asserts authoritative channel functions do not read the proxy fields for authoritative output.
+
+### 7. FAIL-CLOSED BEHAVIOR (requirement 7, explicit)
+
+When the canonical EffectivePermission / capability is absent, invalid, prior-session, stale/
+expired, or unverifiable at any authoritative channel: the channel emits UNAVAILABLE (or its
+channel-equivalent no-action state) and NO action/permission wording -- never a proxy-derived
+claim, never a retained prior grant. This applies in-process (missing instance -> the interface
+cannot be called -> caller must render UNAVAILABLE) and cross-process (the read-boundary
+validator rejects and the consumer renders UNAVAILABLE).
+
+### 8. STRUCTURAL CI/TEST MECHANISM (requirement 8; proves R1-R4)
+
+Delivered as pytest tests in the authoritative ci.yml path (+ drift), the repo's idiom:
+- T1 (R1+R4): introspect/AST-assert every REGISTERED authoritative channel function requires an
+  EffectivePermission parameter and does not accept/read the raw proxy fields for authoritative
+  output. (Proves render-before-resolve is impossible + proxies stripped.)
+- T2 (R2): assert the authoritative-channel registry is CLOSED -- enumerate authoritative
+  writers (incl. the Markdown writer) and assert each is registered + EP-required; a bare
+  authoritative-literal write outside a registered channel fails (defense-in-depth).
+- T3 (R3 in-process): assert EffectivePermission is constructed only by the resolver (guarded
+  constructor + AST import-boundary: no other module constructs it or imports the vocabulary).
+- T4 (R3 cross-process + fail-closed): assert the persisted authoritative carrier carries only
+  the resolved field, and each read-boundary validator fail-closes to UNAVAILABLE on
+  absent/malformed/prior-session/stale/alternate-decision-field input.
+Defense-in-depth (secondary): the AST import guard (s5) + a lexical action-vocabulary scanner.
+These tests are the completeness proof: a NEW sink of an already-governed channel class cannot
+emit authoritative action without an EP (T1), a new authoritative channel must register (T2),
+no code can forge an EP (T3), and every channel fails closed (T4).
+
+NO CLAIMS BEYOND SOURCE: this s13 specifies DESIGN INVARIANTS + the test mechanism; it does not
+assert the code already implements them. Cited call sites (render_report:1464/output.py:293,
+_write_markdown_report:2259 @ :417/:481/:1483, _build_and_finalize_contract:1488,
+send_telegram:729, resolver convergence ~1136-1147/pre-1464) are verified against HEAD.
+
+GOV-2 NEXT (s13): committed; ONE fresh Sol exact-head confirmation asks only whether R1-R4 are
+closed (A-E of the owner charge). No second correction after that without Dustin's explicit
+ruling.
