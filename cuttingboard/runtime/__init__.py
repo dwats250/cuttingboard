@@ -55,6 +55,7 @@ from cuttingboard.intraday_state_engine import (
     _ORB_START,
     compute_intraday_state,
 )
+from cuttingboard import authority_projection
 from cuttingboard import effective_permission as ep_authority
 from cuttingboard.market_map import build_market_map
 from cuttingboard.delivery.primary_selection import select_primary_card_symbol
@@ -337,7 +338,12 @@ def resend_owed_market_stress_halt_notification() -> bool:
     try:
         contract = json.loads(Path(LATEST_CONTRACT_PATH).read_text(encoding="utf-8"))
         assert_valid_contract(contract, finalized=True)
-        title, body = build_notification_message(contract)
+        # PRD-340: cross-process reader -> admit the persisted authority through the
+        # fail-closed read boundary (never re-derive from a proxy); a HALT resend
+        # recovers its HALT authority, an unadmittable carrier fails closed.
+        _ep = authority_projection.admit_ep(
+            contract, current_session_date=str(contract.get("session_date")))
+        title, body = build_notification_message(contract, effective_permission=_ep)
         priority = classify_notification_priority(contract)
         state_key = notification_state_key(contract)
         alert_sent = send_notification(
@@ -1198,7 +1204,8 @@ def _build_and_finalize_contract(
         )
 
         if force_halt_notification or should_send(current_key, priority, last_key):
-            title, body = build_notification_message(contract)
+            title, body = build_notification_message(
+                contract, effective_permission=effective_permission)
             alert_sent = send_notification(
                 title,
                 body,
@@ -1517,13 +1524,12 @@ def _run_pipeline(
         qualification_summary=qualification_summary,
         watch_summary=watch_summary,
         option_setups=option_setups,
-        outcome=outcome,
+        effective_permission=effective_permission,
         halt_reason=validation_summary.halt_reason,
         chain_results=chain_results,
         option_refusals=option_refusals,
         materialized_sizing=materialized_sizing,
         size_blocked=size_blocked,
-        operator_locked=operator_locked,
     )
     _write_markdown_report(report, date_str, "NOT RUN")
     report_path = str(REPORTS_DIR / f"{date_str}.md")
@@ -2591,8 +2597,10 @@ def _write_hourly_artifacts(summary: dict[str, Any], contract: dict[str, Any]) -
         ep_authority.persist_copy(payload, contract)  # PRD-339 Slice 1 (R4 copy)
         _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
-        deliver_json(payload, output_path=str(LATEST_HOURLY_PAYLOAD_PATH))
-        deliver_html(payload, output_path=str(HOURLY_REPORT_PATH))
+        _ep = authority_projection.admit_ep(
+            contract, current_session_date=str(contract.get("session_date")))
+        deliver_json(payload, effective_permission=_ep, output_path=str(LATEST_HOURLY_PAYLOAD_PATH))
+        deliver_html(payload, effective_permission=_ep, output_path=str(HOURLY_REPORT_PATH))
     except Exception:
         logger.exception("Hourly payload artifact generation failed — summary/contract preserved")
 
@@ -3025,8 +3033,10 @@ def _write_payload_artifacts(contract: dict[str, Any], spy_observation=None, mar
         ep_authority.persist_copy(payload, contract)  # PRD-339 Slice 1 (R4 copy)
         _attach_generation_id_to_payload(payload, contract)
         assert_valid_payload(payload)
-        deliver_json(payload)
-        deliver_html(payload)
+        _ep = authority_projection.admit_ep(
+            contract, current_session_date=str(contract.get("session_date")))
+        deliver_json(payload, effective_permission=_ep)
+        deliver_html(payload, effective_permission=_ep)
     except Exception:
         logger.exception("Payload artifact generation failed — contract artifacts unaffected")
 

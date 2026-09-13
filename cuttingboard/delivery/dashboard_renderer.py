@@ -21,8 +21,9 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from cuttingboard import config
+from cuttingboard import authority_projection, config
 from cuttingboard.contract_types import PipelineContract
+from cuttingboard.effective_permission import VERDICT_UNAVAILABLE
 from cuttingboard.delivery.dashboard_integrator import (
     RULE2_LONG_VERDICT,
     RULE2_SHORT_VERDICT,
@@ -2986,27 +2987,24 @@ def render_dashboard_html(
     # independently recomputed. Falls back to STATE UNAVAILABLE rather than
     # ever propagating, and never infers TRADE PERMITTED from the absence
     # of HALT (it requires _decision_title's own "TRADE SETUP ACTIVE").
+    # PRD-340 R4: the authoritative decision-state derives ONLY from the
+    # resolver-provenanced EffectivePermission, admitted from the persisted run
+    # carrier through the fail-closed read boundary (never regime/title/tradable).
+    # A data-integrity lineage mismatch (MIXED_ARTIFACTS) still overrides to the
+    # UNAVAILABLE integrity state; an absent/invalid/prior-session/stale EP also
+    # fails closed to STATE UNAVAILABLE. The operator-lock OBSERVE ONLY, HALT, and
+    # TRADE PERMITTED verdicts all arrive pre-resolved on the EP verdict.
+    _sess = str(run.get("session_date") or (str(run.get("timestamp") or ""))[:10])
+    _auth_proj = authority_projection.admit_projection(run, current_session_date=_sess)
     try:
         if title == "MIXED_ARTIFACTS":
-            # PRD-279 (Codex correction): a lineage mismatch is a data-
-            # integrity error, not a coherent STAY FLAT decision -- never
-            # present a confident-looking state over untrustworthy data.
-            _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
-        elif title == "SYSTEM HALT":
-            _decision_state, _decision_state_cls = "HALT", _verdict_cls
-        elif title == "TRADE SETUP ACTIVE":
-            _decision_state, _decision_state_cls = "TRADE PERMITTED", _verdict_cls
+            _decision_state, _decision_state_cls = authority_projection.DECISION_UNAVAILABLE, "sys-flat"
         else:
-            _decision_state, _decision_state_cls = "STAY FLAT", _verdict_cls
+            _decision_state = _auth_proj.decision_state
+            _decision_state_cls = (
+                "sys-flat" if _auth_proj.verdict == VERDICT_UNAVAILABLE else _verdict_cls)
     except Exception:
-        _decision_state, _decision_state_cls = "STATE UNAVAILABLE", "sys-flat"
-    # PRD-334 R3 (supersedes PRD-304 R7's lock vocabulary): under the operator lock
-    # the decision-state reads OBSERVE ONLY -- EXCEPT that a HALT or an inputs-out-
-    # of-sync integrity state SURVIVES the lock overlap. Those are the more urgent
-    # truth and must never be masked by the lock label (R3: halt / coherence /
-    # kill-switch information survives even when an operator lock overlaps).
-    if operator_locked and _decision_state not in ("HALT", "STATE UNAVAILABLE"):
-        _decision_state = "OBSERVE ONLY"
+        _decision_state, _decision_state_cls = authority_projection.DECISION_UNAVAILABLE, "sys-flat"
     # PRD-334 R3: the visible verdict is a deterministic, faithful TRANSLATION of
     # the already-resolved decision state + permission -- it authors no claim the
     # state machine did not establish. The internal-jargon title token
@@ -3442,7 +3440,7 @@ def render_dashboard_html(
                         contract_entry=(contract_entry_map or {}).get(sym),
                         contract_stop=(contract_stop_map or {}).get(sym),
                         operator_locked=operator_locked,
-                        decision_permitted=_decision_state == "TRADE PERMITTED",
+                        decision_permitted=_decision_state == authority_projection.DECISION_TRADE_PERMITTED,
                         bars=_sym_bars,
                         bars_caption=_sym_caption,
                         chart_slot_available=(sym == _primary_card_symbol),

@@ -32,7 +32,8 @@ from cuttingboard.contract_types import PipelineContract
 
 from datetime import date as _date
 
-from cuttingboard import config, time_utils
+from cuttingboard import authority_projection, config, time_utils
+from cuttingboard.effective_permission import EffectivePermission, VERDICT_UNAVAILABLE
 from cuttingboard.audit import write_notification_audit
 from cuttingboard.chain_validation import (
     ChainValidationResult,
@@ -290,6 +291,26 @@ def _render_size_rounds_to_zero(lines: list, size_blocked) -> None:
     lines.append("")
 
 
+def _render_unavailable_report(
+    date_str: str, run_at_utc: datetime, regime: Optional[RegimeState],
+    validation_summary: ValidationSummary,
+) -> str:
+    """PRD-340 fail-closed: an absent/invalid/prior-session/stale EP (or an
+    unauthorized-mode resolve, e.g. fixture/backtest) yields NO action wording --
+    only the analytical header, an explicit UNAVAILABLE statement, and data health."""
+    lines = [_BORDER, f"  CUTTINGBOARD  |  {date_str}", _BORDER, ""]
+    lines.append("  AUTHORITY UNAVAILABLE")
+    lines.append("  No resolved execution authority; no new trades permitted.")
+    if validation_summary is not None and validation_summary.symbols_attempted:
+        lines.append(
+            f"  Data health: {validation_summary.symbols_validated} / "
+            f"{validation_summary.symbols_attempted} validated"
+        )
+    lines.append("")
+    lines.append(_BORDER)
+    return "\n".join(lines)
+
+
 def render_report(
     date_str: str,
     run_at_utc: datetime,
@@ -297,17 +318,23 @@ def render_report(
     validation_summary: ValidationSummary,
     qualification_summary: Optional[QualificationSummary],
     option_setups: list[OptionSetup],
-    outcome: str,
+    *,
+    effective_permission: EffectivePermission,
     halt_reason: Optional[str] = None,
     chain_results: Optional[dict[str, "ChainValidationResult"]] = None,
     watch_summary: Optional[WatchSummary] = None,
     option_refusals: Optional[list] = None,
     materialized_sizing: Optional[dict[str, tuple[int, float]]] = None,
     size_blocked: Optional[dict[str, str]] = None,
-    operator_locked: bool = False,
     **_: object,
 ) -> str:
     """Render the full report as a string (terminal and markdown use same text).
+
+    PRD-340 Slice 2 (R1/R4): the AUTHORITATIVE action (TRADE / NO TRADE / HALT /
+    operator-lock OBSERVE / UNAVAILABLE) derives ONLY from the resolver-provenanced
+    EffectivePermission (never a raw `outcome` proxy); render-before-resolve is a
+    missing-argument error. Evidence (regime, bias, execution posture, data health)
+    stays as non-authoritative context.
 
     PRD-304 R8 (Sol finding 1): under the operator lock the daily report keeps its
     analytical header (timestamp, session, regime, VIX, data health) but drops all
@@ -316,6 +343,12 @@ def render_report(
     operator-lock observation statement. A system halt still wins (the HALT
     outcome precedes the lock branch below). The AVAILABLE path is unchanged.
     """
+    _proj = authority_projection.project(effective_permission)
+    # PRD-340 R4: the authoritative body structure follows the EP verdict, not a proxy.
+    if _proj.verdict == VERDICT_UNAVAILABLE:
+        return _render_unavailable_report(date_str, run_at_utc, regime, validation_summary)
+    outcome = _proj.report_outcome
+    operator_locked = _proj.operator_locked
     lines: list[str] = []
     cr = chain_results or {}
     refusals = list(option_refusals or [])
@@ -662,12 +695,12 @@ def render_report_from_payload(payload: dict) -> str:
 
     date_str = run_at_utc.strftime("%Y-%m-%d")
 
-    if run_status == "ERROR":
-        outcome = OUTCOME_HALT
-    elif sections.get("top_trades"):
-        outcome = OUTCOME_TRADE
-    else:
-        outcome = OUTCOME_NO_TRADE
+    # PRD-340 R1/R4: authority derives ONLY from the payload's resolver-written EP
+    # (via the fail-closed read boundary), never from top_trades-presence or the
+    # summary.permission proxy. render_report itself re-derives the body structure
+    # from this EP; here we only need to admit it and thread it through.
+    effective_permission = authority_projection.admit_ep(
+        payload, current_session_date=date_str)
 
     vhd = sections.get("validation_halt_detail")
     halt_reason: Optional[str] = vhd.get("reason") if vhd else None
@@ -709,14 +742,11 @@ def render_report_from_payload(payload: dict) -> str:
         validation_summary=stub_validation,
         qualification_summary=None,
         option_setups=[],
-        outcome=outcome,
+        effective_permission=effective_permission,
         halt_reason=halt_reason,
         chain_results=None,
         watch_summary=None,
         option_refusals=payload_refusals,
-        operator_locked=(
-            payload.get("summary", {}).get("permission") == config.OPERATOR_LOCK_PERMISSION
-        ),
     )
 
 
@@ -1141,33 +1171,30 @@ def _build_operator_lock_message(contract: PipelineContract) -> tuple[str, str]:
     return config.OPERATOR_LOCK_TITLE, "\n".join(lines)
 
 
-def build_notification_message(contract: PipelineContract) -> tuple[str, str]:
-    """Return a compact execution alert derived from the canonical contract."""
-    status = contract.get("status") or ""
-    # PRD-304 R6: the operator lock (baked into system_state.permission at the
-    # runtime entrypoint) bypasses the action formatter. A system halt wins: it
-    # sets the halt permission string instead, so this branch is not taken.
-    ss_perm = (contract.get("system_state") or {}).get("permission")
-    if ss_perm == config.OPERATOR_LOCK_PERMISSION:
+def build_notification_message(
+    contract: PipelineContract, *, effective_permission: EffectivePermission,
+) -> tuple[str, str]:
+    """Return a compact execution alert. PRD-340 R1/R4: the AUTHORITATIVE action
+    (operator-lock OBSERVE / trade permission) derives ONLY from the resolved
+    EffectivePermission (never system_state.permission or contract.outcome
+    proxies); render-before-resolve is a missing-argument error. Candidate ranking
+    is non-authoritative evidence and a trade alert is emitted only when the EP
+    actually permits (fail-closed)."""
+    _proj = authority_projection.project(effective_permission)
+    # PRD-304 R6 / PRD-340: the operator lock (OBSERVE_ONLY verdict) bypasses the
+    # action formatter. A system halt wins upstream (verdict HALT, not OBSERVE_ONLY).
+    if _proj.operator_locked:
         return _build_operator_lock_message(contract)
-    outcome = contract.get("outcome")
     generated_at = contract.get("generated_at") or ""
     hhmm = _alert_time(generated_at)
     candidates = _ranked_alert_candidates(contract)
     allowed = [c for c in candidates if c.get("decision_status") == ALLOW_TRADE]
 
-    if outcome not in {OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT}:
-        if status in {"FAIL", "ERROR"}:
-            outcome = OUTCOME_HALT
-        elif allowed:
-            outcome = OUTCOME_TRADE
-        else:
-            outcome = OUTCOME_NO_TRADE
-
     session_type = (contract.get("system_state") or {}).get("session_type")
     regime_label = _alert_regime_label(contract)
     lines = [_alert_context_line(contract)]
-    primary = allowed[0] if allowed else None
+    # Fail-closed authority gate: a trade alert is emitted ONLY when the EP permits.
+    primary = allowed[0] if (allowed and _proj.available) else None
     if primary is not None:
         symbol = str(primary.get("symbol") or "").upper()
         direction = str(primary.get("direction") or "").upper()
