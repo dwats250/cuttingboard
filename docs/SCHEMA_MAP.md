@@ -24,7 +24,8 @@ until then.
 | `…["restriction_rank"]` | int | monotonic within a session (higher = more restrictive; R2) |
 | `…["authority_version"]` | `[session_date, decision_seq, restriction_rank]` | the SOLE ordering key (R5/R6); never a timestamp |
 | `…["decision_uid"]` | string | admitted daily run identity (Q1 carry keeps it across hourly observations) |
-| `…["run_uid"]` | string | unique per invocation (R6); deterministic in fixture mode |
+| `…["run_uid"]` | string | a fresh UUID minted once per pipeline invocation and threaded through the run (R6); fail-closed sentinels use the empty string |
+| `…["verdict"]` — mode gate | — | only LIVE/SUNDAY originate authority; unauthorized modes (fixture/prefetch) and fail-closed reads resolve UNAVAILABLE (R7/finding 7). Both `latest_contract.json` and `latest_hourly_contract.json` are publication-non-regression guarded on every route |
 | `…["decision_seq"]` | int | per-session admitted-daily-decision counter; +1 only on a genuine redecision (R3) |
 | `…["recovery_basis"]` | dict \| null | Q4 recovery record `{superseded_authority_version, superseding_decision_uid, reason}` |
 | `…["valid_until"]` | ISO-8601 \| null | session freshness bound (R7 staleness; prior-session is the primary discriminator) |

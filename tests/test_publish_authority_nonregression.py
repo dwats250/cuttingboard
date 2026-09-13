@@ -1,7 +1,8 @@
 """PRD-339 Slice 1 (R5): publication non-regression. Unit tests on
 ``publication_admits`` (lexicographic authority_version gate, Q4 recovery M5c,
-equal-version identity M5b) + a bounded OFFLINE replay of ci_push_artifacts.sh
-against a temp bare remote (bootstrap/overlay/retry routes) with CROSSED-ORDER
+equal-version GOVERNED-identity M5b + finding 2) + a bounded OFFLINE replay of
+ci_push_artifacts.sh against a temp bare remote across ALL routes (bootstrap,
+daily overlay, hourly overlay, retry) and BOTH carriers, with CROSSED-ORDER
 fixtures whose generated_at + commit order disagree with authority_version,
 proving the guard orders by authority_version, never a timestamp (M5)."""
 
@@ -19,14 +20,14 @@ SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "ci_push_artifacts.sh"
 
 
 def _env(**av):
-    """A canonical envelope with the given authority_version fields."""
     return {
         "verdict": av.get("verdict", "NO_TRADE"),
         "restriction_rank": av["rank"], "decision_uid": av.get("uid", "LIVE-1"),
         "session_date": av["date"], "run_uid": av.get("run_uid", "r1"),
         "authority_version": [av["date"], av["seq"], av["rank"]],
-        "valid_until": None, "recovery_basis": av.get("recovery_basis"),
-        "permission_line": "x", "decision_seq": av["seq"],
+        "valid_until": av.get("valid_until", "2026-04-13T08:00:00+00:00"),
+        "recovery_basis": av.get("recovery_basis"),
+        "permission_line": av.get("permission_line", "x"), "decision_seq": av["seq"],
     }
 
 
@@ -43,8 +44,8 @@ def test_malformed_incoming_refused() -> None:
 
 def test_older_session_and_older_decision_refused() -> None:
     acc = _env(date=SD, seq=2, rank=0)
-    assert ep.publication_admits(acc, _env(date="2026-04-11", seq=9, rank=0)) is False  # older session
-    assert ep.publication_admits(acc, _env(date=SD, seq=1, rank=0)) is False            # older decision
+    assert ep.publication_admits(acc, _env(date="2026-04-11", seq=9, rank=0)) is False
+    assert ep.publication_admits(acc, _env(date=SD, seq=1, rank=0)) is False
 
 
 def test_intra_decision_downgrade_refused() -> None:
@@ -52,34 +53,46 @@ def test_intra_decision_downgrade_refused() -> None:
     assert ep.publication_admits(acc, _env(date=SD, seq=1, rank=1, uid="LIVE-1")) is False
 
 
-def test_equal_version_same_decision_is_noop_admit() -> None:  # R5(d)
+def test_equal_version_governed_identical_is_noop_admit() -> None:  # R5(d)
     e = _env(date=SD, seq=1, rank=1, uid="LIVE-1")
-    assert ep.publication_admits(e, dict(e)) is True
+    replay = dict(e, run_uid="a-different-run")  # only run_uid differs -> still a no-op
+    assert ep.publication_admits(e, replay) is True
 
 
-def test_equal_version_differing_decision_refused() -> None:  # M5b
+def test_equal_version_any_governed_field_change_refused() -> None:  # M5b / finding 2
     acc = _env(date=SD, seq=1, rank=1, uid="LIVE-1")
-    inc = _env(date=SD, seq=1, rank=1, uid="LIVE-DIFFERENT")
-    assert ep.publication_admits(acc, inc) is False
+    for field, value in (
+        ("decision_uid", "LIVE-DIFFERENT"),
+        ("verdict", "PERMITTED"),
+        ("permission_line", "TAMPERED"),
+        ("valid_until", "2099-01-01T00:00:00+00:00"),
+        ("recovery_basis", {"reason": "REDECISION"}),
+    ):
+        inc = dict(acc)
+        inc[field] = value
+        assert ep.publication_admits(acc, inc) is False, f"equal-version differing {field} admitted"
 
 
 def test_recovery_gated_downgrade_admitted() -> None:  # M5c
     acc = _env(date=SD, seq=1, rank=2)
-    inc = _env(date=SD, seq=2, rank=0, uid="LIVE-2",
+    inc = _env(date=SD, seq=2, rank=0, uid="LIVE-2", verdict="PERMITTED",
                recovery_basis={"superseded_authority_version": [SD, 1, 2],
                                "superseding_decision_uid": "LIVE-2", "reason": "REDECISION"})
     assert ep.publication_admits(acc, inc) is True
+
+
+def test_recovery_refused_without_matching_superseding_uid() -> None:  # finding 6
+    acc = _env(date=SD, seq=1, rank=2)
+    inc = _env(date=SD, seq=2, rank=0, uid="LIVE-2", verdict="PERMITTED",
+               recovery_basis={"superseded_authority_version": [SD, 1, 2],
+                               "superseding_decision_uid": "SOMEONE_ELSE", "reason": "REDECISION"})
+    assert ep.publication_admits(acc, inc) is False
 
 
 def test_non_recovery_downgrade_refused() -> None:  # M5c converse
     acc = _env(date=SD, seq=1, rank=2)
     inc = _env(date=SD, seq=2, rank=0, uid="LIVE-2", recovery_basis=None)
     assert ep.publication_admits(acc, inc) is False
-
-
-def test_higher_decision_same_or_higher_rank_admitted() -> None:
-    acc = _env(date=SD, seq=1, rank=0)
-    assert ep.publication_admits(acc, _env(date=SD, seq=2, rank=1, uid="LIVE-2")) is True
 
 
 # --- bounded offline shell replay -------------------------------------------
@@ -96,9 +109,7 @@ def _carrier(generated_at, envelope):
                       indent=2, sort_keys=True) + "\n"
 
 
-def _init_work(tmp_path, tip_carrier=None):
-    """Bare origin + a work repo on main. If tip_carrier is given, seed a publish
-    branch carrying it. Returns (work, remote)."""
+def _init_work(tmp_path, carrier_path, tip_carrier=None):
     remote = tmp_path / "remote.git"
     _git(tmp_path, "init", "--bare", "-q", str(remote))
     work = tmp_path / "work"
@@ -109,18 +120,18 @@ def _init_work(tmp_path, tip_carrier=None):
     _git(work, "remote", "add", "origin", str(remote))
     (work / "logs").mkdir()
     (work / "logs" / "audit.jsonl").write_text('{"row":1}\n', encoding="utf-8")
-    (work / "logs" / "latest_contract.json").write_text(
+    (work / carrier_path).write_text(
         _carrier("2050-01-01T00:00:00+00:00", _env(date=SD, seq=1, rank=1)), encoding="utf-8")
     _git(work, "add", "-A")
     _git(work, "commit", "-qm", "base")
     _git(work, "branch", "-M", "main")
     _git(work, "push", "-q", "origin", "main")
     if tip_carrier is not None:
-        (work / "logs" / "latest_contract.json").write_text(tip_carrier, encoding="utf-8")
+        (work / carrier_path).write_text(tip_carrier, encoding="utf-8")
         _git(work, "add", "-A")
         _git(work, "commit", "-qm", "publish tip")
         _git(work, "push", "-q", "origin", "HEAD:refs/heads/publish")
-        _git(work, "reset", "-q", "--hard", "HEAD~1")  # work returns to base for the run
+        _git(work, "reset", "-q", "--hard", "HEAD~1")
     return work, remote
 
 
@@ -132,8 +143,8 @@ def _run_publish(work, remote, pre_sha, post_sha, base_sha):
                           capture_output=True, text=True)
 
 
-def _make_post(work, carrier):
-    (work / "logs" / "latest_contract.json").write_text(carrier, encoding="utf-8")
+def _make_post(work, carrier_path, contents):
+    (work / carrier_path).write_text(contents, encoding="utf-8")
     with (work / "logs" / "audit.jsonl").open("a", encoding="utf-8") as fh:
         fh.write('{"row":2}\n')
     _git(work, "add", "-A")
@@ -141,52 +152,79 @@ def _make_post(work, carrier):
     return _git(work, "rev-parse", "HEAD").stdout.strip()
 
 
-def _tip_sha(remote):
-    return _git(remote, "rev-parse", "refs/heads/publish", check=False).stdout.strip()
+def _tip(remote):
+    return _git(remote, "rev-parse", "--verify", "--quiet",
+                "refs/heads/publish", check=False).stdout.strip()
 
 
-def test_shell_bootstrap_creates_publish(tmp_path):
-    # Route 1 (bootstrap): publish absent -> seeded from the run; guard exempt.
-    work, remote = _init_work(tmp_path, tip_carrier=None)
+DAILY = "logs/latest_contract.json"
+HOURLY = "logs/latest_hourly_contract.json"
+
+
+def test_shell_bootstrap_admits_valid(tmp_path):
+    work, remote = _init_work(tmp_path, DAILY, tip_carrier=None)
     pre = _git(work, "rev-parse", "HEAD").stdout.strip()
-    post = _make_post(work, _carrier("2050-01-02T00:00:00+00:00", _env(date=SD, seq=1, rank=1)))
+    post = _make_post(work, DAILY, _carrier("2050-01-02T00:00:00+00:00", _env(date=SD, seq=1, rank=1)))
     r = _run_publish(work, remote, pre, post, "")
     assert r.returncode == 0, r.stderr
-    assert _tip_sha(remote), "publish branch not bootstrapped"
+    assert _tip(remote), "publish branch not bootstrapped"
 
 
-def test_shell_overlay_refuses_behind_authority_despite_newer_timestamp(tmp_path):
-    # Route 2 (overlay), M5 crossed-order: tip authority AHEAD (seq2) with an OLD
-    # timestamp; incoming BEHIND (seq1) with a NEWER timestamp + newer commit.
-    # The guard orders by authority_version -> REFUSE; a timestamp/commit mutant admits.
+def test_shell_bootstrap_refuses_malformed_carrier(tmp_path):
+    # A bootstrap bundle whose authority carrier lacks the canonical field -> refused.
+    work, remote = _init_work(tmp_path, DAILY, tip_carrier=None)
+    pre = _git(work, "rev-parse", "HEAD").stdout.strip()
+    post = _make_post(work, DAILY, json.dumps({"generated_at": "2050-01-02T00:00:00+00:00"}) + "\n")
+    r = _run_publish(work, remote, pre, post, "")
+    assert r.returncode != 0, f"bootstrap admitted a malformed carrier\n{r.stdout}"
+    assert not _tip(remote), "publish branch created from a malformed bootstrap bundle"
+
+
+def _overlay_refuses_behind(tmp_path, carrier):
     tip = _carrier("2000-01-01T00:00:00+00:00", _env(date=SD, seq=2, rank=0, uid="LIVE-2"))
-    work, remote = _init_work(tmp_path, tip_carrier=tip)
-    base = _tip_sha(remote)
+    work, remote = _init_work(tmp_path, carrier, tip_carrier=tip)
+    base = _tip(remote)
     pre = _git(work, "rev-parse", "HEAD").stdout.strip()
-    post = _make_post(work, _carrier("2099-01-01T00:00:00+00:00", _env(date=SD, seq=1, rank=1)))
+    post = _make_post(work, carrier, _carrier("2099-01-01T00:00:00+00:00", _env(date=SD, seq=1, rank=1)))
     r = _run_publish(work, remote, pre, post, base)
-    assert r.returncode != 0, f"expected refuse, got 0\n{r.stdout}\n{r.stderr}"
-    assert _tip_sha(remote) == base, "publish tip advanced on a refused (behind) bundle"
+    assert r.returncode != 0, f"expected refuse for {carrier}\n{r.stdout}\n{r.stderr}"
+    assert _tip(remote) == base, f"tip advanced on a refused behind {carrier}"
 
 
-def test_shell_overlay_admits_ahead_authority_despite_older_timestamp(tmp_path):
-    # Route 2 (overlay), M5 converse: tip authority BEHIND (seq1) with a NEW
-    # timestamp; incoming AHEAD (seq2) with an OLDER timestamp. The guard admits;
-    # a timestamp mutant would refuse.
+def _overlay_admits_ahead(tmp_path, carrier):
     tip = _carrier("2099-01-01T00:00:00+00:00", _env(date=SD, seq=1, rank=1))
-    work, remote = _init_work(tmp_path, tip_carrier=tip)
-    base = _tip_sha(remote)
+    work, remote = _init_work(tmp_path, carrier, tip_carrier=tip)
+    base = _tip(remote)
     pre = _git(work, "rev-parse", "HEAD").stdout.strip()
-    post = _make_post(work, _carrier("2000-01-01T00:00:00+00:00",
-                                     _env(date=SD, seq=2, rank=1, uid="LIVE-2")))
+    post = _make_post(work, carrier, _carrier("2000-01-01T00:00:00+00:00",
+                                              _env(date=SD, seq=2, rank=1, uid="LIVE-2")))
     r = _run_publish(work, remote, pre, post, base)
-    assert r.returncode == 0, f"expected admit, got {r.returncode}\n{r.stdout}\n{r.stderr}"
-    assert _tip_sha(remote) != base, "publish tip did not advance on an admitted bundle"
+    assert r.returncode == 0, f"expected admit for {carrier}\n{r.stdout}\n{r.stderr}"
+    assert _tip(remote) != base, f"tip did not advance on an admitted {carrier}"
 
 
-def test_guard_runs_inside_attempt_publish_for_every_retry() -> None:
-    # Route 3 (retry): the loop re-invokes attempt_publish, so the guard (inside it)
-    # runs on every retry. Assert the guard is inside the retried function.
+def test_shell_daily_overlay_refuses_behind(tmp_path):
+    _overlay_refuses_behind(tmp_path, DAILY)
+
+
+def test_shell_daily_overlay_admits_ahead(tmp_path):
+    _overlay_admits_ahead(tmp_path, DAILY)
+
+
+def test_shell_hourly_overlay_refuses_behind(tmp_path):
+    _overlay_refuses_behind(tmp_path, HOURLY)
+
+
+def test_shell_hourly_overlay_admits_ahead(tmp_path):
+    _overlay_admits_ahead(tmp_path, HOURLY)
+
+
+def test_guard_runs_on_every_route_bootstrap_overlay_retry() -> None:
     text = SCRIPT.read_text(encoding="utf-8")
+    # bootstrap route calls the guard before the direct push
+    boot = text.split("attempting bootstrap", 1)[1].split("attempt_publish()", 1)[0]
+    assert "authority_guard" in boot, "bootstrap route not guarded (R5)"
+    # overlay + retry: the guard is inside attempt_publish, which the loop re-invokes
     body = text.split("attempt_publish()", 1)[1].split("\nfor attempt in", 1)[0]
-    assert "publication-admits" in body, "R5 guard is not inside attempt_publish (retry route)"
+    assert "authority_guard" in body, "overlay/retry route not guarded (R5)"
+    assert 'AUTH_CARRIERS=("logs/latest_contract.json" "logs/latest_hourly_contract.json")' in text

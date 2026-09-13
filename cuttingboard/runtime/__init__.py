@@ -746,13 +746,13 @@ def _execute_notify_run(
                 operator_locked=operator_locked and not validation_summary.system_halted,
             )
             # PRD-339 Slice 1 (Q1/Q4): hourly carries the admitted daily decision (rank=max), else UNAVAILABLE.
-            _huid = ep_authority.new_run_uid()
             _acc = _load_accepted_authority(run_date.isoformat(), run_at_utc)
             _hourly_ep = ep_authority.carry_forward(
-                accepted=_acc, run_uid=_huid, observed_halted=validation_summary.system_halted,
+                accepted=_acc, run_uid=ep_authority.new_run_uid(),
+                observed_halted=validation_summary.system_halted,
                 observed_operator_locked=operator_locked and not validation_summary.system_halted,
                 operator_lock_line=config.OPERATOR_LOCK_PERMISSION,
-            ) if _acc is not None else ep_authority.unavailable(run_date.isoformat(), _huid)
+            ) if _acc is not None else ep_authority.unavailable(run_date.isoformat())
             ep_authority.persist(contract, _hourly_ep)
             ep_authority.persist(summary, _hourly_ep)
             _write_hourly_artifacts(summary, contract)
@@ -1146,11 +1146,19 @@ def _build_and_finalize_contract(
         options_refusals=option_refusals,
     )
     contract["outcome"] = outcome
-    # PRD-339 Slice 1: permission-authority derivation MOVED to the pre-render resolver (byte-identical).
+    # Inject dashboard-readable fields into system_state (permission stays the
+    # posture/halt/lock line; PRD-339 Slice 1 keeps this byte-identical and adds
+    # the canonical envelope additively via the exclusive writer).
+    _ss_regime_label, _ss_posture_label, _ss_conf, _ = _summary_regime_fields(regime)
+    _ss_perm = _PERMISSION_LINES.get(_ss_posture_label, "No new trades permitted.")
+    if validation_summary.system_halted:
+        _ss_perm = "No trades permitted. System halted."
+    elif operator_locked:
+        _ss_perm = config.OPERATOR_LOCK_PERMISSION
     contract["system_state"]["outcome"] = outcome
-    contract["system_state"]["permission"] = effective_permission.permission_line
+    contract["system_state"]["permission"] = _ss_perm
     contract["system_state"]["reason"] = contract["system_state"].get("stay_flat_reason")
-    ep_authority.persist(contract, effective_permission)
+    ep_authority.persist(contract, effective_permission)  # PRD-339 Slice 1 (R4)
     contract = apply_overnight_policy(
         contract=contract,
         market_map=market_map,
@@ -1228,7 +1236,7 @@ def _load_accepted_authority(
 ) -> Optional["ep_authority.EffectivePermission"]:
     """PRD-339 Slice 1: restore + fail-closed admit the accepted-authority carrier (R7)."""
     if not paths:
-        paths = (LATEST_RUN_PATH, LATEST_CONTRACT_PATH)
+        paths = (LOGS_DIR / "latest_run.json", LOGS_DIR / "latest_contract.json")
     for path in paths:
         try:
             data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -1488,10 +1496,10 @@ def _run_pipeline(
 
     # PRD-339 Slice 1: resolve EffectivePermission ONCE at the converged pre-render boundary.
     effective_permission = ep_authority.resolve_effective_permission(
-        outcome_is_trade=(outcome == OUTCOME_TRADE),
+        mode=mode, outcome_is_trade=(outcome == OUTCOME_TRADE),
         system_halted=validation_summary.system_halted,
         operator_locked=operator_locked, session_date=date_str,
-        decision_uid=generation_id, run_uid=ep_authority.new_run_uid(),
+        run_uid=ep_authority.new_run_uid(),
         posture_permission_line=_PERMISSION_LINES.get(
             _summary_regime_fields(regime)[1], "No new trades permitted."),
         operator_lock_line=config.OPERATOR_LOCK_PERMISSION,

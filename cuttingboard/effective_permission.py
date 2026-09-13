@@ -19,15 +19,22 @@ VERDICT_UNAVAILABLE = "UNAVAILABLE"
 
 _RANK = {VERDICT_PERMITTED: 0, VERDICT_NO_TRADE: 1, VERDICT_OBSERVE_ONLY: 1,
          VERDICT_HALT: 2, VERDICT_UNAVAILABLE: 3}  # higher == more restrictive
+_VALID_VERDICTS = frozenset(_RANK)
+_ADMITTED_VERDICTS = frozenset({VERDICT_PERMITTED, VERDICT_NO_TRADE,
+                                VERDICT_OBSERVE_ONLY, VERDICT_HALT})
+# Only these pipeline modes may originate authority (R3/finding 7); others fail-closed.
+AUTHORIZED_DAILY_MODES = frozenset({"live", "sunday"})
 CANONICAL_FIELD = "effective_permission"  # the exclusive-writer AST guard keys on this.
 RECOVERY_REASON_REDECISION = "REDECISION"
 _RECOVERY_REASONS = frozenset({RECOVERY_REASON_REDECISION})
+_RECOVERY_KEYS = frozenset({"superseded_authority_version", "superseding_decision_uid", "reason"})
 _HALT_LINE = "No trades permitted. System halted."
 _DEFAULT_LINE = "No new trades permitted."
 _TOKEN = object()  # process-local construction capability (s13 R3 in-process).
 _KEYS = frozenset({"verdict", "restriction_rank", "decision_uid", "session_date",
                    "run_uid", "authority_version", "valid_until", "recovery_basis",
                    "permission_line", "decision_seq"})
+_GOVERNED = _KEYS - {"run_uid"}  # authority fields; run_uid is invocation identity only.
 
 
 class EffectivePermissionError(RuntimeError):
@@ -68,13 +75,10 @@ def _mint(**kw: Any) -> EffectivePermission:
     return EffectivePermission(_token=_TOKEN, **kw)
 
 
-_RUN_UID = uuid.uuid4().hex  # this process's invocation id (R6)
-
-
 def new_run_uid() -> str:
-    """This process's run_uid (R6): a stable opaque id, distinct across processes,
-    never mode+second (which collides same-second); stable within a process."""
-    return _RUN_UID
+    """A fresh run_uid, unique per pipeline invocation (R6). The caller mints ONE
+    per _run_pipeline / hourly invocation and threads it stably through the run."""
+    return uuid.uuid4().hex
 
 
 def _valid_until(session_date: str) -> Optional[str]:
@@ -85,15 +89,28 @@ def _valid_until(session_date: str) -> Optional[str]:
     return datetime.combine(d + timedelta(days=1), time(8, 0), tzinfo=timezone.utc).isoformat()
 
 
+def unavailable(session_date: str, run_uid: str = "") -> EffectivePermission:
+    """The fail-closed canonical state (R7): a deterministic sentinel (default empty
+    identity) that admit_persisted never re-admits as a valid authority."""
+    r = _RANK[VERDICT_UNAVAILABLE]
+    return _mint(verdict=VERDICT_UNAVAILABLE, restriction_rank=r, decision_uid="",
+                 session_date=str(session_date), run_uid=run_uid,
+                 authority_version=(str(session_date), 0, r), valid_until=None,
+                 recovery_basis=None, permission_line=_DEFAULT_LINE, decision_seq=0)
+
+
 def resolve_effective_permission(
-    *, outcome_is_trade: bool, system_halted: bool, operator_locked: bool,
-    session_date: str, decision_uid: str, run_uid: str,
-    posture_permission_line: str, operator_lock_line: str,
-    accepted: Optional[EffectivePermission] = None,
+    *, mode: str, outcome_is_trade: bool, system_halted: bool, operator_locked: bool,
+    session_date: str, run_uid: str, posture_permission_line: str, operator_lock_line: str,
+    accepted: Optional[EffectivePermission] = None, redecision: bool = False,
 ) -> EffectivePermission:
-    """ONLY constructor for an admitted DAILY decision (R1). A same-session run is a
-    REDECISION: decision_seq += 1 (R3(a)); a lowered rank attaches recovery_basis (Q4).
-    Precedence (halt > operator-lock > outcome) mirrors _build_and_finalize_contract."""
+    """ONLY constructor for an admitted DAILY decision (R1). Fail-closed for
+    unauthorized modes (finding 7). decision_uid is collision-free per invocation
+    (=run_uid) for a NEW decision and REUSED across same-session retries (R6/R3);
+    a same-session ``redecision`` mints a new decision_uid, increments decision_seq,
+    and attaches recovery_basis when it lowers restriction (Q4/R3)."""
+    if mode not in AUTHORIZED_DAILY_MODES:
+        return unavailable(session_date)
     if system_halted:
         verdict, line = VERDICT_HALT, _HALT_LINE
     elif operator_locked:
@@ -103,17 +120,17 @@ def resolve_effective_permission(
         line = posture_permission_line
     rank = _RANK[verdict]
     recovery: Optional[dict[str, Any]] = None
-    if accepted is not None and accepted.session_date == session_date:
-        if accepted.decision_uid == decision_uid:
-            seq = accepted.decision_seq  # rerun of the same decision, not a redecision (R3)
-        else:
-            seq = accepted.decision_seq + 1  # genuine same-session redecision
-            if rank < accepted.restriction_rank:
-                recovery = {"superseded_authority_version": list(accepted.authority_version),
-                            "superseding_decision_uid": decision_uid,
-                            "reason": RECOVERY_REASON_REDECISION}
+    same_session = accepted is not None and accepted.session_date == session_date
+    if same_session and not redecision:
+        decision_uid, seq = accepted.decision_uid, accepted.decision_seq  # retry reuse (R3)
+    elif same_session and redecision:
+        decision_uid, seq = run_uid, accepted.decision_seq + 1            # genuine redecision
+        if rank < accepted.restriction_rank:
+            recovery = {"superseded_authority_version": list(accepted.authority_version),
+                        "superseding_decision_uid": decision_uid,
+                        "reason": RECOVERY_REASON_REDECISION}
     else:
-        seq = 1
+        decision_uid, seq = run_uid, 1                                    # new session
     return _mint(verdict=verdict, restriction_rank=rank, decision_uid=decision_uid,
                  session_date=session_date, run_uid=run_uid,
                  authority_version=(session_date, seq, rank),
@@ -126,23 +143,20 @@ def carry_forward(
     observed_operator_locked: bool = False, operator_lock_line: str = "",
 ) -> EffectivePermission:
     """Q1 observation carry (hourly): carries the admitted daily decision forward
-    (same decision_uid/decision_seq/valid_until); rank = MAX (never lowers/originates/recovers)."""
+    (same decision_uid/decision_seq/valid_until); rank = MAX (never lowers/originates/
+    recovers). A benign observation preserves accepted.permission_line (nit)."""
     if observed_halted:
         obs_v = VERDICT_HALT
     elif observed_operator_locked:
         obs_v = VERDICT_OBSERVE_ONLY
     else:
         obs_v = accepted.verdict  # benign observation asserts nothing new.
-    if _RANK[obs_v] >= accepted.restriction_rank:
-        verdict, rank = obs_v, _RANK[obs_v]
+    if _RANK[obs_v] > accepted.restriction_rank:
+        verdict, rank = obs_v, _RANK[obs_v]        # this observation newly raises restriction
+        line = _HALT_LINE if verdict == VERDICT_HALT else operator_lock_line
     else:
-        verdict, rank = accepted.verdict, accepted.restriction_rank
-    if verdict == VERDICT_HALT:
-        line = _HALT_LINE
-    elif verdict == VERDICT_OBSERVE_ONLY:
-        line = operator_lock_line
-    else:
-        line = accepted.permission_line
+        verdict, rank = accepted.verdict, accepted.restriction_rank  # carried, never lowered
+        line = accepted.permission_line            # preserve, do not blank (nit)
     return _mint(verdict=verdict, restriction_rank=rank, decision_uid=accepted.decision_uid,
                  session_date=accepted.session_date, run_uid=run_uid,
                  authority_version=(accepted.session_date, accepted.decision_seq, rank),
@@ -150,51 +164,82 @@ def carry_forward(
                  permission_line=line, decision_seq=accepted.decision_seq)
 
 
-def unavailable(session_date: str, run_uid: str) -> EffectivePermission:
-    """The fail-closed canonical state (R7)."""
-    r = _RANK[VERDICT_UNAVAILABLE]
-    return _mint(verdict=VERDICT_UNAVAILABLE, restriction_rank=r, decision_uid="",
-                 session_date=session_date, run_uid=run_uid,
-                 authority_version=(session_date, 0, r), valid_until=None,
-                 recovery_basis=None, permission_line=_DEFAULT_LINE, decision_seq=0)
+def _recovery_basis_wellformed(rb: Any) -> bool:
+    return (isinstance(rb, dict) and set(rb.keys()) == _RECOVERY_KEYS
+            and rb.get("reason") in _RECOVERY_REASONS
+            and isinstance(rb.get("superseding_decision_uid"), str)
+            and isinstance(rb.get("superseded_authority_version"), (list, tuple)))
 
 
 def admit_persisted(
     envelope: Any, *, current_session_date: str, now: Optional[datetime] = None,
 ) -> Optional[EffectivePermission]:
     """Fail-closed admission at the read boundary (R7): the admitted EP, else None
-    (absent/malformed/prior-session/stale). Never raises/fabricates/retains a grant."""
+    (absent/malformed/unknown-verdict/verdict-rank or version mismatch/empty identity/
+    missing-or-stale valid_until/malformed recovery/prior-session). Never raises
+    (tz-normalized compare), fabricates, or retains a grant across sessions."""
     if not isinstance(envelope, dict) or not _KEYS.issubset(envelope.keys()):
         return None
+    verdict = envelope.get("verdict")
+    du, ru, sd = envelope.get("decision_uid"), envelope.get("run_uid"), envelope.get("session_date")
+    vu, rb = envelope.get("valid_until"), envelope.get("recovery_basis")
+    if verdict not in _VALID_VERDICTS:
+        return None
+    if not (isinstance(du, str) and du and isinstance(ru, str) and ru
+            and isinstance(sd, str) and sd):
+        return None
+    if not isinstance(vu, str):  # a valid authority always carries a freshness bound
+        return None
+    if rb is not None and not _recovery_basis_wellformed(rb):
+        return None
     try:
+        rank, seq = int(envelope["restriction_rank"]), int(envelope["decision_seq"])
         av = envelope["authority_version"]
-        ep = _mint(verdict=envelope["verdict"], restriction_rank=int(envelope["restriction_rank"]),
-                   decision_uid=envelope["decision_uid"], session_date=envelope["session_date"],
-                   run_uid=envelope["run_uid"], authority_version=(str(av[0]), int(av[1]), int(av[2])),
-                   valid_until=envelope.get("valid_until"), recovery_basis=envelope.get("recovery_basis"),
-                   permission_line=envelope.get("permission_line", _DEFAULT_LINE),
-                   decision_seq=int(envelope["decision_seq"]))
+        av_t = (str(av[0]), int(av[1]), int(av[2]))
+        vu_dt = datetime.fromisoformat(vu)
     except (KeyError, TypeError, ValueError, IndexError):
         return None
-    if ep.session_date != current_session_date:
+    if rank != _RANK[verdict] or seq < 1:          # verdict/rank agreement + admitted seq
         return None
-    if now is not None and ep.valid_until:
-        try:
-            if now > datetime.fromisoformat(ep.valid_until):
-                return None
-        except (ValueError, TypeError):
+    if av_t != (sd, seq, rank):                    # authority_version cross-field agreement
+        return None
+    if sd != current_session_date:                 # prior-session
+        return None
+    if vu_dt.tzinfo is None:
+        vu_dt = vu_dt.replace(tzinfo=timezone.utc)
+    if now is not None:
+        now_dt = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
+        if now_dt > vu_dt:                          # stale/expired
             return None
-    return ep
+    return _mint(verdict=verdict, restriction_rank=rank, decision_uid=du, session_date=sd,
+                 run_uid=ru, authority_version=av_t, valid_until=vu, recovery_basis=rb,
+                 permission_line=str(envelope.get("permission_line", _DEFAULT_LINE)),
+                 decision_seq=seq)
+
+
+def _recovery_authorized(*, recovery_basis: Any, incoming_decision_uid: Any,
+                         incoming_verdict: Any, incoming_seq: int, accepted_seq: int,
+                         accepted_av: tuple[str, int, int]) -> bool:
+    """Shared R3 recovery predicate (used by is_authorized_redecision AND the
+    publication copy): a strictly higher decision_seq, an ADMITTED incoming daily
+    decision (non-empty uid, non-UNAVAILABLE verdict), and a well-formed
+    recovery_basis referencing the accepted authority whose superseding_decision_uid
+    equals the incoming decision_uid."""
+    return (incoming_seq > accepted_seq
+            and isinstance(incoming_decision_uid, str) and incoming_decision_uid
+            and incoming_verdict in _ADMITTED_VERDICTS
+            and _recovery_basis_wellformed(recovery_basis)
+            and recovery_basis["superseded_authority_version"] == list(accepted_av)
+            and recovery_basis["superseding_decision_uid"] == incoming_decision_uid)
 
 
 def is_authorized_redecision(*, incoming: EffectivePermission,
                              accepted: EffectivePermission) -> bool:
-    """R3 predicate for a LOWER-rank admission: strictly higher decision_seq AND a
-    recovery_basis referencing accepted.authority_version."""
-    rb = incoming.recovery_basis
-    return (incoming.decision_seq > accepted.decision_seq and isinstance(rb, dict)
-            and rb.get("reason") in _RECOVERY_REASONS
-            and rb.get("superseded_authority_version") == list(accepted.authority_version))
+    """R3 predicate for a LOWER-rank admission (Q4 recovery)."""
+    return _recovery_authorized(
+        recovery_basis=incoming.recovery_basis, incoming_decision_uid=incoming.decision_uid,
+        incoming_verdict=incoming.verdict, incoming_seq=incoming.decision_seq,
+        accepted_seq=accepted.decision_seq, accepted_av=accepted.authority_version)
 
 
 def _av(env: dict[str, Any]) -> tuple[str, int, int]:
@@ -207,8 +252,9 @@ def publication_admits(accepted_envelope: Optional[dict[str, Any]],
     """R5 non-regression: compare authority_version lexicographically (never a
     timestamp, R6). Admit only when (a) not behind, (b) no equal-seq downgrade,
     (c) a lower rank across a higher decision_seq carries a validated recovery_basis
-    (Q4), (d) equal version is a no-op only for the same decision_uid. Missing
-    incoming -> refuse; missing accepted (bootstrap) -> admit."""
+    (Q4, shared predicate), (d) equal version is a no-op ONLY when every GOVERNED
+    field is identical (run_uid may differ). Missing/malformed incoming -> refuse;
+    missing accepted (bootstrap) -> admit."""
     if not isinstance(incoming_envelope, dict):
         return False
     if not isinstance(accepted_envelope, dict):
@@ -222,14 +268,16 @@ def publication_admits(accepted_envelope: Optional[dict[str, Any]],
         return False
     if inc_d == acc_d and inc_s < acc_s:           # (a) older decision
         return False
-    if inc == acc:                                 # (d) equal-version: no-op iff same decision
-        return incoming_envelope.get("decision_uid") == accepted_envelope.get("decision_uid")
-    if inc_d == acc_d and inc_s == acc_s:          # (b) intra-decision downgrade
+    if inc == acc:                                 # (d) equal-version: governed-identical no-op
+        return all(incoming_envelope.get(k) == accepted_envelope.get(k) for k in _GOVERNED)
+    if inc_d == acc_d and inc_s == acc_s:          # (b) intra-decision downgrade refused
         return inc_r >= acc_r
-    if inc_d == acc_d and inc_s > acc_s and inc_r < acc_r:   # (c) recovery-gated
-        rb = incoming_envelope.get("recovery_basis")
-        return (isinstance(rb, dict) and rb.get("reason") in _RECOVERY_REASONS
-                and rb.get("superseded_authority_version") == list(acc))
+    if inc_d == acc_d and inc_s > acc_s and inc_r < acc_r:   # (c) recovery-gated downgrade
+        return _recovery_authorized(
+            recovery_basis=incoming_envelope.get("recovery_basis"),
+            incoming_decision_uid=incoming_envelope.get("decision_uid"),
+            incoming_verdict=incoming_envelope.get("verdict"),
+            incoming_seq=inc_s, accepted_seq=acc_s, accepted_av=acc)
     return True
 
 

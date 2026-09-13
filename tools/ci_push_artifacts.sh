@@ -23,7 +23,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PUBLISH_BRANCH="${PUBLISH_BRANCH:-publish}"
 AUDIT_PATH="logs/audit.jsonl"
-AUTH_CARRIER="logs/latest_contract.json"   # PRD-339 Slice 1 authority carrier (R5)
+# PRD-339 Slice 1 (R5): both authority carriers (daily + hourly, both cp'd to
+# ui/contract.json) are checked for publication non-regression on every route.
+AUTH_CARRIERS=("logs/latest_contract.json" "logs/latest_hourly_contract.json")
 MAX_ATTEMPTS="${CB_PUBLISH_MAX_ATTEMPTS:-5}"
 
 pre_sha="${PRE_SHA:-}"
@@ -55,6 +57,30 @@ msg="$(git show -s --format=%s "$post_sha")"
 mapfile -t changed < <(git diff --name-only "$pre_sha" "$post_sha")
 echo "artifact publish: ${#changed[@]} file(s) -> $PUBLISH_BRANCH"
 
+# PRD-339 Slice 1 (R5): refuse any bundle whose authority carrier(s) regress the
+# publish tip (behind / lower rank without a validated Q4 recovery / equal-version
+# with a differing governed field / malformed). Compared by authority_version,
+# never generated_at/commit order. Runs on EVERY route: bootstrap, overlay, retry.
+# $1 = incoming commit-ish; the accepted tip is origin/$PUBLISH_BRANCH (absent on
+# bootstrap -> nothing to regress, but a malformed incoming is still refused).
+authority_guard() {
+  local carrier acc inc
+  for carrier in "${AUTH_CARRIERS[@]}"; do
+    case " ${changed[*]} " in *" $carrier "*) ;; *) continue ;; esac
+    acc="$(mktemp)"; inc="$(mktemp)"
+    git show "origin/$PUBLISH_BRANCH:$carrier" > "$acc" 2>/dev/null || : > "$acc"
+    git show "$1:$carrier" > "$inc" 2>/dev/null || : > "$inc"
+    if ! python3 "$SCRIPT_DIR/../cuttingboard/effective_permission.py" \
+           publication-admits "$acc" "$inc"; then
+      rm -f "$acc" "$inc"
+      echo "artifact publish: authority non-regression REFUSED (R5) on $carrier" >&2
+      return 1
+    fi
+    rm -f "$acc" "$inc"
+  done
+  return 0
+}
+
 # Bootstrap: publish branch absent -> seed it from the artifact commit itself. If two
 # state-writers race to CREATE the ref (e.g. the first pipeline + hourly after this PR
 # lands on an un-seeded repo), the loser's push is a non-fast-forward — DON'T exit under
@@ -62,6 +88,10 @@ echo "artifact publish: ${#changed[@]} file(s) -> $PUBLISH_BRANCH"
 # fetches the now-existing branch and appends THIS run's rows (Codex P2).
 if ! git ls-remote --exit-code --heads origin "$PUBLISH_BRANCH" >/dev/null 2>&1; then
   echo "artifact publish: '$PUBLISH_BRANCH' absent - attempting bootstrap from $post_sha"
+  if ! authority_guard "$post_sha"; then
+    echo "artifact publish: bootstrap REFUSED by authority guard (R5)" >&2
+    exit 1
+  fi
   if git push origin "$post_sha:refs/heads/$PUBLISH_BRANCH" 2>/dev/null; then
     echo "artifact publish: created '$PUBLISH_BRANCH'"
     exit 0
@@ -95,22 +125,10 @@ attempt_publish() {
   git fetch origin main   # for the static ui/ sync below (latest reviewed assets)
   git worktree add --force "$wt" "origin/$PUBLISH_BRANCH"
 
-  # PRD-339 Slice 1 (R5): refuse a bundle whose $AUTH_CARRIER authority_version regresses the tip.
-  case " ${changed[*]} " in
-    *" $AUTH_CARRIER "*)
-      local acc_tmp inc_tmp
-      acc_tmp="$(mktemp)"; inc_tmp="$(mktemp)"
-      git show "origin/$PUBLISH_BRANCH:$AUTH_CARRIER" > "$acc_tmp" 2>/dev/null || : > "$acc_tmp"
-      git show "$post_sha:$AUTH_CARRIER" > "$inc_tmp" 2>/dev/null || : > "$inc_tmp"
-      if ! python3 "$SCRIPT_DIR/../cuttingboard/effective_permission.py" \
-             publication-admits "$acc_tmp" "$inc_tmp"; then
-        rm -f "$acc_tmp" "$inc_tmp"
-        echo "artifact publish: authority non-regression REFUSED (R5) — not publishing" >&2
-        return 1
-      fi
-      rm -f "$acc_tmp" "$inc_tmp"
-      ;;
-  esac
+  # PRD-339 Slice 1 (R5): overlay + retry route (attempt_publish re-runs each retry).
+  if ! authority_guard "$post_sha"; then
+    return 1
+  fi
 
   local path dest
   for path in "${changed[@]}"; do
