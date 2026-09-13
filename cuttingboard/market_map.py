@@ -90,6 +90,10 @@ TRADE_TYPE_PUT_SPREAD = "put_spread"
 TRADE_TYPE_NONE = "none"
 VALID_TRADE_TYPES = frozenset({TRADE_TYPE_CALL_SPREAD, TRADE_TYPE_PUT_SPREAD, TRADE_TYPE_NONE})
 
+# PRD-340 R4: grade, setup_state and if_now (TAKE/WAIT) are NON-AUTHORITATIVE
+# EVIDENCE. Execution authority is the resolved EffectivePermission projection
+# (cuttingboard.authority_projection), never grade/if_now=TAKE; no authoritative
+# channel derives permission wording from these fields.
 IF_NOW_TAKE = "TAKE"
 IF_NOW_WAIT = "WAIT"
 VALID_IF_NOW = frozenset({IF_NOW_TAKE, IF_NOW_WAIT})

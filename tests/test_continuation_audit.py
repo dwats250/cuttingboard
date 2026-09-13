@@ -7,6 +7,7 @@ import pandas as pd
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.options import build_option_setups
 from cuttingboard.output import OUTCOME_NO_TRADE, OUTCOME_TRADE, render_report
+from tests.ep_test_helpers import make_ep
 from cuttingboard.qualification import (
     CONTINUATION_REJECTION_REASONS,
     _qualify_continuation_candidate,
@@ -289,7 +290,7 @@ def test_render_report_includes_expansion_audit_and_no_entries_message(monkeypat
         validation_summary=_validation_summary(),
         qualification_summary=summary,
         option_setups=[],
-        outcome=OUTCOME_NO_TRADE,
+        effective_permission=make_ep(outcome="NO_TRADE"),
         watch_summary=None,
     )
 
@@ -348,7 +349,7 @@ def test_render_report_labels_continuation_target_ceiling_prd260(monkeypatch):
         validation_summary=_validation_summary(),
         qualification_summary=summary,
         option_setups=setups,
-        outcome=OUTCOME_TRADE,
+        effective_permission=make_ep(outcome="TRADE"),
         watch_summary=None,
     )
 

@@ -81,15 +81,42 @@ function display(val) {
 }
 
 // ---------------------------------------------------------------------------
-// Sole allowed derivation (PRD-024 §EXECUTION POSTURE)
+// PRD-340 Slice 2 (R1/R4/R3c + fail-closed): the browser channel derives the
+// authoritative execution posture ONLY from the resolver-provenanced
+// effective_permission envelope, routed through the validated accessor
+// admitAuthority() below (never status + system_state.tradable). An absent,
+// malformed, prior-session, or unknown-verdict envelope fails closed to
+// UNAVAILABLE. This mirrors cuttingboard.authority_projection.admit_projection.
 // ---------------------------------------------------------------------------
 
-function derivePosture(status, tradable) {
-  if (status === 'ERROR') return 'ERROR';
-  if (status === 'STAY_FLAT') return 'STAY_FLAT';
-  if (status === 'OK' && tradable === true) return 'TRADE_READY';
-  if (status === 'OK' && tradable === false) return 'WATCHLIST';
-  return 'N/A';
+// verdict -> authoritative posture (mirrors _VERDICT_MAP in authority_projection.py)
+var _VERDICT_POSTURE = {
+  PERMITTED: 'TRADE_READY',
+  NO_TRADE: 'STAY_FLAT',
+  OBSERVE_ONLY: 'OBSERVE_ONLY',
+  HALT: 'HALT',
+  UNAVAILABLE: 'UNAVAILABLE',
+};
+
+// The SOLE reader of the canonical projection field on the served contract (T4
+// routing): validate + return the admitted envelope, else null (fail-closed).
+function admitAuthority(contract) {
+  var env = safeGet(contract, 'effective_permission');
+  if (!env || typeof env !== 'object') return null;
+  var verdict = env.verdict;
+  if (!Object.prototype.hasOwnProperty.call(_VERDICT_POSTURE, verdict)) return null;
+  if (verdict === 'UNAVAILABLE') return null;            // sentinel is never a grant
+  // prior-session fail-closed: the authority must be for THIS served session.
+  var sessionDate = safeGet(contract, 'session_date');
+  if (!env.session_date || (sessionDate && env.session_date !== sessionDate)) return null;
+  if (!env.decision_uid || !env.run_uid || typeof env.valid_until !== 'string') return null;
+  return env;
+}
+
+function derivePosture(contract) {
+  var env = admitAuthority(contract);
+  if (env === null) return 'UNAVAILABLE';
+  return _VERDICT_POSTURE[env.verdict] || 'UNAVAILABLE';
 }
 
 // ---------------------------------------------------------------------------
@@ -118,9 +145,8 @@ function setText(id, val) {
 // ---------------------------------------------------------------------------
 
 function renderSignalBar(contract) {
-  const status = safeGet(contract, 'status');
-  const tradable = safeGet(contract, 'system_state', 'tradable');
-  const posture = derivePosture(status, tradable);
+  // PRD-340 R4: posture is the EP-derived authoritative action, not status+tradable.
+  const posture = derivePosture(contract);
 
   const postureEl = document.getElementById('sig-posture');
   postureEl.textContent = posture;

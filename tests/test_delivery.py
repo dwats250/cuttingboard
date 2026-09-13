@@ -16,6 +16,12 @@ from cuttingboard.delivery.transport import (
     deliver_json,
 )
 from cuttingboard.output import render_report_from_payload
+from tests.ep_test_helpers import ep_for_payload, make_ep
+
+# PRD-340: the transport write seams require a resolved EP (R1 gate). deliver_json/
+# deliver_html do not derive wording from it (the payload carries the resolved
+# authority via _payload below); any valid EP satisfies the gate.
+_EP = make_ep()
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +128,9 @@ def _error_contract() -> dict:
 
 
 def _payload(contract: dict | None = None) -> dict:
-    return build_report_payload(contract or _contract())
+    p = build_report_payload(contract or _contract())
+    ep_for_payload(p)  # PRD-340: stamp the resolver-provenanced authority the readers admit
+    return p
 
 
 def _sizing_refusal_contract() -> dict:
@@ -284,75 +292,87 @@ class TestDeliverJson:
     def test_writes_file(self, tmp_path):
         p = _payload()
         out = str(tmp_path / "payload.json")
-        deliver_json(p, output_path=out)
+        deliver_json(p, output_path=out, effective_permission=_EP)
+
         assert Path(out).exists()
 
     def test_content_is_valid_json(self, tmp_path):
         p = _payload()
         out = str(tmp_path / "payload.json")
-        deliver_json(p, output_path=out)
+        deliver_json(p, output_path=out, effective_permission=_EP)
+
         loaded = json.loads(Path(out).read_text(encoding="utf-8"))
         assert loaded["run_status"] == "OK"
 
     def test_creates_parent_dirs(self, tmp_path):
         p = _payload()
         out = str(tmp_path / "nested" / "deep" / "payload.json")
-        deliver_json(p, output_path=out)
+        deliver_json(p, output_path=out, effective_permission=_EP)
+
         assert Path(out).exists()
 
     def test_invalid_payload_raises(self, tmp_path):
         bad = _payload()
         bad["run_status"] = "NOPE"
         with pytest.raises(ValueError):
-            deliver_json(bad, output_path=str(tmp_path / "out.json"))
+            deliver_json(bad, output_path=str(tmp_path / "out.json"), effective_permission=_EP)
+
 
 
 class TestDeliverHtml:
     def test_writes_file(self, tmp_path):
         p = _payload()
         out = str(tmp_path / "report.html")
-        deliver_html(p, output_path=out)
+        deliver_html(p, output_path=out, effective_permission=_EP)
+
         assert Path(out).exists()
 
     def test_content_contains_html(self, tmp_path):
         p = _payload()
         out = str(tmp_path / "report.html")
-        deliver_html(p, output_path=out)
+        deliver_html(p, output_path=out, effective_permission=_EP)
+
         content = Path(out).read_text(encoding="utf-8")
         assert "<html" in content
 
     def test_creates_parent_dirs(self, tmp_path):
         p = _payload()
         out = str(tmp_path / "sub" / "report.html")
-        deliver_html(p, output_path=out)
+        deliver_html(p, output_path=out, effective_permission=_EP)
+
         assert Path(out).exists()
 
     def test_invalid_payload_raises(self, tmp_path):
         bad = _payload()
         bad["run_status"] = "NOPE"
         with pytest.raises(ValueError):
-            deliver_html(bad, output_path=str(tmp_path / "r.html"))
+            deliver_html(bad, output_path=str(tmp_path / "r.html"), effective_permission=_EP)
+
 
 
 class TestDeliverCli:
     def test_prints_status(self, capsys):
-        deliver_cli(_payload(_contract(status="OK")))
+        deliver_cli(_payload(_contract(status="OK")), effective_permission=_EP)
+
         captured = capsys.readouterr()
         assert "STATUS:" in captured.out
         assert "OK" in captured.out
 
     def test_prints_market_regime(self, capsys):
-        deliver_cli(_payload(_contract(market_regime="RISK_ON")))
+        deliver_cli(_payload(_contract(market_regime="RISK_ON")), effective_permission=_EP)
+
         captured = capsys.readouterr()
         assert "RISK_ON" in captured.out
 
     def test_prints_symbols_scanned(self, capsys):
-        deliver_cli(_payload())
+        deliver_cli(_payload(), effective_permission=_EP)
+
         captured = capsys.readouterr()
         assert "SYMBOLS_SCANNED" in captured.out
 
     def test_prints_counts(self, capsys):
-        deliver_cli(_payload())
+        deliver_cli(_payload(), effective_permission=_EP)
+
         captured = capsys.readouterr()
         assert "TOP_TRADES" in captured.out
         assert "WATCHLIST" in captured.out
@@ -361,16 +381,19 @@ class TestDeliverCli:
     def test_cli_names_options_sizing_reason_prd283(self, capsys):
         # PRD-283 (CB-02): CLI must name the sizing refusal reason, not just a
         # bare count.
-        deliver_cli(_payload(_sizing_refusal_contract()))
+        deliver_cli(_payload(_sizing_refusal_contract()), effective_permission=_EP)
+
         out = capsys.readouterr().out
         assert "REFUSED SPY" in out
         assert "SMALLEST_CONTRACT_EXCEEDS_BUDGET" in out
 
     def test_deterministic_output(self, capsys):
         p = _payload()
-        deliver_cli(p)
+        deliver_cli(p, effective_permission=_EP)
+
         out1 = capsys.readouterr().out
-        deliver_cli(p)
+        deliver_cli(p, effective_permission=_EP)
+
         out2 = capsys.readouterr().out
         assert out1 == out2
 
@@ -378,7 +401,8 @@ class TestDeliverCli:
         bad = _payload()
         bad["run_status"] = "NOPE"
         with pytest.raises(ValueError):
-            deliver_cli(bad)
+            deliver_cli(bad, effective_permission=_EP)
+
 
 
 class TestDeliver:
@@ -389,7 +413,8 @@ class TestDeliver:
         original = t._DEFAULT_HTML_PATH
         t._DEFAULT_HTML_PATH = str(tmp_path / "report.html")
         try:
-            deliver(p, mode="html")
+            deliver(p, mode="html", effective_permission=_EP)
+
             assert (tmp_path / "report.html").exists()
         finally:
             t._DEFAULT_HTML_PATH = original
@@ -400,18 +425,21 @@ class TestDeliver:
         original = t._DEFAULT_JSON_PATH
         t._DEFAULT_JSON_PATH = str(tmp_path / "payload.json")
         try:
-            deliver(p, mode="json")
+            deliver(p, mode="json", effective_permission=_EP)
+
             assert (tmp_path / "payload.json").exists()
         finally:
             t._DEFAULT_JSON_PATH = original
 
     def test_cli_mode(self, capsys):
-        deliver(_payload(), mode="cli")
+        deliver(_payload(), mode="cli", effective_permission=_EP)
+
         assert "STATUS:" in capsys.readouterr().out
 
     def test_unknown_mode_raises(self):
         with pytest.raises(ValueError, match="Unknown delivery mode"):
-            deliver(_payload(), mode="ftp")
+            deliver(_payload(), mode="ftp", effective_permission=_EP)
+
 
 
 # ---------------------------------------------------------------------------
@@ -436,12 +464,13 @@ class TestErrorContractPath:
     def test_error_payload_serializes_to_json(self, tmp_path):
         payload = build_report_payload(_error_contract())
         out = str(tmp_path / "error_payload.json")
-        deliver_json(payload, output_path=out)
+        deliver_json(payload, output_path=out, effective_permission=_EP)
+
         loaded = json.loads(Path(out).read_text())
         assert loaded["run_status"] == "ERROR"
 
     def test_error_payload_adapter_renders(self):
-        payload = build_report_payload(_error_contract())
+        payload = _payload(_error_contract())  # PRD-340: stamp the (HALT) authority
         result = render_report_from_payload(payload)
         assert isinstance(result, str)
         assert "HALT" in result
@@ -460,7 +489,8 @@ class TestJsonRoundtrip:
         from cuttingboard.delivery.payload import assert_valid_payload
         p = _payload()
         out = str(tmp_path / "payload.json")
-        deliver_json(p, output_path=out)
+        deliver_json(p, output_path=out, effective_permission=_EP)
+
         import json as _json
         loaded = _json.loads(Path(out).read_text(encoding="utf-8"))
         assert_valid_payload(loaded)
@@ -474,7 +504,8 @@ class TestJsonRoundtrip:
                 c = _contract(status=status)
                 p = _payload(c)
             out = str(tmp_path / f"p_{status}.json")
-            deliver_json(p, output_path=out)
+            deliver_json(p, output_path=out, effective_permission=_EP)
+
             loaded = _json.loads(Path(out).read_text(encoding="utf-8"))
             assert loaded["run_status"] == status
 
@@ -482,7 +513,8 @@ class TestJsonRoundtrip:
         import json as _json
         p = _payload(_contract(tradable=None))
         out = str(tmp_path / "payload_null.json")
-        deliver_json(p, output_path=out)
+        deliver_json(p, output_path=out, effective_permission=_EP)
+
         loaded = _json.loads(Path(out).read_text(encoding="utf-8"))
         assert loaded["summary"]["tradable"] is None
 
@@ -493,10 +525,14 @@ class TestJsonRoundtrip:
 
 class TestExistingRenderReportUnchanged:
     def test_existing_signature_still_works(self):
+        # PRD-340 R1: render_report now REQUIRES an EffectivePermission (the raw
+        # `outcome` proxy is dropped as an authority source); render-before-resolve
+        # is an argument error. The EP-required signature is exercised here.
         from datetime import datetime, timezone
-        from cuttingboard.output import OUTCOME_NO_TRADE, render_report
+        from cuttingboard.output import render_report
         from cuttingboard.regime import RegimeState, RISK_ON, CONTROLLED_LONG
         from cuttingboard.validation import ValidationSummary
+        from tests.ep_test_helpers import make_ep
 
         regime = RegimeState(
             regime=RISK_ON,
@@ -530,7 +566,7 @@ class TestExistingRenderReportUnchanged:
             validation_summary=val,
             qualification_summary=None,
             option_setups=[],
-            outcome=OUTCOME_NO_TRADE,
+            effective_permission=make_ep(outcome="NO_TRADE", session_date="2026-04-23"),
         )
         assert isinstance(report, str)
         assert "2026-04-23" in report
@@ -546,9 +582,14 @@ _LOCK_PERMISSION = "No new trades permitted — operator cannot monitor."
 def test_r8_cli_observation_only_under_lock(capsys):
     contract = _contract(tradable=True)
     contract["system_state"]["permission"] = _LOCK_PERMISSION
-    deliver_cli(build_report_payload(contract))
+    # PRD-340 R4: EXECUTION is the EP-derived authoritative posture. Under the
+    # operator lock the resolved verdict is OBSERVE_ONLY, so the CLI reads
+    # OBSERVE_ONLY (the EP posture) instead of the old proxy 'OBSERVATION ONLY'.
+    deliver_cli(build_report_payload(contract),
+                effective_permission=make_ep(operator_locked=True))
+
     out = capsys.readouterr().out
-    assert "OBSERVATION ONLY" in out
+    assert "EXECUTION:       OBSERVE_ONLY" in out
     # Analytical TRADABLE fact preserved (the lock does not falsify it).
     assert "TRADABLE:        True" in out
 
@@ -556,6 +597,7 @@ def test_r8_cli_observation_only_under_lock(capsys):
 def test_r8_cli_no_observation_only_when_available(capsys):
     contract = _contract(tradable=True)
     contract["system_state"]["permission"] = "Long bias — trend continuation allowed."
-    deliver_cli(build_report_payload(contract))
+    deliver_cli(build_report_payload(contract), effective_permission=_EP)
+
     out = capsys.readouterr().out
     assert "OBSERVATION ONLY" not in out

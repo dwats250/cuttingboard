@@ -76,6 +76,16 @@ authority_guard() {
       echo "artifact publish: authority non-regression REFUSED (R5) on $carrier" >&2
       return 1
     fi
+    # PRD-340 Slice 2 (publish read-boundary): fail closed on a bundle whose
+    # incoming authority carrier is absent/malformed/UNAVAILABLE -- it must project
+    # to a genuine (non-UNAVAILABLE) authority through the approved validator before
+    # publish, beyond the R5 non-regression compare above.
+    if ! python3 "$SCRIPT_DIR/../cuttingboard/authority_projection.py" \
+           admit "$inc"; then
+      rm -f "$acc" "$inc"
+      echo "artifact publish: authority read-boundary REFUSED (Slice 2) on $carrier" >&2
+      return 1
+    fi
     rm -f "$acc" "$inc"
   done
   return 0

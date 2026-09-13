@@ -31,6 +31,7 @@ from tests.dash_helpers import (
     _mm_symbol,
     _payload,
     _run,
+    ep_envelope,
 )
 
 # A path that does not exist, so the macro-snapshot fallback yields {} and the
@@ -83,6 +84,11 @@ def _stamp(*, payload: dict, run: dict, market_map: dict | None, gid: str, ts: s
     payload["meta"]["timestamp"] = ts
     run["generation_id"] = gid
     run["timestamp"] = ts
+    # PRD-340: re-align the authority envelope to the (re-stamped) session so the
+    # board admits it instead of failing closed on a prior-session mismatch.
+    run["effective_permission"] = ep_envelope(
+        session_date=ts[:10], outcome=run.get("outcome", "NO_TRADE"),
+        system_halted=run.get("system_halted", False), permission=run.get("permission"))
     if market_map is not None:
         market_map["generation_id"] = gid
         market_map["generated_at"] = ts

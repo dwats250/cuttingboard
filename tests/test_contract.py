@@ -36,6 +36,7 @@ from cuttingboard.chain_validation import ChainValidationResult, VALIDATED
 from cuttingboard.options import OptionRefusal, OptionSetup
 from cuttingboard.normalization import NormalizedQuote
 from cuttingboard.output import OUTCOME_HALT, OUTCOME_NO_TRADE, render_report
+from tests.ep_test_helpers import make_ep
 from cuttingboard.qualification import (
     ENTRY_MODE_DIRECT,
     QualificationResult,
@@ -538,7 +539,7 @@ def test_render_report_no_crash():
         validation_summary=_val_summary(),
         qualification_summary=_qual_summary(),
         option_setups=[],
-        outcome=OUTCOME_NO_TRADE,
+        effective_permission=make_ep(outcome="NO_TRADE"),
     )
     assert isinstance(report, str)
     assert len(report) > 0
@@ -557,7 +558,7 @@ def test_render_report_stay_flat_no_crash():
         validation_summary=_val_summary(),
         qualification_summary=qual,
         option_setups=[],
-        outcome=OUTCOME_NO_TRADE,
+        effective_permission=make_ep(outcome="NO_TRADE"),
     )
     assert isinstance(report, str)
 
@@ -599,7 +600,7 @@ def test_prd284_render_report_materialized_sizing_and_excludes_blocked():
         validation_summary=_val_summary(),
         qualification_summary=_qual_summary(),
         option_setups=[spy, qqq],
-        outcome=OUTCOME_TRADE,
+        effective_permission=make_ep(outcome="TRADE"),
         chain_results=chain,
         materialized_sizing={"SPY": (1, 150.0)},
     )
@@ -616,7 +617,7 @@ def test_prd284_render_report_materialized_sizing_and_excludes_blocked():
         validation_summary=_val_summary(),
         qualification_summary=_qual_summary(),
         option_setups=[spy, qqq],
-        outcome=OUTCOME_TRADE,
+        effective_permission=make_ep(outcome="TRADE"),
         chain_results=chain,
     )
     assert "A+ TRADES  (2)" in legacy
@@ -637,7 +638,7 @@ def test_prd284_report_sole_size_rounds_to_zero_names_reason():
         validation_summary=_val_summary(),
         qualification_summary=_qual_summary(),
         option_setups=[],
-        outcome=OUTCOME_NO_TRADE,
+        effective_permission=make_ep(outcome="NO_TRADE"),
         size_blocked={"SPY": "size_rounds_to_zero"},
     )
     assert "size_rounds_to_zero" in report
@@ -661,7 +662,7 @@ def test_prd284_report_mixed_surfaces_blocked_without_a_plus():
         validation_summary=_val_summary(),
         qualification_summary=_qual_summary(),
         option_setups=[spy, qqq],
-        outcome=OUTCOME_TRADE,
+        effective_permission=make_ep(outcome="TRADE"),
         chain_results=chain,
         materialized_sizing={"SPY": (1, 150.0)},
         size_blocked={"QQQ": "size_rounds_to_zero"},

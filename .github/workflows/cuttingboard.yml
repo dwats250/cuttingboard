@@ -500,13 +500,24 @@ jobs:
           date_str  = s.get("timestamp", "")[:10]
           regime    = s.get("regime", "UNKNOWN")
           qualified = s.get("candidates_qualified", 0)
-          status    = s.get("status", "UNKNOWN")
           chain     = s.get("chain_validation", {})
           symbols   = sorted(
               k for k, v in chain.items()
               if isinstance(v, dict) and v.get("classification") == "TOP_TRADE_VALIDATED"
           )
-          msg = f"CB report: {date_str} | {regime} | {qualified} trades [{', '.join(symbols)}] | {status}"
+          # PRD-340 R2 (channel 8): the AUTHORITATIVE status wording derives ONLY
+          # from the resolved effective-permission projection, routed through the
+          # approved validator's CLI (never chain classification / run status proxy;
+          # the CLI keeps the canonical field-read inside authority_projection). It
+          # self-admits the carrier's own session and fails closed to the UNAVAILABLE
+          # decision-state on an absent/invalid carrier.
+          import subprocess
+          decision = subprocess.run(
+              [sys.executable, "-m", "cuttingboard.authority_projection",
+               "commit-status", "logs/latest_run.json"],
+              capture_output=True, text=True,
+          ).stdout.strip() or "STATE UNAVAILABLE"
+          msg = f"CB report: {date_str} | {regime} | {qualified} trades [{', '.join(symbols)}] | {decision}"
           Path(".cb_commit_msg").write_text(msg + "\n")
           print(msg)
           PY

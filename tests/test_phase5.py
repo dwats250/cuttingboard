@@ -37,6 +37,7 @@ from cuttingboard.output import (
     send_telegram,
     OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT,
 )
+from tests.ep_test_helpers import make_ep
 from cuttingboard.qualification import (
     QualificationResult,
     QualificationSummary,
@@ -885,7 +886,7 @@ class TestRenderReport:
             date_str="2026-04-10", run_at_utc=_NOW,
             regime=_stay_flat(), validation_summary=val,
             qualification_summary=qual, option_setups=[],
-            outcome=OUTCOME_NO_TRADE,
+            effective_permission=make_ep(outcome="NO_TRADE"),
         )
 
     def test_no_trade_contains_date(self):
@@ -916,7 +917,7 @@ class TestRenderReport:
             date_str="2026-04-10", run_at_utc=_NOW,
             regime=expansion_regime, validation_summary=_val_summary(),
             qualification_summary=_qual_summary(), option_setups=[],
-            outcome=OUTCOME_NO_TRADE, option_refusals=[refusal],
+            effective_permission=make_ep(outcome="NO_TRADE"), option_refusals=[refusal],
         )
         # Primary no-trade cause is the sizing refusal.
         assert "refused at options sizing" in report
@@ -934,7 +935,7 @@ class TestRenderReport:
             date_str="2026-04-10", run_at_utc=_NOW,
             regime=expansion_regime, validation_summary=_val_summary(),
             qualification_summary=_qual_summary(), option_setups=[],
-            outcome=OUTCOME_NO_TRADE,
+            effective_permission=make_ep(outcome="NO_TRADE"),
         )
         assert "No valid continuation entries yet" in report
         assert "REFUSED — OPTIONS SIZING" not in report
@@ -945,7 +946,7 @@ class TestRenderReport:
             date_str="2026-04-10", run_at_utc=_NOW,
             regime=None, validation_summary=val,
             qualification_summary=None, option_setups=[],
-            outcome=OUTCOME_HALT,
+            effective_permission=make_ep(system_halted=True),
             halt_reason="Failed: ^VIX (fetch error)",
         )
         assert "HALT" in report
@@ -963,7 +964,7 @@ class TestRenderReport:
             date_str="2026-04-10", run_at_utc=_NOW,
             regime=_regime(), validation_summary=val,
             qualification_summary=qual, option_setups=setups,
-            outcome=OUTCOME_TRADE,
+            effective_permission=make_ep(outcome="TRADE"),
         )
         assert "SPY" in report
         assert "BULL_CALL_SPREAD" in report
@@ -986,7 +987,7 @@ class TestRenderReport:
             date_str="2026-04-10", run_at_utc=_NOW,
             regime=_regime(), validation_summary=_val_summary(),
             qualification_summary=qual, option_setups=[],
-            outcome=OUTCOME_NO_TRADE,
+            effective_permission=make_ep(outcome="NO_TRADE"),
         )
         assert "NEAR_A_PLUS" in report
         assert "NVDA" in report
@@ -1007,7 +1008,7 @@ class TestRenderReport:
             regime=_regime(), validation_summary=_val_summary(),
             qualification_summary=_qual_summary(),
             option_setups=[],
-            outcome=OUTCOME_NO_TRADE,
+            effective_permission=make_ep(outcome="NO_TRADE"),
             watch_summary=_watch_summary([watch_item]),
         )
         assert "WATCHLIST" in report
@@ -1020,7 +1021,7 @@ class TestRenderReport:
             date_str="2026-04-10", run_at_utc=_NOW,
             regime=_regime(), validation_summary=_val_summary(),
             qualification_summary=qual, option_setups=[],
-            outcome=OUTCOME_NO_TRADE,
+            effective_permission=make_ep(outcome="NO_TRADE"),
         )
         assert "EXCLUDED" in report
         assert "AAPL" in report

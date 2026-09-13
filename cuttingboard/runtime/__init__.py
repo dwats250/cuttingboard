@@ -1700,14 +1700,30 @@ def _run_pipeline(
             session_frame=spy_session_frame,
             previous_close=_reconstruct_previous_close(normalized_quotes.get("SPY")),
         )
+        # PRD-340 R4: the card's PERMISSION cell + candidate-implication outcome are
+        # sourced from the resolved EP projection, not the system_state proxy. For a
+        # resolved verdict EP.permission_line is the same canonical line the proxy
+        # carried (goldens preserved); an unavailable/unauthorized authority (e.g.
+        # fixture mode) fails closed to the no-trade cell rather than a proxy claim.
+        _mcc_proj = authority_projection.project(effective_permission)
+        _mcc_permission = (
+            _mcc_proj.permission_line
+            if _mcc_proj.verdict != ep_authority.VERDICT_UNAVAILABLE
+            else "No new trades permitted."
+        )
+        _mcc_outcome = (
+            _mcc_proj.report_outcome
+            if _mcc_proj.report_outcome in (OUTCOME_TRADE, OUTCOME_NO_TRADE, OUTCOME_HALT)
+            else OUTCOME_NO_TRADE
+        )
         market_control_card = build_market_control_card(
             observation=spy_observation,
             spy_state_outcome=spy_state_outcome,
-            permission=contract["system_state"]["permission"],
+            permission=_mcc_permission,
             run_at_utc=run_at_utc,
             invalidation_guidance_map=invalidation_guidance_map,
             visibility_map=visibility_map,
-            outcome=outcome,
+            outcome=_mcc_outcome,
         )
 
     return PipelineResult(
