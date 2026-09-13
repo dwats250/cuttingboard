@@ -387,3 +387,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-339 | [docs/prd_history/PRD-339.review.codex.md](prd_history/PRD-339.review.codex.md) |
 | PRD-339 | [docs/prd_history/PRD-339.impl-review.codex.md](prd_history/PRD-339.impl-review.codex.md) |
 | PRD-340 | [docs/prd_history/PRD-340.review.codex.md](prd_history/PRD-340.review.codex.md) |
+| PRD-340 | [docs/prd_history/PRD-340.impl-review.codex.md](prd_history/PRD-340.impl-review.codex.md) |
