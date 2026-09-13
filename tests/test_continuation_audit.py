@@ -6,7 +6,7 @@ import pandas as pd
 
 from cuttingboard.derived import DerivedMetrics
 from cuttingboard.options import build_option_setups
-from cuttingboard.output import OUTCOME_NO_TRADE, OUTCOME_TRADE, render_report
+from cuttingboard.output import render_report
 from tests.ep_test_helpers import make_ep
 from cuttingboard.qualification import (
     CONTINUATION_REJECTION_REASONS,

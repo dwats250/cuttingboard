@@ -28,6 +28,7 @@ from cuttingboard.trade_decision import ALLOW_TRADE
 
 # Reuse the sanctioned runtime fixture-pipeline harness.
 from tests.test_runtime_decision import _setup_runtime_mocks
+from tests.ep_test_helpers import ep_for_payload
 
 
 FIXTURE = Path("tests/fixtures/2026-04-12.json")
@@ -87,6 +88,11 @@ def _run(monkeypatch, tmp_path, symbol: str, *, allow: bool):
         })
     result = runtime._run_pipeline(mode=runtime.MODE_FIXTURE, run_date=RUN_DATE, fixture_file=FIXTURE)
     payload = build_report_payload(result.contract, fixture_mode=True)
+    # PRD-340 Slice 2: the payload's authoritative action is admitted from the
+    # resolver-provenanced EP the deliver path stamps onto it (persist_copy);
+    # stamp a session-valid EP matching this fixture run's intended outcome so the
+    # cross-process reader admits it instead of failing closed to UNAVAILABLE.
+    ep_for_payload(payload)
     rendered = render_report_from_payload(payload)
     return result, payload, rendered
 

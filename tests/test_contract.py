@@ -531,7 +531,6 @@ def test_no_non_json_types():
 # ---------------------------------------------------------------------------
 
 def test_render_report_no_crash():
-    from cuttingboard.output import OUTCOME_NO_TRADE
     report = render_report(
         date_str="2026-04-23",
         run_at_utc=_NOW,
@@ -546,7 +545,6 @@ def test_render_report_no_crash():
 
 
 def test_render_report_stay_flat_no_crash():
-    from cuttingboard.output import OUTCOME_NO_TRADE
     flat_regime = _regime(regime=NEUTRAL, posture=STAY_FLAT, confidence=0.4)
     qual = _qual_summary(
         regime_short_circuited=True, regime_failure_reason="STAY_FLAT_LOW_CONF"
@@ -586,7 +584,6 @@ def test_prd284_render_report_materialized_sizing_and_excludes_blocked():
     """PRD-284 R8: with materialized_sizing supplied, the A+ TRADES section
     renders the materialized position and excludes a chain-VALIDATED setup whose
     decision was blocked by execution policy (absent from the map)."""
-    from cuttingboard.output import OUTCOME_TRADE
 
     spy = _setup("SPY", max_contracts=2, dollar_risk=300.0)
     qqq = _setup("QQQ", max_contracts=1, dollar_risk=150.0)
@@ -629,7 +626,6 @@ def test_prd284_render_report_materialized_sizing_and_excludes_blocked():
 def test_prd284_report_sole_size_rounds_to_zero_names_reason():
     """PRD-284 R5: a sole size_rounds_to_zero run names that reason as the
     no-trade cause, never the generic 'no qualifying setups' substitution."""
-    from cuttingboard.output import OUTCOME_NO_TRADE
 
     report = render_report(
         date_str="2026-04-23",
@@ -649,7 +645,6 @@ def test_prd284_report_sole_size_rounds_to_zero_names_reason():
 def test_prd284_report_mixed_surfaces_blocked_without_a_plus():
     """PRD-284 R5: a mixed run renders the actionable A+ trade and surfaces the
     zero-rounded symbol/reason separately — never as an A+ trade."""
-    from cuttingboard.output import OUTCOME_TRADE
 
     spy = _setup("SPY", max_contracts=2, dollar_risk=300.0)
     qqq = _setup("QQQ", max_contracts=1, dollar_risk=150.0)
@@ -683,8 +678,6 @@ def test_prd284_report_no_policy_block_unchanged():
     """PRD-284 R5/req4: with no execution-policy block, the report is byte-for-
     byte the pre-change output (empty size_blocked == absent), and the generic
     no-trade wording is preserved."""
-    from cuttingboard.output import OUTCOME_NO_TRADE
-
     kwargs = dict(
         date_str="2026-04-23",
         run_at_utc=_NOW,
@@ -692,7 +685,7 @@ def test_prd284_report_no_policy_block_unchanged():
         validation_summary=_val_summary(),
         qualification_summary=_qual_summary(),
         option_setups=[],
-        outcome=OUTCOME_NO_TRADE,
+        effective_permission=make_ep(outcome="NO_TRADE"),
     )
     r_absent = render_report(**kwargs)
     r_empty = render_report(size_blocked={}, **kwargs)

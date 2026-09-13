@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from cuttingboard.output import OUTCOME_TRADE, render_report
+from cuttingboard.output import render_report
 from tests.ep_test_helpers import make_ep
 from cuttingboard.qualification import (
     GATE_EARNINGS,

@@ -21,10 +21,29 @@ from cuttingboard import config
 from cuttingboard.output import (
     DASHBOARD_URL,
     _MIN_SEND_INTERVAL,
-    build_notification_message,
+    build_notification_message as _build_notification_message_prod,
     send_notification,
     send_telegram,
 )
+from tests.ep_test_helpers import make_ep
+
+
+def build_notification_message(contract, *, effective_permission=None):
+    """PRD-340 Slice 2 ripple: build_notification_message now requires a resolver-
+    provenanced EffectivePermission (authoritative action derives from it, never a
+    proxy). This test wrapper resolves the EP the contract's own declared decision
+    implies -- exactly what production resolves from the same inputs -- so every
+    pre-existing assertion continues to exercise the real formatter."""
+    if effective_permission is None:
+        ss = contract.get("system_state") or {}
+        locked = ss.get("permission") == config.OPERATOR_LOCK_PERMISSION
+        halted = contract.get("status") == "ERROR" or bool(ss.get("system_halted"))
+        trade = contract.get("outcome") == "TRADE"
+        effective_permission = make_ep(
+            outcome="TRADE" if trade else "NO_TRADE",
+            system_halted=halted, operator_locked=locked)
+    return _build_notification_message_prod(
+        contract, effective_permission=effective_permission)
 
 
 # ---------------------------------------------------------------------------

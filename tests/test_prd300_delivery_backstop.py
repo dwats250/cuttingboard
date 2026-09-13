@@ -255,7 +255,14 @@ def test_malformed_result_no_raise_no_emit_execution_success_unchanged(monkeypat
 def test_resend_reconstructs_identical_owed_message(monkeypatch, tmp_path):
     logs_dir = _produce_market_stress_contract(monkeypatch, tmp_path)
     contract = json.loads((logs_dir / "latest_contract.json").read_text(encoding="utf-8"))
-    expected_title, expected_body = runtime.build_notification_message(contract)
+    # PRD-340 Slice 2: mirror the resend path's fail-closed read boundary
+    # (runtime._resend_owed_notification) so the expected message is reconstructed
+    # from the SAME admitted EP the resend uses.
+    from cuttingboard import authority_projection
+    _ep = authority_projection.admit_ep(
+        contract, current_session_date=str(contract.get("session_date")))
+    expected_title, expected_body = runtime.build_notification_message(
+        contract, effective_permission=_ep)
     expected_priority = runtime.classify_notification_priority(contract).value
     expected_state_key = runtime.notification_state_key(contract)
 
