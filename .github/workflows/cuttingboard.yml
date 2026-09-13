@@ -487,8 +487,17 @@ jobs:
           steps.openslot.outputs.state != 'SATISFIED'
         run: |
           set -eo pipefail
+          # PRD-340 channel-8 commissioning fix (owner session-ruling 2026-09-13): the
+          # commit-message channel validates the persisted carrier's effective-permission
+          # against an INDEPENDENT session -- the runner-clock UTC calendar date for THIS
+          # run. That is the same now(UTC).date() the pipeline used for run_date (hence the
+          # EP's session_date), computed HERE by the runner's own clock, NEVER read from the
+          # carrier file being validated. A stale/mismatched/day-boundary carrier therefore
+          # fails closed to STATE UNAVAILABLE instead of self-certifying from its own fields.
+          CB_WORKFLOW_SESSION="$(date -u +%F)"
+          export CB_WORKFLOW_SESSION
           python3 - <<'PY'
-          import json, sys
+          import json, os, sys
           from pathlib import Path
 
           p = Path("logs/latest_run.json")
@@ -505,11 +514,14 @@ jobs:
           # CLI. The workflow no longer reads any candidate-count or chain-
           # classification proxy for authoritative wording; the CLI emits an EP-gated
           # count (zero unless PERMITTED) and keeps the canonical field-read inside
-          # authority_projection. Fails closed on an absent/invalid carrier.
+          # authority_projection. The independent workflow session (the runner-clock
+          # UTC date, computed above) is passed explicitly; the validator compares the
+          # carrier's EP session against it and fails closed on any mismatch/absence.
+          workflow_session = os.environ["CB_WORKFLOW_SESSION"]
           import subprocess
           authoritative = subprocess.run(
               [sys.executable, "-m", "cuttingboard.authority_projection",
-               "commit-status", "logs/latest_run.json"],
+               "commit-status", "logs/latest_run.json", workflow_session],
               capture_output=True, text=True,
           ).stdout.strip() or "STATE UNAVAILABLE | 0 trades []"
           msg = f"CB report: {date_str} | {regime} | {authoritative}"

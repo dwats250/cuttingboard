@@ -252,8 +252,29 @@ def test_js_routing_derivePosture_reads_only_the_validated_accessor() -> None:
 # ---------------------------------------------- F1 invocation-independence (publish)
 
 def _cli_carrier(session="2026-06-12", trade=True) -> dict:
+    # PUBLISH-channel (admit) carrier: a CONTRACT carrier, which DOES carry a
+    # required top-level session_date (contract_types.py). Used by the admit tests.
     ep = _ep(trade=trade, session=session)
     return {"session_date": session, ep_authority.CANONICAL_FIELD: ep.to_envelope()}
+
+
+def _run_carrier(session="2026-06-12", *, trade=False, locked=False, halted=False,
+                 qualified=None, chain=None, ep=None) -> dict:
+    """The REAL logs/latest_run.json shape for the commit-message channel (channel
+    8): there is NO top-level ``session_date`` (the run carrier's calendar date lives
+    in ``timestamp``; the admitted session lives ONLY inside the nested EP). This
+    mirrors origin/publish logs/latest_run.json, unlike the contract-shaped publish
+    carrier -- the fixture-vs-reality correction for the channel-8 commissioning bug.
+    An optional pre-built ``ep`` envelope supports malformed/invalid-EP cases."""
+    carrier: dict = {"timestamp": f"{session}T21:53:20Z", "regime": "RISK_ON"}
+    carrier[ep_authority.CANONICAL_FIELD] = (
+        ep if ep is not None
+        else _ep(trade=trade, locked=locked, halted=halted, session=session).to_envelope())
+    if qualified is not None:
+        carrier["candidates_qualified"] = qualified
+    if chain is not None:
+        carrier["chain_validation"] = chain
+    return carrier
 
 
 def test_publish_seam_invokes_authority_projection_as_module() -> None:
@@ -314,42 +335,107 @@ def test_cli_admit_explicit_workflow_session_overrides_envelope_claim(tmp_path) 
     assert ap._cli(["admit", str(p), "2026-06-13"]) == 1
 
 
-def test_cli_commit_status_fail_closed_on_session_mismatch(tmp_path, capsys) -> None:
-    ep = _ep(trade=True, session="2026-06-12")
-    carrier = {"session_date": "2026-06-13", "candidates_qualified": 3,
-               "chain_validation": {"SPY": {"classification": "TOP_TRADE_VALIDATED"}},
-               ep_authority.CANONICAL_FIELD: ep.to_envelope()}
-    p = tmp_path / "m.json"
+def _write(tmp_path, name, carrier) -> str:
+    p = tmp_path / name
     p.write_text(json.dumps(carrier), encoding="utf-8")
-    assert ap._cli(["commit-status", str(p)]) == 0
-    # F1: a session mismatch fails closed -> UNAVAILABLE decision-state AND the
-    # EP-gated count is 0 (never the candidate proxy's 3 / SPY).
+    return str(p)
+
+
+# --- channel-8 commissioning fix (owner session-ruling 2026-09-13) ---------------
+# The commit-message channel validates the REAL latest_run.json carrier (NO top-level
+# session_date) against an INDEPENDENT workflow session passed as argv[2] (the
+# runner-clock UTC date). It must fail closed to UNAVAILABLE for an absent / mismatched
+# independent session and may NEVER derive the expected session from the carrier being
+# validated. The five required proofs below are each discriminating: a mutant that
+# reverts _commit_session to the carrier-derived fallback reddens the fail-closed /
+# self-certification proofs, and a mutant that reads a proxy reddens the EP-gate proofs.
+
+def test_cli_commit_status_realshaped_observe_only_matching_session_projects(tmp_path, capsys) -> None:
+    # PROOF 1 + reproduction (AFTER): a REAL-shaped OBSERVE_ONLY carrier (no top-level
+    # session_date) with a MATCHING independent workflow session projects OBSERVE ONLY
+    # and the correct 0 trades -- NOT "STATE UNAVAILABLE" (the commissioning defect).
+    carrier = _run_carrier(session="2026-06-12", locked=True,
+                           qualified=3, chain={"SPY": {"classification": "TOP_TRADE_VALIDATED"}})
+    assert carrier.get("session_date") is None  # real run carrier has NONE
+    assert carrier[ep_authority.CANONICAL_FIELD]["verdict"] == VERDICT_OBSERVE_ONLY
+    p = _write(tmp_path, "observe.json", carrier)
+    assert ap._cli(["commit-status", p, "2026-06-12"]) == 0
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_OBSERVE_ONLY} | 0 trades []"
+
+
+def test_cli_commit_status_realshaped_absent_session_fails_closed(tmp_path, capsys) -> None:
+    # PROOF 2 + reproduction (BEFORE, root cause): the REAL commissioning invocation --
+    # a real-shaped OBSERVE_ONLY carrier with NO independent session argument -- fails
+    # closed to UNAVAILABLE (never carrier-derived). A mutant restoring the
+    # carrier.get("session_date") fallback still fails here (real carrier has none) but
+    # the self-certification proof below pins the ruling.
+    carrier = _run_carrier(session="2026-06-12", locked=True)
+    p = _write(tmp_path, "noarg.json", carrier)
+    assert ap._cli(["commit-status", p]) == 0
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_UNAVAILABLE} | 0 trades []"
+
+
+def test_cli_commit_status_self_consistent_carrier_no_independent_session_fails_closed(tmp_path, capsys) -> None:
+    # PROOF 2 (self-certification discriminator, the core owner ruling): a carrier that
+    # ATTESTS TO ITS OWN freshness -- a top-level session_date EQUAL to its EP session --
+    # must STILL fail closed when no INDEPENDENT session is supplied. A mutant that
+    # reverts _commit_session to carrier.get("session_date") would self-admit OBSERVE
+    # ONLY here (RED); the fix refuses it.
+    carrier = _run_carrier(session="2026-06-12", locked=True)
+    carrier["session_date"] = "2026-06-12"  # self-consistent stale attestation
+    p = _write(tmp_path, "selfcert.json", carrier)
+    assert ap._cli(["commit-status", p]) == 0
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_UNAVAILABLE} | 0 trades []"
+
+
+def test_cli_commit_status_mismatched_independent_session_fails_closed(tmp_path, capsys) -> None:
+    # PROOF 3: a prior/mismatched independent session fails closed even though the
+    # carrier's EP is a genuine OBSERVE_ONLY authority for a different session, and even
+    # though candidate/chain proxies are present.
+    carrier = _run_carrier(session="2026-06-12", locked=True, qualified=3,
+                           chain={"SPY": {"classification": "TOP_TRADE_VALIDATED"}})
+    p = _write(tmp_path, "prior.json", carrier)
+    assert ap._cli(["commit-status", p, "2026-06-13"]) == 0
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_UNAVAILABLE} | 0 trades []"
+
+
+def test_cli_commit_status_invalid_ep_fails_closed(tmp_path, capsys) -> None:
+    # PROOF 4: a stale/invalid (malformed) EP envelope fails closed even under a
+    # matching independent session -- the read boundary refuses a non-canonical field.
+    carrier = _run_carrier(session="2026-06-12",
+                           ep={"verdict": VERDICT_PERMITTED, "session_date": "2026-06-12"})
+    p = _write(tmp_path, "bad_ep.json", carrier)
+    assert ap._cli(["commit-status", p, "2026-06-12"]) == 0
     assert capsys.readouterr().out.strip() == f"{ap.DECISION_UNAVAILABLE} | 0 trades []"
 
 
 def test_cli_commit_status_permitted_emits_ep_gated_count(tmp_path, capsys) -> None:
-    # F1: under a PERMITTED authority for the matching session, the count/symbols
-    # ARE reported -- authoritative because they are gated on the admitted EP.
-    ep = _ep(trade=True, session="2026-06-12")
-    carrier = {"session_date": "2026-06-12", "candidates_qualified": 2,
-               "chain_validation": {"SPY": {"classification": "TOP_TRADE_VALIDATED"},
-                                    "QQQ": {"classification": "TOP_TRADE_VALIDATED"},
-                                    "IWM": {"classification": "MANUAL_CHECK"}},
-               ep_authority.CANONICAL_FIELD: ep.to_envelope()}
-    p = tmp_path / "ok.json"
-    p.write_text(json.dumps(carrier), encoding="utf-8")
-    assert ap._cli(["commit-status", str(p)]) == 0
+    # PROOF 5 (positive half): under a PERMITTED authority for the MATCHING independent
+    # session, the count/symbols ARE reported -- authoritative because gated on the
+    # admitted EP, not because the proxies are present.
+    carrier = _run_carrier(session="2026-06-12", trade=True, qualified=2,
+                           chain={"SPY": {"classification": "TOP_TRADE_VALIDATED"},
+                                  "QQQ": {"classification": "TOP_TRADE_VALIDATED"},
+                                  "IWM": {"classification": "MANUAL_CHECK"}})
+    p = _write(tmp_path, "ok.json", carrier)
+    assert ap._cli(["commit-status", p, "2026-06-12"]) == 0
     assert capsys.readouterr().out.strip() == f"{ap.DECISION_TRADE_PERMITTED} | 2 trades [QQQ, SPY]"
 
 
-def test_cli_commit_status_no_trade_gates_count_to_zero(tmp_path, capsys) -> None:
-    # F1: a NO_TRADE authority reports 0 trades EVEN WHEN candidate proxies are
-    # present -- the count is EP-gated, never proxy-derived.
-    ep = _ep(trade=False, session="2026-06-12")
-    carrier = {"session_date": "2026-06-12", "candidates_qualified": 5,
-               "chain_validation": {"SPY": {"classification": "TOP_TRADE_VALIDATED"}},
-               ep_authority.CANONICAL_FIELD: ep.to_envelope()}
-    p = tmp_path / "nt.json"
-    p.write_text(json.dumps(carrier), encoding="utf-8")
-    assert ap._cli(["commit-status", str(p)]) == 0
+def test_cli_commit_status_proxies_cannot_manufacture_authority(tmp_path, capsys) -> None:
+    # PROOF 5 (negative half): rich candidate/chain proxies CANNOT manufacture a
+    # PERMITTED (or any authoritative) action. A NO_TRADE authority under a matching
+    # session -> STAY FLAT, 0 trades; and a carrier with NO EP at all but the same
+    # proxies -> UNAVAILABLE, 0 trades. Authority arises ONLY from the admitted EP.
+    chain = {"SPY": {"classification": "TOP_TRADE_VALIDATED"},
+             "QQQ": {"classification": "TOP_TRADE_VALIDATED"}}
+    proxies = {"candidates_qualified": 5, "chain_validation": chain}
+    no_trade = _run_carrier(session="2026-06-12", trade=False, qualified=5, chain=chain)
+    p1 = _write(tmp_path, "notrade.json", no_trade)
+    assert ap._cli(["commit-status", p1, "2026-06-12"]) == 0
     assert capsys.readouterr().out.strip() == f"{ap.DECISION_STAY_FLAT} | 0 trades []"
+
+    no_ep = {"timestamp": "2026-06-12T21:53:20Z", "regime": "RISK_ON", **proxies}
+    p2 = _write(tmp_path, "noep.json", no_ep)
+    assert ap._cli(["commit-status", p2, "2026-06-12"]) == 0
+    assert capsys.readouterr().out.strip() == f"{ap.DECISION_UNAVAILABLE} | 0 trades []"
