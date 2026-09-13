@@ -748,7 +748,7 @@ def _execute_notify_run(
             # PRD-339 Slice 1 (Q1/Q4): hourly carries the admitted daily decision (rank=max), else UNAVAILABLE.
             _acc = _load_accepted_authority(run_date.isoformat(), run_at_utc)
             _hourly_ep = ep_authority.carry_forward(
-                accepted=_acc, run_uid=ep_authority.new_run_uid(),
+                accepted=_acc,
                 observed_halted=validation_summary.system_halted,
                 observed_operator_locked=operator_locked and not validation_summary.system_halted,
                 operator_lock_line=config.OPERATOR_LOCK_PERMISSION,

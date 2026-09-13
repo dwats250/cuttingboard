@@ -33,8 +33,19 @@ def _env(**av):
 
 # --- unit: publication_admits (R5 a-d) ---------------------------------------
 
-def test_bootstrap_admits_when_no_accepted() -> None:
+def test_bootstrap_admits_valid_when_no_accepted() -> None:
     assert ep.publication_admits(None, _env(date=SD, seq=1, rank=1)) is True
+
+
+def test_bootstrap_refuses_malformed_incoming() -> None:  # D2
+    assert ep.publication_admits(None, {"garbage": 1}) is False
+    assert ep.publication_admits(None, None) is False
+
+
+def test_refuses_future_session_on_both_routes() -> None:  # D2
+    fut = _env(date="2099-01-01", seq=1, rank=1)
+    assert ep.publication_admits(None, fut) is False                       # bootstrap
+    assert ep.publication_admits(_env(date=SD, seq=1, rank=1), fut) is False  # overlay
 
 
 def test_malformed_incoming_refused() -> None:
@@ -53,20 +64,22 @@ def test_intra_decision_downgrade_refused() -> None:
     assert ep.publication_admits(acc, _env(date=SD, seq=1, rank=1, uid="LIVE-1")) is False
 
 
-def test_equal_version_governed_identical_is_noop_admit() -> None:  # R5(d)
+def test_equal_version_requires_full_identity() -> None:  # R5(d)/D1
     e = _env(date=SD, seq=1, rank=1, uid="LIVE-1")
-    replay = dict(e, run_uid="a-different-run")  # only run_uid differs -> still a no-op
-    assert ep.publication_admits(e, replay) is True
+    assert ep.publication_admits(e, dict(e)) is True                     # byte-identical -> no-op
+    assert ep.publication_admits(e, dict(e, run_uid="OTHER")) is False   # D1: differing run_uid refused
+    assert ep.publication_admits(e, {**e, "extra": 1}) is False          # extra field refused
 
 
-def test_equal_version_any_governed_field_change_refused() -> None:  # M5b / finding 2
+def test_equal_version_any_field_change_refused() -> None:  # M5b / D1
     acc = _env(date=SD, seq=1, rank=1, uid="LIVE-1")
     for field, value in (
         ("decision_uid", "LIVE-DIFFERENT"),
         ("verdict", "PERMITTED"),
         ("permission_line", "TAMPERED"),
-        ("valid_until", "2099-01-01T00:00:00+00:00"),
+        ("valid_until", "2050-01-01T00:00:00+00:00"),
         ("recovery_basis", {"reason": "REDECISION"}),
+        ("run_uid", "OTHER"),  # D1: run_uid is now governed
     ):
         inc = dict(acc)
         inc[field] = value

@@ -34,7 +34,6 @@ _TOKEN = object()  # process-local construction capability (s13 R3 in-process).
 _KEYS = frozenset({"verdict", "restriction_rank", "decision_uid", "session_date",
                    "run_uid", "authority_version", "valid_until", "recovery_basis",
                    "permission_line", "decision_seq"})
-_GOVERNED = _KEYS - {"run_uid"}  # authority fields; run_uid is invocation identity only.
 
 
 class EffectivePermissionError(RuntimeError):
@@ -102,13 +101,15 @@ def unavailable(session_date: str, run_uid: str = "") -> EffectivePermission:
 def resolve_effective_permission(
     *, mode: str, outcome_is_trade: bool, system_halted: bool, operator_locked: bool,
     session_date: str, run_uid: str, posture_permission_line: str, operator_lock_line: str,
-    accepted: Optional[EffectivePermission] = None, redecision: bool = False,
+    accepted: Optional[EffectivePermission] = None,
 ) -> EffectivePermission:
     """ONLY constructor for an admitted DAILY decision (R1). Fail-closed for
-    unauthorized modes (finding 7). decision_uid is collision-free per invocation
-    (=run_uid) for a NEW decision and REUSED across same-session retries (R6/R3);
-    a same-session ``redecision`` mints a new decision_uid, increments decision_seq,
-    and attaches recovery_basis when it lowers restriction (Q4/R3)."""
+    unauthorized modes (finding 7). A same-session daily decision that LOWERS
+    restriction is a genuine Q4 REDECISION (a retry reproduces the same rank, so it
+    cannot be one): it mints a fresh collision-free decision_uid, increments
+    decision_seq, and attaches recovery_basis (D3/R3). Any other same-session run is
+    a retry/rerun and REUSES the accepted identity (incl. run_uid) so its persisted
+    canonical envelope is byte-identical (R5(d)/D1). A new session starts seq=1."""
     if mode not in AUTHORIZED_DAILY_MODES:
         return unavailable(session_date)
     if system_halted:
@@ -121,14 +122,14 @@ def resolve_effective_permission(
     rank = _RANK[verdict]
     recovery: Optional[dict[str, Any]] = None
     same_session = accepted is not None and accepted.session_date == session_date
-    if same_session and not redecision:
-        decision_uid, seq = accepted.decision_uid, accepted.decision_seq  # retry reuse (R3)
-    elif same_session and redecision:
-        decision_uid, seq = run_uid, accepted.decision_seq + 1            # genuine redecision
-        if rank < accepted.restriction_rank:
-            recovery = {"superseded_authority_version": list(accepted.authority_version),
-                        "superseding_decision_uid": decision_uid,
-                        "reason": RECOVERY_REASON_REDECISION}
+    if same_session and rank < accepted.restriction_rank:
+        decision_uid, seq = run_uid, accepted.decision_seq + 1            # Q4 recovery redecision
+        recovery = {"superseded_authority_version": list(accepted.authority_version),
+                    "superseding_decision_uid": run_uid,
+                    "reason": RECOVERY_REASON_REDECISION}
+    elif same_session:
+        decision_uid, seq, run_uid = (accepted.decision_uid, accepted.decision_seq,
+                                      accepted.run_uid)                    # retry (idempotent)
     else:
         decision_uid, seq = run_uid, 1                                    # new session
     return _mint(verdict=verdict, restriction_rank=rank, decision_uid=decision_uid,
@@ -139,12 +140,14 @@ def resolve_effective_permission(
 
 
 def carry_forward(
-    *, accepted: EffectivePermission, run_uid: str, observed_halted: bool = False,
+    *, accepted: EffectivePermission, observed_halted: bool = False,
     observed_operator_locked: bool = False, operator_lock_line: str = "",
 ) -> EffectivePermission:
     """Q1 observation carry (hourly): carries the admitted daily decision forward
-    (same decision_uid/decision_seq/valid_until); rank = MAX (never lowers/originates/
-    recovers). A benign observation preserves accepted.permission_line (nit)."""
+    (same decision_uid/decision_seq/valid_until AND same run_uid -- the observation
+    produces no new authority, so a benign carry is byte-identical to the accepted
+    envelope, R5(d)/D1); rank = MAX (never lowers/originates/recovers). A benign
+    observation preserves accepted.permission_line (nit)."""
     if observed_halted:
         obs_v = VERDICT_HALT
     elif observed_operator_locked:
@@ -158,17 +161,27 @@ def carry_forward(
         verdict, rank = accepted.verdict, accepted.restriction_rank  # carried, never lowered
         line = accepted.permission_line            # preserve, do not blank (nit)
     return _mint(verdict=verdict, restriction_rank=rank, decision_uid=accepted.decision_uid,
-                 session_date=accepted.session_date, run_uid=run_uid,
+                 session_date=accepted.session_date, run_uid=accepted.run_uid,
                  authority_version=(accepted.session_date, accepted.decision_seq, rank),
                  valid_until=accepted.valid_until, recovery_basis=None,
                  permission_line=line, decision_seq=accepted.decision_seq)
 
 
 def _recovery_basis_wellformed(rb: Any) -> bool:
-    return (isinstance(rb, dict) and set(rb.keys()) == _RECOVERY_KEYS
-            and rb.get("reason") in _RECOVERY_REASONS
-            and isinstance(rb.get("superseding_decision_uid"), str)
-            and isinstance(rb.get("superseded_authority_version"), (list, tuple)))
+    """D4: closed recovery schema. reason in the enum; a NON-blank superseding
+    decision uid; a superseded_authority_version of exactly [session_date:str,
+    decision_seq:int, restriction_rank:int]."""
+    if not (isinstance(rb, dict) and set(rb.keys()) == _RECOVERY_KEYS
+            and rb.get("reason") in _RECOVERY_REASONS):
+        return False
+    su = rb.get("superseding_decision_uid")
+    if not (isinstance(su, str) and su.strip()):
+        return False
+    sav = rb.get("superseded_authority_version")
+    return (isinstance(sav, (list, tuple)) and len(sav) == 3
+            and isinstance(sav[0], str) and sav[0]
+            and isinstance(sav[1], int) and not isinstance(sav[1], bool)
+            and isinstance(sav[2], int) and not isinstance(sav[2], bool))
 
 
 def admit_persisted(
@@ -247,29 +260,53 @@ def _av(env: dict[str, Any]) -> tuple[str, int, int]:
     return (str(av[0]), int(av[1]), int(av[2]))
 
 
+def _canonical_shape(env: Any) -> bool:
+    """A well-formed canonical envelope: a dict carrying every canonical key with a
+    parseable authority_version (D2 -- rejects garbage/non-canonical dicts)."""
+    if not isinstance(env, dict) or not _KEYS.issubset(env.keys()):
+        return False
+    try:
+        _av(env)
+    except (KeyError, TypeError, ValueError, IndexError):
+        return False
+    return True
+
+
+def _is_future_session(session_date: str) -> bool:
+    """D2: a session_date beyond today+1 (ET/UTC skew grace) -- or unparseable -- is
+    a future/invalid bundle and must be refused."""
+    try:
+        d = date.fromisoformat(session_date)
+    except (ValueError, TypeError):
+        return True
+    return d > datetime.now(timezone.utc).date() + timedelta(days=1)
+
+
 def publication_admits(accepted_envelope: Optional[dict[str, Any]],
                        incoming_envelope: Optional[dict[str, Any]]) -> bool:
     """R5 non-regression: compare authority_version lexicographically (never a
-    timestamp, R6). Admit only when (a) not behind, (b) no equal-seq downgrade,
-    (c) a lower rank across a higher decision_seq carries a validated recovery_basis
-    (Q4, shared predicate), (d) equal version is a no-op ONLY when every GOVERNED
-    field is identical (run_uid may differ). Missing/malformed incoming -> refuse;
-    missing accepted (bootstrap) -> admit."""
-    if not isinstance(incoming_envelope, dict):
+    timestamp, R6). The incoming must be a canonical envelope and not a future
+    session (D2, fail-closed on both routes). Admit only when (a) not behind,
+    (b) no equal-seq downgrade, (c) a lower rank across a higher decision_seq carries
+    a validated recovery_basis (Q4, shared predicate), (d) equal version is a no-op
+    ONLY when the FULL persisted envelope is byte/structurally identical (run_uid and
+    every field, D1). Missing/malformed incoming -> refuse; a well-formed non-future
+    incoming with no accepted (bootstrap) -> admit."""
+    if not _canonical_shape(incoming_envelope):
         return False
-    if not isinstance(accepted_envelope, dict):
-        return True
-    try:
-        inc, acc = _av(incoming_envelope), _av(accepted_envelope)
-    except (KeyError, TypeError, ValueError, IndexError):
+    inc = _av(incoming_envelope)
+    if _is_future_session(inc[0]):
         return False
+    if not _canonical_shape(accepted_envelope):
+        return not isinstance(accepted_envelope, dict)  # bootstrap admits; malformed accepted refuses
+    acc = _av(accepted_envelope)
     (inc_d, inc_s, inc_r), (acc_d, acc_s, acc_r) = inc, acc
     if inc_d < acc_d:                              # (a) older session
         return False
     if inc_d == acc_d and inc_s < acc_s:           # (a) older decision
         return False
-    if inc == acc:                                 # (d) equal-version: governed-identical no-op
-        return all(incoming_envelope.get(k) == accepted_envelope.get(k) for k in _GOVERNED)
+    if inc == acc:                                 # (d) equal-version: FULL identity no-op (D1)
+        return incoming_envelope == accepted_envelope
     if inc_d == acc_d and inc_s == acc_s:          # (b) intra-decision downgrade refused
         return inc_r >= acc_r
     if inc_d == acc_d and inc_s > acc_s and inc_r < acc_r:   # (c) recovery-gated downgrade

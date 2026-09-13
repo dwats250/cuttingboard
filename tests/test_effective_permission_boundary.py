@@ -52,16 +52,27 @@ def _authoring_lines(tree: ast.AST) -> list[int]:
     return [n.lineno for n in ast.walk(tree) if _is_authoring(n)]
 
 
+def _approved_authoring_ids(tree: ast.AST) -> set[int]:
+    """Node ids of authoring sites that live INSIDE an approved function body."""
+    return {id(sub) for fn in ast.walk(tree)
+            if isinstance(fn, ast.FunctionDef) and fn.name in APPROVED_FUNCS
+            for sub in ast.walk(fn) if _is_authoring(sub)}
+
+
 def test_no_module_authors_the_field_outside_the_approved_functions() -> None:
     offenders: list[str] = []
     for path in sorted(PKG.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         if path == APPROVED_PATH:
-            # Inside the approved module, authoring is allowed ONLY within persist/persist_copy.
-            fns = {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
-                   for sub in ast.walk(n) if _is_authoring(sub)}
-            stray = fns - APPROVED_FUNCS
-            assert not stray, f"effective_permission.py authors the field outside {APPROVED_FUNCS}: {stray}"
+            # In the approved file, authoring is allowed ONLY inside persist/persist_copy.
+            # Node-identity diff catches MODULE-scope and CLASS-scope authorship (D5),
+            # not just function-scope.
+            approved = _approved_authoring_ids(tree)
+            stray = [n.lineno for n in ast.walk(tree)
+                     if _is_authoring(n) and id(n) not in approved]
+            assert not stray, (
+                f"effective_permission.py authors the field outside {APPROVED_FUNCS} "
+                f"(module/class/other scope) at lines {stray}")
             continue
         for lineno in _authoring_lines(tree):
             offenders.append(f"{path.relative_to(REPO)}:{lineno}")

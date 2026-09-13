@@ -15,12 +15,12 @@ SD = "2026-04-12"
 
 
 def _daily(*, mode="live", trade=False, halted=False, locked=False, session=SD,
-           run_uid=None, accepted=None, redecision=False) -> ep.EffectivePermission:
+           run_uid=None, accepted=None) -> ep.EffectivePermission:
     return ep.resolve_effective_permission(
         mode=mode, outcome_is_trade=trade, system_halted=halted, operator_locked=locked,
         session_date=session, run_uid=run_uid or ep.new_run_uid(),
         posture_permission_line="POSTURE", operator_lock_line="LOCKED",
-        accepted=accepted, redecision=redecision)
+        accepted=accepted)
 
 
 # --- R1: origination only by an admitted daily decision -----------------------
@@ -55,7 +55,7 @@ def test_authorized_modes_originate_but_fixture_is_fail_closed() -> None:
 
 def test_carry_forward_does_not_originate_permitted() -> None:
     accepted = _daily(trade=False)  # NO_TRADE
-    carried = ep.carry_forward(accepted=accepted, run_uid=ep.new_run_uid())
+    carried = ep.carry_forward(accepted=accepted)
     assert carried.verdict != ep.VERDICT_PERMITTED
     assert carried.decision_uid == accepted.decision_uid    # Q1 carry (same identity)
     assert carried.decision_seq == accepted.decision_seq    # observations never increment
@@ -64,7 +64,7 @@ def test_carry_forward_does_not_originate_permitted() -> None:
 
 def test_carry_forward_carries_admitted_permitted() -> None:
     accepted = _daily(trade=True)  # PERMITTED daily
-    carried = ep.carry_forward(accepted=accepted, run_uid=ep.new_run_uid())
+    carried = ep.carry_forward(accepted=accepted)
     assert carried.verdict == ep.VERDICT_PERMITTED
     assert carried.decision_uid == accepted.decision_uid
 
@@ -73,14 +73,14 @@ def test_carry_forward_carries_admitted_permitted() -> None:
 
 def test_hourly_halt_raises_rank() -> None:
     permitted = _daily(trade=True)  # rank 0
-    halted = ep.carry_forward(accepted=permitted, run_uid=ep.new_run_uid(),
+    halted = ep.carry_forward(accepted=permitted,
                               observed_halted=True)
     assert halted.restriction_rank == ep._RANK[ep.VERDICT_HALT]
 
 
 def test_lower_ranked_observation_never_lowers_prior_restriction() -> None:
     accepted_halt = _daily(halted=True)  # rank 2
-    carried = ep.carry_forward(accepted=accepted_halt, run_uid=ep.new_run_uid(),
+    carried = ep.carry_forward(accepted=accepted_halt,
                                observed_operator_locked=True, operator_lock_line="LOCKED")
     assert carried.restriction_rank == accepted_halt.restriction_rank  # rank=max
     assert carried.verdict == ep.VERDICT_HALT
@@ -91,7 +91,7 @@ def test_lower_ranked_observation_never_lowers_prior_restriction() -> None:
 def test_benign_carry_preserves_observe_only_permission_line() -> None:
     accepted = _daily(locked=True)  # OBSERVE_ONLY, permission_line "LOCKED"
     # a later benign observation (no operator_lock_line supplied) must NOT blank it.
-    carried = ep.carry_forward(accepted=accepted, run_uid=ep.new_run_uid())
+    carried = ep.carry_forward(accepted=accepted)
     assert carried.verdict == ep.VERDICT_OBSERVE_ONLY
     assert carried.permission_line == "LOCKED"
 
@@ -103,39 +103,72 @@ def test_run_uid_unique_per_invocation() -> None:
 
 
 def test_decision_uid_collision_free_same_second_new_decisions() -> None:
-    a = _daily(trade=True, run_uid=ep.new_run_uid())  # two distinct new-session decisions
-    b = _daily(trade=False, run_uid=ep.new_run_uid())  # same wall-clock second
+    a = _daily(trade=True)  # two distinct new-session decisions
+    b = _daily(trade=False)  # same wall-clock second
     assert a.run_uid != b.run_uid
     assert a.decision_uid != b.decision_uid and a.decision_uid and b.decision_uid
 
 
-def test_retry_reuses_decision_uid_not_misclassified_as_redecision() -> None:
+def test_retry_reuses_identity_not_misclassified_as_redecision() -> None:
     first = _daily(trade=False, run_uid="R1")
-    retry = _daily(trade=False, run_uid="R2", accepted=first)  # same session, redecision=False
-    assert retry.decision_uid == first.decision_uid  # reuse (explicit)
+    retry = _daily(trade=False, run_uid="R2", accepted=first)  # same session, same rank -> retry
+    assert retry.decision_uid == first.decision_uid  # reuse identity
     assert retry.decision_seq == first.decision_seq  # no seq bump
+    assert retry.run_uid == first.run_uid            # idempotent (D1): byte-identical envelope
+    assert retry.to_envelope() == first.to_envelope()
     assert retry.recovery_basis is None
 
 
-# --- R3 (M3)/finding 6: recovery only by an authorized redecision -------------
+# --- D3: production redecision wiring (auto-detected by a restriction-lowering run) --
 
-def test_same_session_redecision_lowers_with_recovery_basis() -> None:
+def test_production_recovery_wired_lower_rank_is_redecision() -> None:
     accepted = _daily(halted=True, run_uid="A1")           # rank 2, seq 1
-    redec = _daily(trade=True, run_uid="A2", accepted=accepted, redecision=True)
-    assert redec.decision_uid == "A2" != accepted.decision_uid
+    # a genuine later daily decision that clears the halt -> auto-detected Q4 recovery
+    redec = _daily(trade=True, run_uid="A2", accepted=accepted)
+    assert redec.decision_uid == "A2" != accepted.decision_uid  # new identity minted
     assert redec.decision_seq == 2 and redec.recovery_basis is not None
     assert redec.recovery_basis["superseding_decision_uid"] == "A2"
+    assert redec.verdict == ep.VERDICT_PERMITTED
     assert ep.is_authorized_redecision(incoming=redec, accepted=accepted) is True
+
+
+def test_production_retry_same_rank_is_not_a_redecision() -> None:
+    accepted = _daily(halted=True, run_uid="A1")
+    retry = _daily(halted=True, run_uid="A2", accepted=accepted)  # reproduces the halt -> retry
+    assert retry.decision_seq == accepted.decision_seq
+    assert retry.decision_uid == accepted.decision_uid
+    assert retry.recovery_basis is None
 
 
 def test_redecision_predicate_rejects_mismatched_superseding_uid() -> None:
     accepted = _daily(halted=True, run_uid="A1")
-    redec = _daily(trade=True, run_uid="A2", accepted=accepted, redecision=True)
+    redec = _daily(trade=True, run_uid="A2", accepted=accepted)
     tampered = ep._mint(**{**redec.to_envelope(),
                            "recovery_basis": {**redec.recovery_basis,
                                               "superseding_decision_uid": "SOMEONE_ELSE"},
                            "authority_version": redec.authority_version})
     assert ep.is_authorized_redecision(incoming=tampered, accepted=accepted) is False
+
+
+def test_recovery_basis_shape_is_strictly_validated() -> None:  # D4
+    accepted = _daily(halted=True, run_uid="A1")
+    base = _daily(trade=True, run_uid="A2", accepted=accepted)  # valid recovery
+    assert ep.is_authorized_redecision(incoming=base, accepted=accepted) is True
+
+    def _with(rb):
+        return ep._mint(**{**base.to_envelope(), "recovery_basis": rb,
+                           "authority_version": base.authority_version})
+    for bad in (
+        {**base.recovery_basis, "superseding_decision_uid": ""},        # blank uid
+        {**base.recovery_basis, "superseding_decision_uid": "   "},     # whitespace uid
+        {**base.recovery_basis, "superseded_authority_version": []},    # empty
+        {**base.recovery_basis, "superseded_authority_version": [SD, 1]},        # wrong len
+        {**base.recovery_basis, "superseded_authority_version": [SD, "x", 2]},   # wrong type
+    ):
+        tampered = _with(bad)
+        assert ep.is_authorized_redecision(incoming=tampered, accepted=accepted) is False
+        env = tampered.to_envelope()
+        assert ep.admit_persisted(env, current_session_date=SD) is None  # R7 fail-closed too
 
 
 def test_redecision_predicate_rejects_unavailable_incoming() -> None:
@@ -152,7 +185,7 @@ def test_redecision_predicate_rejects_without_higher_seq() -> None:
 
 def test_still_locked_redecision_cannot_reach_permitted() -> None:
     accepted = _daily(halted=True, run_uid="A1")
-    still_locked = _daily(locked=True, run_uid="A2", accepted=accepted, redecision=True)
+    still_locked = _daily(locked=True, run_uid="A2", accepted=accepted)
     assert still_locked.verdict == ep.VERDICT_OBSERVE_ONLY  # lock not cleared -> not PERMITTED
 
 
