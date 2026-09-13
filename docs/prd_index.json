@@ -1700,6 +1700,12 @@
       "title": "Session-validated permission observations: SHORT session identity and macro valid-quote consumption",
       "status": "COMPLETE",
       "commit": "d237cad15bf26e7a3b9b4131ee673226ecf380e6"
+    },
+    {
+      "number": 339,
+      "title": "Effective-Permission Slice 1: authority core (EXECUTION; reconciled to frozen packet f01ae81e)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -1,0 +1,106 @@
+"""PRD-339 Slice 1 (R4, packet s14): the EXCLUSIVE-WRITER structural guard. Only
+persist/persist_copy in cuttingboard/effective_permission.py may AUTHOR the canonical
+field; any other authorship (subscript/dict/update/setdefault/__setitem__, at
+function/module/class scope) makes this RED (M4/D5). Seams must route through
+persist/persist_copy; ui/contract.json is a verbatim workflow cp."""
+
+from __future__ import annotations
+
+import ast
+import pathlib
+
+REPO = pathlib.Path(__file__).resolve().parents[1]
+PKG = REPO / "cuttingboard"
+FIELD = "effective_permission"
+APPROVED_PATH = PKG / "effective_permission.py"          # the ONE exact approved path
+APPROVED_FUNCS = {"persist", "persist_copy"}             # the ONLY approved authoring functions
+
+
+def _field_ref(node: ast.AST | None) -> bool:
+    return (
+        (isinstance(node, ast.Constant) and node.value == FIELD)
+        or (isinstance(node, ast.Name) and node.id == "CANONICAL_FIELD")
+        or (isinstance(node, ast.Attribute) and node.attr == "CANONICAL_FIELD")
+    )
+
+
+def _is_authoring(node: ast.AST) -> bool:
+    """True if this node AUTHORS the canonical field (any mutation form)."""
+    targets: list[ast.expr] = []
+    if isinstance(node, ast.Assign):
+        targets = list(node.targets)
+    elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+        targets = [node.target]
+    if any(isinstance(t, ast.Subscript) and _field_ref(t.slice) for t in targets):
+        return True
+    if isinstance(node, ast.Dict) and any(k is not None and _field_ref(k) for k in node.keys):
+        return True
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        m = node.func.attr
+        if m == "update" and any(
+                isinstance(a, ast.Dict) and any(k is not None and _field_ref(k) for k in a.keys)
+                for a in node.args):
+            return True
+        if m in {"setdefault", "__setitem__"} and node.args and _field_ref(node.args[0]):
+            return True
+    return False
+
+
+def _authoring_lines(tree: ast.AST) -> list[int]:
+    return [n.lineno for n in ast.walk(tree) if _is_authoring(n)]
+
+
+def _approved_authoring_ids(tree: ast.AST) -> set[int]:
+    """Node ids of authoring sites that live INSIDE an approved function body."""
+    return {id(sub) for fn in ast.walk(tree)
+            if isinstance(fn, ast.FunctionDef) and fn.name in APPROVED_FUNCS
+            for sub in ast.walk(fn) if _is_authoring(sub)}
+
+
+def test_no_module_authors_the_field_outside_the_approved_functions() -> None:
+    offenders: list[str] = []
+    for path in sorted(PKG.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        if path == APPROVED_PATH:
+            # authoring allowed ONLY inside persist/persist_copy; node-identity diff
+            # catches module-scope and class-scope authorship too (D5).
+            approved = _approved_authoring_ids(tree)
+            stray = [n.lineno for n in ast.walk(tree)
+                     if _is_authoring(n) and id(n) not in approved]
+            assert not stray, (
+                f"effective_permission.py authors the field outside {APPROVED_FUNCS} "
+                f"(module/class/other scope) at lines {stray}")
+            continue
+        for lineno in _authoring_lines(tree):
+            offenders.append(f"{path.relative_to(REPO)}:{lineno}")
+    assert not offenders, (
+        f"PRD-339 R4: only effective_permission.py persist/persist_copy may author "
+        f"the canonical field; second writer(s): {offenders}"
+    )
+
+
+def test_approved_functions_do_author_the_field() -> None:
+    tree = ast.parse(APPROVED_PATH.read_text(encoding="utf-8"))
+    authoring_funcs = {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
+                       for sub in ast.walk(n) if _is_authoring(sub)}
+    assert authoring_funcs == APPROVED_FUNCS, (
+        f"persist/persist_copy must be the authoring functions; found {authoring_funcs}")
+
+
+def test_carrier_seams_route_through_persist() -> None:
+    src = (PKG / "runtime" / "__init__.py").read_text(encoding="utf-8")
+    for call in (
+        "ep_authority.persist(contract, effective_permission)",   # daily contract
+        "ep_authority.persist(summary, effective_permission)",    # daily summary
+        "ep_authority.persist(contract, _hourly_ep)",             # hourly contract
+        "ep_authority.persist(summary, _hourly_ep)",              # hourly summary
+        "ep_authority.persist_copy(payload, contract)",           # payload (daily + hourly)
+    ):
+        assert call in src, f"carrier seam does not route through the approved writer: {call!r}"
+
+
+def test_ui_contract_json_is_a_verbatim_copy_not_a_rewrite() -> None:
+    for wf in ("cuttingboard.yml", "hourly_alert.yml"):
+        text = (REPO / ".github" / "workflows" / wf).read_text(encoding="utf-8")
+        assert "ui/contract.json" in text
+        assert FIELD not in text, f"{wf} must not author/rewrite the canonical field"

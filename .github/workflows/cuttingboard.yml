@@ -245,7 +245,9 @@ jobs:
           steps.mode.outputs.job_mode == 'sunday' ||
           steps.mode.outputs.job_mode == 'verify') &&
           steps.openslot.outputs.state != 'SATISFIED'
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json logs/regime_history.jsonl 'logs/run_*.json'
+        # PRD-339 Slice 1: also restore logs/latest_contract.json so the resolver reads
+        # the accepted-authority carrier; the run regenerates + force-adds it.
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/evaluation.jsonl logs/last_notification_state.json logs/market_map.json logs/latest_hourly_contract.json logs/latest_contract.json logs/regime_history.jsonl 'logs/run_*.json'
 
       - name: Install dev dependencies
         # PRD-299 (Sol connector P2): skip on an OPEN coordinated no-op so no

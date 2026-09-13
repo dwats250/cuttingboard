@@ -5,6 +5,34 @@ proposing new fields. Update when new canonical fields are introduced.
 
 ---
 
+## effective_permission (PRD-339 Slice 1 — Authority Core)
+
+The canonical resolved-authority envelope, written onto the persisted carriers
+(`latest_contract.json`, `latest_run.json`, `latest_payload.json`, the hourly
+variants, and `ui/contract.json` via the workflow `cp`) under the top-level
+`effective_permission` key. WRITE-LAYER only: authored solely by
+`cuttingboard.effective_permission.persist` (the packet-s14 exclusive writer,
+R4) — NOT a `PipelineContract` builder key, so it is documented as the standalone
+`contract_types.EffectivePermissionEnvelope` TypedDict, not on `PipelineContract`
+(keeps the PRD-233 drift guards intact). Consumers are Slice 2; the field is inert
+until then.
+
+| Field path | Type | Notes |
+|---|---|---|
+| `carrier["effective_permission"]` | dict | the resolved authority envelope (`EffectivePermissionEnvelope`) |
+| `…["verdict"]` | string | `PERMITTED` / `NO_TRADE` / `OBSERVE_ONLY` / `HALT` / `UNAVAILABLE` |
+| `…["restriction_rank"]` | int | monotonic within a session (higher = more restrictive; R2) |
+| `…["authority_version"]` | `[session_date, decision_seq, restriction_rank]` | the SOLE ordering key (R5/R6); never a timestamp |
+| `…["decision_uid"]` | string | admitted daily run identity (Q1 carry keeps it across hourly observations) |
+| `…["run_uid"]` | string | a fresh UUID minted once per pipeline invocation and threaded through the run (R6); fail-closed sentinels use the empty string |
+| `…["verdict"]` — mode gate | — | only LIVE/SUNDAY originate authority; unauthorized modes (fixture/prefetch) and fail-closed reads resolve UNAVAILABLE (R7/finding 7). Both `latest_contract.json` and `latest_hourly_contract.json` are publication-non-regression guarded on every route |
+| `…["decision_seq"]` | int | per-session admitted-daily-decision counter; +1 only on a genuine redecision (R3) |
+| `…["recovery_basis"]` | dict \| null | Q4 recovery record `{superseded_authority_version, superseding_decision_uid, reason}` |
+| `…["valid_until"]` | ISO-8601 \| null | session freshness bound (R7 staleness; prior-session is the primary discriminator) |
+| `…["permission_line"]` | string | the resolved permission text (feeds `system_state.permission`, byte-identical) |
+
+---
+
 ## contract (latest_hourly_contract.json)
 
 **The authoritative contract schema is `cuttingboard/contract_types.py`
