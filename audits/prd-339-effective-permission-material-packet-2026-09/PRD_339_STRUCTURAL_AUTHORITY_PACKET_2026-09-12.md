@@ -18,8 +18,12 @@ bounded GOV-2 cycle is EXHAUSTED -> STOP (no forced clean verdict). These residu
 BOUNDED and CLOSABLE with a precise 4-point spec (see EVENT-2); the structural approach is
 converging (F3/F6 resolved). DECISION returns to Dustin: authorize one more bounded correction
 cycle applying the 4 constraints, or rule the mechanism, or park. [OWNER AUTHORIZED one more
-bounded correction 2026-09-12; R1-R4 closure is s13 (the binding mechanism), pending ONE fresh
-Sol exact-head confirmation.] Grants no downstream authority: no PRD drafting/review, no Gate
+bounded correction 2026-09-12; R1-R4 closure is s13. Sol confirmation @ 941bbf24 (EVENT-3,
+2026-09-13): R1/R2/R4 CLOSED, NO new bypass class, but R3 (cross-process provenance) NOT closed
+-- serialized canonical fields remain self-assertable by an in-scope downstream code path;
+shape+freshness does not prove ORIGIN. STOP per owner charter (no second correction without
+explicit ruling). Single residual R3, closable NON-crypto via a code-enforced EXCLUSIVE-WRITER
+boundary (EVENT-3 Option A). Decision to Dustin.] Grants no downstream authority: no PRD drafting/review, no Gate
 A, no implementation.
 
 SUPERSEDES the enumeration framing of PRD_339_DECISION_AUTHORITY_REBUILD_PACKET_2026-09-12.md
