@@ -137,7 +137,13 @@ def _git(cwd, *args, check=True):
 
 
 def _carrier(generated_at, envelope):
-    return json.dumps({"generated_at": generated_at, "effective_permission": envelope},
+    # A real published carrier (a pipeline contract) carries a TOP-LEVEL session_date
+    # (contract.py:140, a required contract field). PRD-340 F5: the Slice-2 read
+    # boundary validates the EP against THIS trusted carrier session, not the EP
+    # envelope's own claimed session, so the fixture mirrors a genuine carrier.
+    return json.dumps({"generated_at": generated_at,
+                       "session_date": envelope.get("session_date"),
+                       "effective_permission": envelope},
                       indent=2, sort_keys=True) + "\n"
 
 

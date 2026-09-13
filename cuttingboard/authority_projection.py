@@ -211,24 +211,31 @@ def _read_carrier(path: str) -> Any:
         return None
 
 
+def _current_session(carrier: Any, argv: list[str]) -> str:
+    """The session the admission is validated AGAINST -- NEVER the EP envelope's
+    own claimed session (a self-admission bypass, F5). An explicit workflow session
+    (argv[2]) is the trusted source when supplied; otherwise the carrier's OWN
+    top-level session_date. A carrier whose nested EP session differs from this
+    fails prior-session in admit_projection instead of self-admitting."""
+    if len(argv) >= 3 and argv[2]:
+        return str(argv[2])
+    return str(carrier.get("session_date")) if isinstance(carrier, dict) else "None"
+
+
 def _cli(argv: list[str]) -> int:
-    if len(argv) == 2 and argv[0] == "admit":
+    if len(argv) >= 2 and argv[0] == "admit":
         # Publish read boundary: exit 0 iff the carrier admits a non-UNAVAILABLE
-        # authority for its own session_date; else fail-closed (exit 1).
+        # authority for the CURRENT (workflow/carrier) session; else fail-closed.
         carrier = _read_carrier(argv[1])
-        env = carrier.get(CANONICAL_FIELD) if isinstance(carrier, dict) else None
-        sd = env.get("session_date") if isinstance(env, dict) else None
-        proj = admit_projection(carrier, current_session_date=str(sd))
+        proj = admit_projection(carrier, current_session_date=_current_session(carrier, argv))
         return 0 if proj.verdict != VERDICT_UNAVAILABLE else 1
-    if len(argv) == 2 and argv[0] == "commit-status":
+    if len(argv) >= 2 and argv[0] == "commit-status":
         # Daily workflow commit-message wording, derived ONLY from the projection.
         carrier = _read_carrier(argv[1])
-        env = carrier.get(CANONICAL_FIELD) if isinstance(carrier, dict) else None
-        sd = env.get("session_date") if isinstance(env, dict) else None
-        proj = admit_projection(carrier, current_session_date=str(sd))
+        proj = admit_projection(carrier, current_session_date=_current_session(carrier, argv))
         print(proj.decision_state)
         return 0
-    print("usage: authority_projection.py (admit|commit-status) <carrier.json>")
+    print("usage: authority_projection.py (admit|commit-status) <carrier.json> [current_session_date]")
     return 2
 
 

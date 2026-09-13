@@ -110,6 +110,10 @@ function admitAuthority(contract) {
   var sessionDate = safeGet(contract, 'session_date');
   if (!env.session_date || (sessionDate && env.session_date !== sessionDate)) return null;
   if (!env.decision_uid || !env.run_uid || typeof env.valid_until !== 'string') return null;
+  // fail-closed freshness (mirrors admit_persisted's now-vs-valid_until compare):
+  // an unparseable or already-expired valid_until is never a live grant.
+  var validUntilMs = Date.parse(env.valid_until);
+  if (isNaN(validUntilMs) || Date.now() > validUntilMs) return null;
   return env;
 }
 
@@ -166,7 +170,11 @@ function renderSignalBar(contract) {
 function renderPrimaryTrade(contract) {
   const block = document.getElementById('primary-trade-block');
   const candidates = safeGet(contract, 'trade_candidates');
-  if (!Array.isArray(candidates) || candidates.length === 0) {
+  // PRD-340 F3 (fail-closed grant): the PRIMARY TRADE surface shows ONLY when the
+  // admitted authority is PERMITTED (TRADE_READY posture) -- never on candidate
+  // presence alone. A stale/invalid/absent authority hides the grant surface.
+  if (derivePosture(contract) !== 'TRADE_READY'
+      || !Array.isArray(candidates) || candidates.length === 0) {
     block.style.display = 'none';
     return;
   }
@@ -191,9 +199,12 @@ function renderPrimaryTrade(contract) {
 
 function renderNoTrade(contract) {
   const block = document.getElementById('no-trade-block');
-  const status = safeGet(contract, 'status');
-  const tradable = safeGet(contract, 'system_state', 'tradable');
-  if (derivePosture(status, tradable) !== 'STAY_FLAT') {
+  // PRD-340 F4: authority is the admitted EP posture (derivePosture(contract)),
+  // not status+tradable. NO_TRADE (STAY_FLAT) with NO gated candidates is the pure
+  // no-setup state; a STAY_FLAT with candidates present is the watchlist below.
+  const candidates = safeGet(contract, 'trade_candidates');
+  const hasCandidates = Array.isArray(candidates) && candidates.length > 0;
+  if (derivePosture(contract) !== 'STAY_FLAT' || hasCandidates) {
     block.style.display = 'none';
     return;
   }
@@ -204,8 +215,7 @@ function renderNoTrade(contract) {
   const stayFlatReason = safeGet(contract, 'system_state', 'stay_flat_reason');
   if (stayFlatReason) reasons.push(stayFlatReason);
 
-  const candidates = safeGet(contract, 'trade_candidates');
-  if (!Array.isArray(candidates) || candidates.length === 0) reasons.push('No valid setups');
+  if (!hasCandidates) reasons.push('No valid setups');
 
   const corrState = safeGet(contract, 'correlation', 'state');
   if (corrState === 'CONFLICT') reasons.push('Correlation conflict');
@@ -216,21 +226,20 @@ function renderNoTrade(contract) {
 
 function renderWatchlist(contract) {
   const block = document.getElementById('watchlist-block');
-  const status = safeGet(contract, 'status');
-  const tradable = safeGet(contract, 'system_state', 'tradable');
-  if (derivePosture(status, tradable) !== 'WATCHLIST') {
+  // PRD-340 F4: the WATCHLIST posture is retired (no such EP verdict). The
+  // watchlist is NON-AUTHORITATIVE evidence: candidates were present but the
+  // admitted authority is STAY_FLAT (no grant). It is framing, never a permission
+  // -- so it shows only under the admitted STAY_FLAT posture with candidates.
+  const candidates = safeGet(contract, 'trade_candidates');
+  const hasCandidates = Array.isArray(candidates) && candidates.length > 0;
+  if (derivePosture(contract) !== 'STAY_FLAT' || !hasCandidates) {
     block.style.display = 'none';
     return;
   }
   block.style.display = '';
 
-  const candidates = safeGet(contract, 'trade_candidates');
-  const reason = (Array.isArray(candidates) && candidates.length > 0)
-    ? 'Candidates present but system not tradable'
-    : 'No valid setups';
-
   document.getElementById('watchlist-reasons').innerHTML =
-    `<div class="reason-item">${reason}</div>`;
+    `<div class="reason-item">Candidates present but no execution authority</div>`;
 }
 
 function renderSecondarySetups(contract) {
