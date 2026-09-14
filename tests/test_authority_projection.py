@@ -288,51 +288,102 @@ def test_publish_seam_invokes_authority_projection_as_module() -> None:
 
 
 def test_authority_projection_module_runs_in_clean_env(tmp_path) -> None:
-    # F1 functional: `python -m cuttingboard.authority_projection admit <carrier>`
-    # from the repo root with PYTHONPATH stripped resolves its own package import
-    # (no ModuleNotFoundError) and honors the fail-closed exit code.
+    # F1 functional: `python -m cuttingboard.authority_projection admit <carrier>
+    # <independent_session>` from the repo root with PYTHONPATH stripped resolves its
+    # own package import (no ModuleNotFoundError) and honors the fail-closed exit code.
+    # The independent session (argv[2], the runner-clock UTC date the publish seam
+    # computes) is passed explicitly -- never sourced from the carrier being validated.
     ok = tmp_path / "ok.json"
-    ok.write_text(json.dumps(_cli_carrier(trade=True)), encoding="utf-8")
+    ok.write_text(json.dumps(_cli_carrier(trade=True, session="2026-06-12")), encoding="utf-8")
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps({"session_date": "2026-06-12"}), encoding="utf-8")  # no EP
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     cmd = [sys.executable, "-m", "cuttingboard.authority_projection", "admit"]
-    r_ok = subprocess.run(cmd + [str(ok)], cwd=REPO, env=env, capture_output=True, text=True)
+    r_ok = subprocess.run(cmd + [str(ok), "2026-06-12"], cwd=REPO, env=env,
+                          capture_output=True, text=True)
     assert "ModuleNotFoundError" not in r_ok.stderr, r_ok.stderr
     assert r_ok.returncode == 0, f"clean-env module admit failed: {r_ok.stderr}"
-    r_bad = subprocess.run(cmd + [str(bad)], cwd=REPO, env=env, capture_output=True, text=True)
+    r_bad = subprocess.run(cmd + [str(bad), "2026-06-12"], cwd=REPO, env=env,
+                           capture_output=True, text=True)
     assert r_bad.returncode == 1  # fail-closed, not a crash
 
 
-# ---------------------------------------------- F5 CLI validates carrier session
+# --------------------------- publish `admit` commissioning fix (owner session-ruling
+# 2026-09-13). The publish read boundary validates the incoming contract carrier's EP
+# against an INDEPENDENT session (argv[2], the runner-clock UTC date the publish seam
+# computes), NEVER the carrier's own top-level session_date. Deriving the expected
+# session from the carrier being validated would let a stale carrier attest to its own
+# freshness (self-certification). Proofs A-F below are each discriminating: a mutant
+# reverting `admit` to _independent_session -> carrier.get("session_date") reddens the
+# no-arg / mismatched-session self-certification proofs (E1/E2), and a mutant dropping
+# the fail-closed sentinel reddens the absent-session proof (B).
 
-def test_cli_admit_rejects_session_mismatch(tmp_path) -> None:
-    # F5: a carrier whose TOP-LEVEL session differs from its EP envelope's claimed
-    # session must NOT self-admit -- the CLI validates the EP against the CARRIER
-    # session, never the envelope's own claim, so prior-session fails closed.
-    ep = _ep(trade=True, session="2026-06-12")
-    carrier = {"session_date": "2026-06-13", ep_authority.CANONICAL_FIELD: ep.to_envelope()}
-    p = tmp_path / "mismatch.json"
-    p.write_text(json.dumps(carrier), encoding="utf-8")
-    assert ap._cli(["admit", str(p)]) == 1
-
-
-def test_cli_admit_accepts_matching_session(tmp_path) -> None:
-    ep = _ep(trade=True, session="2026-06-12")
-    carrier = {"session_date": "2026-06-12", ep_authority.CANONICAL_FIELD: ep.to_envelope()}
-    p = tmp_path / "match.json"
-    p.write_text(json.dumps(carrier), encoding="utf-8")
-    assert ap._cli(["admit", str(p)]) == 0
+def test_cli_admit_valid_current_carrier_matching_independent_session_admits(tmp_path) -> None:
+    # PROOF A: a real-shaped valid CURRENT contract carrier + a matching independent
+    # session admits (exit 0). The positive control the fix must preserve.
+    p = _write(tmp_path, "current.json", _cli_carrier(trade=True, session="2026-06-12"))
+    assert ap._cli(["admit", p, "2026-06-12"]) == 0
 
 
-def test_cli_admit_explicit_workflow_session_overrides_envelope_claim(tmp_path) -> None:
-    # An explicit trusted workflow session that differs from the envelope fails
-    # closed even when the carrier's own top-level session matches the envelope.
-    ep = _ep(trade=True, session="2026-06-12")
-    carrier = {"session_date": "2026-06-12", ep_authority.CANONICAL_FIELD: ep.to_envelope()}
-    p = tmp_path / "c.json"
-    p.write_text(json.dumps(carrier), encoding="utf-8")
-    assert ap._cli(["admit", str(p), "2026-06-13"]) == 1
+def test_cli_admit_absent_independent_session_fails_closed(tmp_path) -> None:
+    # PROOF B: NO independent session supplied -> fail closed (exit 1). The publish
+    # seam has no in-process resolver provenance; absent a trustworthy independent
+    # session it must refuse, never fall back to the carrier's own session field. A
+    # mutant that drops the fail-closed sentinel (or reverts to carrier-derived)
+    # reddens: a self-consistent carrier would self-admit.
+    p = _write(tmp_path, "noarg.json", _cli_carrier(trade=True, session="2026-06-12"))
+    assert ap._cli(["admit", p]) == 1
+
+
+def test_cli_admit_mismatched_prior_independent_session_fails_closed(tmp_path) -> None:
+    # PROOF C: a prior/mismatched independent session fails closed (exit 1) even when
+    # the carrier's own top-level session matches its EP -- the compare is against the
+    # independent session, not the carrier. A carrier-derived mutant would ADMIT (RED).
+    p = _write(tmp_path, "prior.json", _cli_carrier(trade=True, session="2026-06-12"))
+    assert ap._cli(["admit", p, "2026-06-13"]) == 1
+
+
+def test_cli_admit_stale_invalid_ep_fails_closed(tmp_path) -> None:
+    # PROOF D: a malformed/invalid EP envelope fails closed (exit 1) even under a
+    # matching independent session -- the read boundary refuses a non-canonical field.
+    carrier = {"session_date": "2026-06-12",
+               ep_authority.CANONICAL_FIELD: {"verdict": VERDICT_PERMITTED,
+                                              "session_date": "2026-06-12"}}
+    p = _write(tmp_path, "bad_ep.json", carrier)
+    assert ap._cli(["admit", p, "2026-06-12"]) == 1
+
+
+def test_cli_admit_cannot_self_certify_no_independent_session(tmp_path) -> None:
+    # PROOF E1 (THE key self-certification discriminator): a carrier that ATTESTS TO
+    # ITS OWN freshness -- a top-level session_date EQUAL to its EP session -- must
+    # STILL fail closed (exit 1) when NO independent session is supplied. The EP is a
+    # genuine PERMITTED authority, so the ONLY thing keeping it out is the refusal to
+    # derive the expected session from the carrier. A mutant reverting `admit` to
+    # carrier.get("session_date") self-admits here (exit 0) -> RED.
+    p = _write(tmp_path, "selfcert.json", _cli_carrier(trade=True, session="2026-06-12"))
+    assert ap._cli(["admit", p]) == 1
+
+
+def test_cli_admit_cannot_self_certify_via_freshened_session_field(tmp_path) -> None:
+    # PROOF E2 (the ruling's freshened-field form): a STALE-session carrier whose
+    # top-level session_date has been mutated to the trusted independent session must
+    # STILL fail closed (exit 1) -- the validator compares the EP's OWN session against
+    # the independent session, so freshening the carrier's outer field cannot admit a
+    # stale authority. (Regression guard on the ruling; holds under fix and refuses a
+    # self-certifying read of the mutated outer field.)
+    ep = _ep(trade=True, session="2026-06-11")           # stale EP session
+    carrier = {"session_date": "2026-06-12",             # outer field freshened to "today"
+               ep_authority.CANONICAL_FIELD: ep.to_envelope()}
+    p = _write(tmp_path, "freshened.json", carrier)
+    assert ap._cli(["admit", p, "2026-06-12"]) == 1
+
+
+def test_cli_admit_self_consistent_carrier_mismatched_independent_session(tmp_path) -> None:
+    # PROOF E3 (self-consistent stale carrier vs current runner): EP session == outer
+    # session == an OLD session; the independent runner session is a later date. Fail
+    # closed (exit 1). A carrier-derived mutant matches the outer field and ADMITS -> RED.
+    p = _write(tmp_path, "oldselfcert.json", _cli_carrier(trade=True, session="2026-06-10"))
+    assert ap._cli(["admit", p, "2026-06-12"]) == 1
 
 
 def _write(tmp_path, name, carrier) -> str:
@@ -347,7 +398,7 @@ def _write(tmp_path, name, carrier) -> str:
 # runner-clock UTC date). It must fail closed to UNAVAILABLE for an absent / mismatched
 # independent session and may NEVER derive the expected session from the carrier being
 # validated. The five required proofs below are each discriminating: a mutant that
-# reverts _commit_session to the carrier-derived fallback reddens the fail-closed /
+# reverts _independent_session to the carrier-derived fallback reddens the fail-closed /
 # self-certification proofs, and a mutant that reads a proxy reddens the EP-gate proofs.
 
 def test_cli_commit_status_realshaped_observe_only_matching_session_projects(tmp_path, capsys) -> None:
@@ -379,7 +430,7 @@ def test_cli_commit_status_self_consistent_carrier_no_independent_session_fails_
     # PROOF 2 (self-certification discriminator, the core owner ruling): a carrier that
     # ATTESTS TO ITS OWN freshness -- a top-level session_date EQUAL to its EP session --
     # must STILL fail closed when no INDEPENDENT session is supplied. A mutant that
-    # reverts _commit_session to carrier.get("session_date") would self-admit OBSERVE
+    # reverts _independent_session to carrier.get("session_date") would self-admit OBSERVE
     # ONLY here (RED); the fix refuses it.
     carrier = _run_carrier(session="2026-06-12", locked=True)
     carrier["session_date"] = "2026-06-12"  # self-consistent stale attestation

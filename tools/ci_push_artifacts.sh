@@ -28,6 +28,16 @@ AUDIT_PATH="logs/audit.jsonl"
 AUTH_CARRIERS=("logs/latest_contract.json" "logs/latest_hourly_contract.json")
 MAX_ATTEMPTS="${CB_PUBLISH_MAX_ATTEMPTS:-5}"
 
+# PRD-340 publish-admit commissioning fix (owner session-ruling 2026-09-13): the
+# publish read-boundary (authority_guard, below) validates each incoming authority
+# carrier's effective-permission against an INDEPENDENT session -- the runner-clock
+# UTC calendar date for THIS run (the same now(UTC).date() the pipeline used for the
+# carrier's session_date), computed HERE by the runner and passed explicitly to the
+# admit validator, NEVER read from the carrier file being validated. A stale carrier
+# that freshened its own top-level session_date therefore fails closed instead of
+# self-certifying. Overridable via CB_WORKFLOW_SESSION for the offline replay harness.
+PUBLISH_SESSION="${CB_WORKFLOW_SESSION:-$(date -u +%F)}"
+
 pre_sha="${PRE_SHA:-}"
 post_sha="${POST_SHA:-}"
 base_sha="${CB_PUBLISH_BASE_SHA:-}"   # publish tip at restore time (audit delta base)
@@ -79,13 +89,16 @@ authority_guard() {
     # PRD-340 Slice 2 (publish read-boundary): fail closed on a bundle whose
     # incoming authority carrier is absent/malformed/UNAVAILABLE -- it must project
     # to a genuine (non-UNAVAILABLE) authority through the approved validator before
-    # publish, beyond the R5 non-regression compare above.
+    # publish, beyond the R5 non-regression compare above. The expected session is the
+    # INDEPENDENT runner session PUBLISH_SESSION (owner session-ruling 2026-09-13),
+    # passed explicitly so the validator compares the carrier's EP against a session it
+    # did NOT source from the carrier -- a stale carrier cannot self-certify.
     # Invoke as a MODULE from the repo root so `from cuttingboard import ...`
     # inside authority_projection.py resolves in a clean workflow env (no editable
     # install / no PYTHONPATH). $inc is an absolute mktemp path, so the subshell cd
     # does not disturb it. Guard/exit-code semantics unchanged.
     if ! ( cd "$SCRIPT_DIR/.." && python3 -m cuttingboard.authority_projection \
-           admit "$inc" ); then
+           admit "$inc" "$PUBLISH_SESSION" ); then
       rm -f "$acc" "$inc"
       echo "artifact publish: authority read-boundary REFUSED (Slice 2) on $carrier" >&2
       return 1

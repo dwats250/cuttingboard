@@ -173,10 +173,15 @@ def _init_work(tmp_path, carrier_path, tip_carrier=None):
     return work, remote
 
 
-def _run_publish(work, remote, pre_sha, post_sha, base_sha):
+def _run_publish(work, remote, pre_sha, post_sha, base_sha, session=SD):
+    # PRD-340 publish-admit fix: the publish seam validates each carrier's EP against
+    # an INDEPENDENT runner session (CB_WORKFLOW_SESSION, else the runner-clock date),
+    # never the carrier's own session_date. The offline replay injects that session
+    # explicitly (defaulting to SD, the fixtures' session) so the seam does NOT read
+    # the carrier for its expected session -- exactly the production independence.
     env = dict(os.environ, PRE_SHA=pre_sha, POST_SHA=post_sha,
                CB_PUBLISH_BASE_SHA=base_sha, PUBLISH_BRANCH="publish",
-               CB_PUBLISH_MAX_ATTEMPTS="1")
+               CB_PUBLISH_MAX_ATTEMPTS="1", CB_WORKFLOW_SESSION=session)
     return subprocess.run(["bash", str(SCRIPT)], cwd=str(work), env=env,
                           capture_output=True, text=True)
 
@@ -266,3 +271,62 @@ def test_guard_runs_on_every_route_bootstrap_overlay_retry() -> None:
     body = text.split("attempt_publish()", 1)[1].split("\nfor attempt in", 1)[0]
     assert "authority_guard" in body, "overlay/retry route not guarded (R5)"
     assert 'AUTH_CARRIERS=("logs/latest_contract.json" "logs/latest_hourly_contract.json")' in text
+
+
+# --- PRD-340 publish-admit commissioning fix (owner session-ruling 2026-09-13) ------
+
+def test_publish_admit_uses_independent_session_not_the_carrier() -> None:
+    # WIRING: the publish seam computes an INDEPENDENT session (the runner-clock UTC
+    # date, overridable via CB_WORKFLOW_SESSION) and passes it explicitly to the admit
+    # validator -- it does NOT let the validator source the expected session from the
+    # carrier being validated. A regression dropping the explicit argument (reverting
+    # to the carrier-derived fallback) reddens.
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'PUBLISH_SESSION="${CB_WORKFLOW_SESSION:-$(date -u +%F)}"' in text, (
+        "publish seam must compute an independent session from the runner clock")
+    assert 'admit "$inc" "$PUBLISH_SESSION"' in text, (
+        "publish admit must receive the independent session as an explicit argv")
+
+
+def _selfcert_carrier(outer_session, ep_session):
+    # A carrier whose OUTER top-level session_date can differ from its EP session, so a
+    # carrier-derived (self-certifying) validator and an independent-session validator
+    # diverge. R5-ahead (seq=2) so publication_admits admits; the ONLY thing that can
+    # refuse is the independent-session check.
+    env = _env(date=ep_session, seq=2, rank=1, uid="LIVE-2", run_uid="r2")
+    return json.dumps({"generated_at": "2099-01-01T00:00:00+00:00",
+                       "session_date": outer_session,
+                       "effective_permission": env},
+                      indent=2, sort_keys=True) + "\n"
+
+
+def test_shell_publish_cannot_self_certify_via_carrier_session_field(tmp_path):
+    # PROOF E (shell, self-certification -- THE core owner ruling): a SELF-CONSISTENT
+    # carrier (outer session_date == EP session == SD) that is R5-ahead of the tip must
+    # STILL be REFUSED when the INDEPENDENT runner session differs from the carrier's
+    # session (the run is a day later than the carrier claims). The tip must not
+    # advance. A mutant reverting admit to carrier.get("session_date") would match the
+    # outer field and PUBLISH this stale authority -> RED.
+    tip = _carrier("2000-01-01T00:00:00+00:00", _env(date=SD, seq=1, rank=1))
+    work, remote = _init_work(tmp_path, DAILY, tip_carrier=tip)
+    base = _tip(remote)
+    pre = _git(work, "rev-parse", "HEAD").stdout.strip()
+    post = _make_post(work, DAILY, _selfcert_carrier(outer_session=SD, ep_session=SD))
+    r = _run_publish(work, remote, pre, post, base, session="2026-04-13")  # independent != SD
+    assert r.returncode != 0, f"publish self-certified a stale carrier\n{r.stdout}\n{r.stderr}"
+    assert _tip(remote) == base, "tip advanced on a self-certifying carrier"
+
+
+def test_shell_publish_admits_when_independent_session_matches(tmp_path):
+    # CONTROL for PROOF E: the SAME R5-ahead carrier admits when the independent runner
+    # session MATCHES the carrier's EP session -- proving the refusal above is the
+    # independent-session check, not an unrelated regression. Non-regression (R5) is
+    # additive: the ahead carrier already passes publication_admits.
+    tip = _carrier("2000-01-01T00:00:00+00:00", _env(date=SD, seq=1, rank=1))
+    work, remote = _init_work(tmp_path, DAILY, tip_carrier=tip)
+    base = _tip(remote)
+    pre = _git(work, "rev-parse", "HEAD").stdout.strip()
+    post = _make_post(work, DAILY, _selfcert_carrier(outer_session=SD, ep_session=SD))
+    r = _run_publish(work, remote, pre, post, base, session=SD)  # independent == EP session
+    assert r.returncode == 0, f"expected admit under matching independent session\n{r.stderr}"
+    assert _tip(remote) != base, "tip did not advance under a matching independent session"
