@@ -1152,9 +1152,10 @@ _CSS = (
     "#artifact-diagnostics summary::-webkit-details-marker,#run-history summary::-webkit-details-marker{display:none}"
     "#artifact-diagnostics summary{color:#555;font-size:0.72rem}"
     "#run-history summary{color:#aaa;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em}"
-    ".failed-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:4px}"
-    ".failed-card-fields .label{font-size:0.7rem}"
-    ".failed-card-fields .value{margin-top:1px}"
+    # Cockpit polish (2026-09-14): the low-grade screening card's stacked field
+    # grid (.failed-card-fields) is replaced by one compact .card-header + this
+    # subdued screening-note line, so the chart becomes the card's visual authority.
+    ".screening-note{color:#bbb;font-size:0.82rem;margin-top:4px}"
     "#red-folder .red-folder-event{font-size:0.78rem;margin-top:4px}"
     ".red-folder-when{color:#ddd}"
     ".red-folder-type{color:#888}"
@@ -1243,6 +1244,9 @@ _CSS = (
     # PRD-218: alignment-coloured price (bullish green / bearish red).
     ".ts-px-up{color:var(--dir-up)}"
     ".ts-px-down{color:var(--dir-down)}"
+    # Cockpit polish (2026-09-14): MIXED alignment reuses the existing amber
+    # (--posture-flat, the .tape-bias.mixed hue) — no new palette concept.
+    ".ts-px-mix{color:var(--posture-flat)}"
     # PRD-332 (D5) main-section rules: C WATCHING setup-workspace + A-upper
     # refinements. Placed in the main-rules section (before any @media block) so
     # the 44px tab target is not scoped into a phone block (PRD-330 R8). No
@@ -2374,20 +2378,32 @@ def _render_candidate_card(
     w(f'<div class="candidate-card grade-{css_class}{_observation_class}" id="card-{_esc(sym)}">')
 
     if not is_high:
-        # PRD-158 § 4.2 translation 11: low-grade GRADE label suppressed —
-        # FAILURE REASON below carries the trader action.
-        w('  <div class="failed-card-fields">')
-        w(f'    <div><div class="label">SYMBOL</div><div class="value">{_esc(entry.get("symbol"))}{badge_html}</div></div>')
-        w(f'    <div><div class="label">BIAS</div><div class="value">{_esc(entry.get("bias"))}</div></div>')
-        w(f'    <div><div class="label">STRUCTURE</div><div class="value">{_esc(entry.get("structure"))}</div></div>')
-        w('  </div>')
+        # Cockpit polish (2026-09-14, owner charge): the low-grade screening card
+        # collapses its stacked SYMBOL/BIAS/STRUCTURE grid into one compact header
+        # line (mirroring the PRD-249 high-grade header) plus one subdued
+        # screening-note line, so the chart becomes the card's visual authority.
+        # The header now carries the grade letter, SUPERSEDING PRD-158 §4.2 t11's
+        # low-grade grade suppression per the owner's explicit ruling; the failure
+        # reason moves to the subdued line with its content unchanged. Screening
+        # classification is untouched — this is presentation only.
+        setup_state = entry.get("setup_state")
+        header_bits = [_esc(entry.get("symbol")), _esc(grade)]
+        if setup_state and setup_state != "DATA_UNAVAILABLE":
+            header_bits.append(_esc(setup_state))
+        bias_structure = " ".join(
+            p for p in (_esc(entry.get("bias")), _esc(entry.get("structure"))) if p
+        )
+        if bias_structure:
+            header_bits.append(bias_structure)
+        header = " · ".join(b for b in header_bits if b)
+        w(f'  <div class="card-header">{header}{badge_html}</div>')
         _fail = (
             entry.get("failure_reason")
             or entry.get("block_reason")
             or entry.get("reason_for_grade")
         )
         _fail_text = _esc(_fail) if _fail else "No failure reason provided"
-        w(f'  <div class="label">SCREENING NOTE</div><div class="value">{_fail_text}</div>')
+        w(f'  <div class="screening-note">{_fail_text}</div>')
     else:
         # PRD-249: collapse the 8-line stacked identity block (SYMBOL/GRADE/BIAS/
         # STRUCTURE label-over-value pairs) into one header line:
@@ -3905,9 +3921,13 @@ def render_dashboard_html(
                     _trend_structure_intraday_display(_rec),
                 )
                 _align = str(_rec.get("trend_alignment", "")).upper()
+                # Cockpit polish (2026-09-14): MIXED gets the existing amber accent
+                # so BULL/MIX/BEAR read as a complete green/amber/red set (previously
+                # MIXED was the only monochrome alignment).
                 _px_cls = (
                     "ts-px-up" if _align == "BULLISH"
                     else "ts-px-down" if _align == "BEARISH"
+                    else "ts-px-mix" if _align == "MIXED"
                     else ""
                 )
             _ts_rows.append((_cells, _px_cls))
@@ -3940,8 +3960,16 @@ def render_dashboard_html(
                 # alignment colour class. PRD-220: the Intraday cell (index 7)
                 # gets a class so it wraps to its own line.
                 _classes = []
-                if _i in (1, 3) and _px_cls:
-                    _classes.append(_px_cls)
+                if _px_cls:
+                    # Cockpit polish (2026-09-14): MIXED colours only the alignment
+                    # token (idx 3), never the price — a mixed *alignment* is
+                    # semantically amber, a mixed *price* is not. BULL/BEAR keep the
+                    # existing price(1)+alignment(3) colouring unchanged.
+                    if _px_cls == "ts-px-mix":
+                        if _i == 3:
+                            _classes.append(_px_cls)
+                    elif _i in (1, 3):
+                        _classes.append(_px_cls)
                 # PRD-225: uniform-width hook — BULL/BEAR/MIX all occupy 4ch so
                 # row width (and therefore wrap behavior) is token-independent.
                 if _i == 3:

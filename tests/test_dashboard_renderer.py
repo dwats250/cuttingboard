@@ -1449,7 +1449,9 @@ def test_lower_grade_failure_reason_from_reason_for_grade() -> None:
     mm = _market_map({"SPY": entry})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     card = _candidate_card(html)
-    assert "SCREENING NOTE" in card
+    # Cockpit polish (2026-09-14): the "SCREENING NOTE" label is gone; the reason
+    # now rides the subdued .screening-note line. Content selection is unchanged.
+    assert 'class="screening-note"' in card
     assert "momentum fading" in card
 
 
@@ -1472,8 +1474,29 @@ def test_lower_grade_failure_reason_from_explicit_field() -> None:
     mm = _market_map({"SPY": entry})
     html = render_dashboard_html(_payload(), _run(), market_map=mm)
     card = _candidate_card(html)
-    assert "SCREENING NOTE" in card
+    # Cockpit polish (2026-09-14): reason moved to the subdued .screening-note line;
+    # explicit failure_reason still wins over reason_for_grade (unchanged behavior).
+    assert 'class="screening-note"' in card
     assert "structure broken" in card
+
+
+def test_lower_grade_card_compact_header_shows_grade_letter() -> None:
+    """Cockpit polish (2026-09-14, owner charge): the low-grade screening card
+    collapses to one compact header carrying the grade letter (SUPERSEDES PRD-158
+    §4.2 t11's low-grade grade suppression) plus a subdued screening-note line.
+    The old stacked .failed-card-fields grid is gone; classification is unchanged."""
+    entry = {
+        **_mm_symbol("SPY", grade="C", bias="BEAR", structure="RANGE"),
+        "reason_for_grade": "mixed regime",
+    }
+    mm = _market_map({"SPY": entry})
+    html = render_dashboard_html(_payload(), _run(), market_map=mm)
+    card = _candidate_card(html)
+    assert 'class="card-header"' in card              # one-line header (was a stacked grid)
+    assert "SPY · C · BEAR RANGE" in card             # grade letter now visible (PRD-158 supersede)
+    assert 'class="failed-card-fields"' not in card   # old stacked identity grid removed
+    assert 'class="screening-note"' in card           # subdued secondary line
+    assert "mixed regime" in card                      # note content preserved
 
 
 def test_stale_market_map_suppresses_candidates_regardless_of_permission() -> None:
@@ -1739,6 +1762,27 @@ def test_prd218_price_color_and_sma_arrow_spacing() -> None:
         _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap2,
     )
     assert 'class="ts-px-down"' in _ts_section(html2), "bearish price cell not coloured"
+
+
+def test_cockpit_polish_mixed_alignment_amber_token_only() -> None:
+    """Cockpit polish (2026-09-14): MIXED alignment gains the existing amber accent
+    (--posture-flat) so BULL/MIX/BEAR read as a complete green/amber/red set — but
+    ONLY on the alignment token, never the price (a mixed *alignment* is amber; a
+    mixed *price* is not). BULL/BEAR price+alignment colouring is unchanged."""
+    assert ".ts-px-mix{color:var(--posture-flat)}" in render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(),
+        trend_structure_snapshot=_ts_healthy_snapshot(),
+    )  # CSS token present, reusing the existing .tape-bias.mixed hue
+    snap = _ts_healthy_snapshot()
+    first = next(iter(snap["symbols"]))
+    snap["symbols"][first]["trend_alignment"] = "MIXED"
+    section = _ts_section(render_dashboard_html(
+        _payload(), _run(), market_map=_market_map(), trend_structure_snapshot=snap,
+    ))
+    # Exactly one ts-px-mix: the single MIXED row's ALIGNMENT cell only. A second
+    # would mean the price cell was coloured too (the guarded-against behavior).
+    assert section.count("ts-px-mix") == 1, "MIXED must colour the alignment token only, not the price"
+    assert 'class="ts-px-mix ts-align"' in section, "MIXED alignment token not amber"
 
 
 # (b) Missing file
