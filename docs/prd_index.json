@@ -1712,6 +1712,12 @@
       "title": "Effective-Permission Slice 2: Authority Projection",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 341,
+      "title": "Cockpit polish: Market Structure MIX colour + WATCHING compression",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
