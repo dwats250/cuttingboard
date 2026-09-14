@@ -162,6 +162,24 @@ def test_workflow_commit_message_sources_count_from_cli_not_proxies() -> None:
         "PRD-340 R4: the daily workflow reads a chain-classification proxy for authoritative wording")
 
 
+def test_workflow_commit_status_passes_independent_runner_session() -> None:
+    # Channel 8 commissioning fix (owner session-ruling 2026-09-13): the commit-message
+    # step must pass an INDEPENDENT expected session into commit-status -- the runner-clock
+    # UTC date (date -u), computed by the workflow for THIS run -- NEVER a value read from
+    # the carrier being validated. A regression that drops the explicit session argument
+    # (reverting to the carrier-derived fallback) or sources it from latest_run.json reddens.
+    daily = (REPO / ".github" / "workflows" / "cuttingboard.yml").read_text(encoding="utf-8")
+    step = daily.split("- name: Generate commit message", 1)[1].split("\n      - name:", 1)[0]
+    # the independent session is a runner-clock UTC date, threaded through an env var
+    assert 'CB_WORKFLOW_SESSION="$(date -u +%F)"' in step, (
+        "channel 8 must compute the independent session from the runner clock (date -u)")
+    assert 'os.environ["CB_WORKFLOW_SESSION"]' in step
+    # the commit-status invocation must pass that session as an explicit argument,
+    # alongside the carrier path -- not the carrier alone.
+    assert '"commit-status", "logs/latest_run.json", workflow_session' in step, (
+        "commit-status must receive the independent workflow session as an explicit argv")
+
+
 def test_no_raw_authority_token_in_non_python_seams() -> None:
     # (b/c/d) JS/shell/workflow independence: the frozen tokens must NOT appear as
     # raw literals in the browser, publish, or commit-message seams -- those channels

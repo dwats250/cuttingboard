@@ -211,14 +211,46 @@ def _read_carrier(path: str) -> Any:
         return None
 
 
-def _current_session(carrier: Any, argv: list[str]) -> str:
-    """The session the admission is validated AGAINST -- NEVER the EP envelope's
-    own claimed session (a self-admission bypass, F5). An explicit workflow session
-    (argv[2]) is the trusted source when supplied; otherwise the carrier's OWN
-    top-level session_date. A carrier whose nested EP session differs from this
-    fails prior-session in admit_projection instead of self-admitting."""
+# Sentinel expected-session for the commit-message channel when NO independent
+# workflow/runtime session was supplied. It matches no persisted EP session_date
+# (real dates are ISO calendar days), so admit_persisted fails closed to
+# UNAVAILABLE rather than self-certifying from a field on the carrier being
+# validated (owner session-ruling 2026-09-13; F5).
+_NO_INDEPENDENT_SESSION = "\x00-no-independent-session-\x00"
+
+
+def _explicit_session(argv: list[str]) -> Optional[str]:
+    """The INDEPENDENT expected session for a cross-process admission: the value the
+    workflow/runtime computed for THIS run (the runner-clock UTC session date the
+    pipeline also used for run_date), passed verbatim as argv[2]. It is NEVER read
+    from the carrier being validated. Returns None when the caller supplied none."""
     if len(argv) >= 3 and argv[2]:
         return str(argv[2])
+    return None
+
+
+def _commit_session(argv: list[str]) -> str:
+    """Channel-8 (commit-message) expected session: the INDEPENDENT workflow session
+    (argv[2]) ONLY. Absent -> the fail-closed sentinel, NEVER the carrier's own
+    top-level session_date / timestamp / EP session (that would let a stale carrier
+    attest to its own freshness -- the self-admission the owner session-ruling
+    forbids). Channel 8 has no upstream independent freshness gate, so it must fail
+    closed to UNAVAILABLE when no trustworthy independent session is supplied."""
+    explicit = _explicit_session(argv)
+    return explicit if explicit is not None else _NO_INDEPENDENT_SESSION
+
+
+def _current_session(carrier: Any, argv: list[str]) -> str:
+    """Publish-channel (admit) expected session. The explicit workflow session
+    (argv[2]) when supplied, else the carrier's OWN top-level session_date -- valid
+    HERE because the publish channel validates CONTRACT carriers (which carry a
+    required top-level session_date) BEHIND an independent R5 non-regression gate
+    (effective_permission.publication_admits vs the accepted publish tip). The
+    commit-message channel has no such upstream gate and uses _commit_session, which
+    refuses a carrier-derived session outright (owner session-ruling 2026-09-13)."""
+    explicit = _explicit_session(argv)
+    if explicit is not None:
+        return explicit
     return str(carrier.get("session_date")) if isinstance(carrier, dict) else "None"
 
 
@@ -253,9 +285,10 @@ def _cli(argv: list[str]) -> int:
         # projection (R4): the decision-state AND the trade count/symbols. The
         # count/symbols are EP-GATED -- emitted only under a PERMITTED authority,
         # else '0 trades []' -- so the workflow never reads candidate/chain proxies
-        # for authoritative wording.
+        # for authoritative wording. The expected session is the INDEPENDENT workflow
+        # session (argv[2]); absent -> fail-closed sentinel, never carrier-derived.
         carrier = _read_carrier(argv[1])
-        proj = admit_projection(carrier, current_session_date=_current_session(carrier, argv))
+        proj = admit_projection(carrier, current_session_date=_commit_session(argv))
         count, symbols = _authoritative_trade_set(carrier) if proj.available else (0, [])
         print(f"{proj.decision_state} | {count} trades [{', '.join(symbols)}]")
         return 0
