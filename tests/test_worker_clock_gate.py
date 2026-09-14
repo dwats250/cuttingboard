@@ -164,6 +164,45 @@ def test_gate_at_most_one_dispatch_per_instant():
     assert all(v == 1 for v in seen.values()), f"duplicate dispatch rows: {seen}"
 
 
+def test_worker_pipeline_slot_mode_pairs_satisfy_resolve_run_mode_contract():
+    """Cross-contract lock (PRD-340 weekday-slot fix): every pipeline dispatch
+    the Worker emits that carries an OPEN/PRE slot MUST pass the downstream
+    ``scripts.resolve_run_mode.validate_slot_mode`` consumer unchanged — the
+    PRE<->prefetch / OPEN<->live pairing is the only fail-closed contract the
+    GitHub side enforces on a dispatch. A Worker mutant that emits slot=OPEN
+    with the wrong mode (or a renamed slot) would still ``resolveSlot`` to a
+    non-null dispatch, but this binds it to the actual Python validator so that
+    drift goes RED here rather than silently no-oping the whole run.
+    """
+    from scripts.resolve_run_mode import SlotModeError, validate_slot_mode
+
+    # Real OPEN (both seasons) + PRE instants — the pipeline dispatches that
+    # carry an OPEN/PRE slot the validator governs.
+    instants = [
+        _utc_ms(2026, 5, 19, 13, 0),   # 06:00 PDT -> OPEN/live
+        _utc_ms(2026, 1, 12, 14, 0),   # 06:00 PST -> OPEN/live
+        _utc_ms(2026, 5, 19, 12, 50),  # PRE/prefetch (PDT season)
+        _utc_ms(2026, 1, 12, 12, 50),  # PRE/prefetch (PST season)
+    ]
+    results = _run_gate(instants)
+    checked = 0
+    for got in results:
+        assert got is not None and got["workflow"] == PIPE
+        slot = got["inputs"].get("slot")
+        mode = got["inputs"].get("mode")
+        if slot in ("OPEN", "PRE"):
+            validate_slot_mode(slot, mode)  # must NOT raise
+            checked += 1
+    assert checked == len(instants), "expected every instant to carry an OPEN/PRE slot"
+
+    # Discriminating: the validator that just accepted the real pairs rejects a
+    # reverted/mutated pairing, so this test would catch a Worker slot/mode swap.
+    with pytest.raises(SlotModeError):
+        validate_slot_mode("OPEN", "prefetch")
+    with pytest.raises(SlotModeError):
+        validate_slot_mode("PRE", "live")
+
+
 # --- Config pin: the committed example TOML is the deployable clock ------------
 
 TOML = WORKER.parent.parent / "wrangler.example.toml"
