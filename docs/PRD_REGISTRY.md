@@ -359,6 +359,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-339 | — | Effective-Permission Slice 1: authority core (EXECUTION; reconciled to frozen packet f01ae81e) | IN PROGRESS | [PRD-339](prd_history/PRD-339.md) |
 | PRD-340 | — | Effective-Permission Slice 2: Authority Projection | IN PROGRESS | [PRD-340](prd_history/PRD-340.md) |
 | PRD-341 | — | Cockpit polish: Market Structure MIX colour + WATCHING compression | IN PROGRESS | [PRD-341](prd_history/PRD-341.md) |
+| PRD-342 | — | Freshness and provenance wording: neutral decision-age banner + timeframe-first chart captions | IN PROGRESS | [PRD-342](prd_history/PRD-342.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 

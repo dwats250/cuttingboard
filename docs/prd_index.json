@@ -1718,6 +1718,12 @@
       "title": "Cockpit polish: Market Structure MIX colour + WATCHING compression",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 342,
+      "title": "Freshness and provenance wording: neutral decision-age banner + timeframe-first chart captions",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
