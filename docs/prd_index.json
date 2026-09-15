@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 341,
-  "next_prd": 342,
+  "latest_complete": 342,
+  "next_prd": 343,
   "entries": [
     {
       "number": 56,
@@ -1721,9 +1721,9 @@
     },
     {
       "number": 342,
-      "title": "Freshness and provenance wording: neutral decision-age banner + timeframe-first chart captions",
-      "status": "IN PROGRESS",
-      "commit": null
+      "title": "Freshness and provenance wording: honest decision-age banner + timeframe-first chart captions",
+      "status": "COMPLETE",
+      "commit": "#335"
     }
   ]
 }
