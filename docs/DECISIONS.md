@@ -16,6 +16,41 @@ phase produced ≥20 entries and the next phase has clearly begun.
 
 ---
 
+## 2026-09-14 — PRD-342 freshness/provenance rulings; GOV-2 §1 ceiling-trigger interpretation (ruled: Dustin / HELM)
+
+Four rulings issued on the PRD-342 (freshness/provenance wording) design pass, after
+a fresh-context Sol review inverted the Stage-0 premise:
+
+1. **Banner direction APPROVED.** The staleness banner display-classifies on the
+   already-admitted `effective_permission.valid_until`: `now <= valid_until` ->
+   neutral `DECISION · Nh`; `now > valid_until` -> warning `BOARD Nh OLD`.
+   EffectivePermission production, `authority_version`, recovery, restriction,
+   persistence, and admission semantics are untouched; absent/malformed/invalid
+   authority stays fail-closed through the existing admission path; no secondary
+   validity clock. This is presentation of an already-consumed validity fact, not
+   authority redesign.
+
+2. **GOV-2 §1 ceiling-trigger interpretation (this is the durable ruling GOV-2 §1
+   itself is NOT amended).** The "establishes or changes a production FILES/LOC
+   ceiling" MATERIAL trigger applies when the proposed work itself establishes or
+   changes a GOVERNED production ceiling/guardrail — NOT merely because an ordinary
+   bounded PRD eventually receives an implementation limit at Gate A. An ordinary
+   PRD-local implementation bound / Gate A ceiling does not, by itself, make every
+   STANDARD PRD MATERIAL. Before Gate A, a PRD's FILES/LOC are labelled `ESTIMATED
+   SURFACE — NOT YET APPROVED` (provisional, not binding). PRD-342 remains STANDARD;
+   no MATERIAL packet is required.
+
+3. **Bookkeeping truth.** SCHEMA_MAP's "effective_permission ... inert until Slice
+   2" is corrected — Slice 2 (PRD-340 Authority Projection) is merged and the field
+   is consumed via `authority_projection.admit_projection`. PRD-341 is synced
+   COMPLETE (PR #334 merged). PRD-339 and PRD-340 are NOT marked COMPLETE from merge
+   state alone — their closeout stays coupled to formal commissioning evidence.
+
+4. **Dead `_sys_health`.** `dashboard_renderer._system_state_source_health` is
+   computed (`_sys_health`) and never rendered — the board has no visible
+   source-health warning. Kept OUT of PRD-342; recorded as a separate bounded
+   follow-up.
+
 ## 2026-09-09 — Completion ruling: Cloudflare is the authoritative clock, GitHub schedule is a liveness probe, Sunday transfers to Cloudflare; Need Scanner RETIRED, NS-4B already SHIPPED, North Star subtraction accepted; merged-provenance truth-sync (ruled: Dustin / HELM, adopting the Astra execution plan)
 
 **Reliability (the actual remaining product work).** The hourly lane had

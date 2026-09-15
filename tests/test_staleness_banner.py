@@ -105,6 +105,47 @@ def test_threshold_attribute_matches_constant() -> None:
     assert int(m.group(1)) == BOARD_STALE_AFTER_SECONDS == 90 * 60
 
 
+def test_valid_until_baked_from_admitted_ep_only() -> None:
+    """PRD-342 / Sol N1+N2: `data-valid-until` carries the ADMITTED valid_until (via
+    admit_ep, called WITHOUT `now`) — an expired-but-canonical envelope keeps it,
+    while a malformed/prior-session/absent envelope fail-closes to "" and never leaks
+    the raw envelope's timestamp."""
+    from cuttingboard import effective_permission as _ep
+    sess = "2026-04-28"
+    env = _ep.resolve_effective_permission(
+        mode="live", outcome_is_trade=False, system_halted=False, operator_locked=False,
+        session_date=sess, run_uid="a" * 32,
+        posture_permission_line="No new trades permitted.",
+        operator_lock_line="No new trades permitted — operator cannot monitor.").to_envelope()
+
+    def _render(run: dict) -> str:
+        return render_dashboard_html(_payload(macro_drivers=_macro_drivers()), run,
+                                     market_map=_market_map({"SPY": _mm_symbol()}))
+
+    def _vu(html: str) -> str:
+        m = re.search(r'data-valid-until="([^"]*)"', _banner_open_tag(html))
+        assert m, "data-valid-until attribute not emitted"
+        return m.group(1)
+
+    # admitted (canonical, current session) -> the envelope's valid_until
+    assert _vu(_render({**_run(), "session_date": sess, "effective_permission": env})) == env["valid_until"]
+    # expired-but-canonical survives admission (admit_ep called without `now`) — Sol design-N2
+    past = {**env, "valid_until": "2020-01-01T00:00:00+00:00"}
+    assert _vu(_render({**_run(), "session_date": sess, "effective_permission": past})) == "2020-01-01T00:00:00+00:00"
+    # Proof 11 (Sol design-N1 + impl-review): a malformed envelope with a PARSEABLE
+    # valid_until fails closed. SAME render: the banner carrier is "" (no raw leak)
+    # AND the independent decision-state surface is STATE UNAVAILABLE — a regression
+    # that keeps the banner empty but renders a confident decision-state fails here.
+    bad_html = _render({**_run(), "session_date": sess,
+                        "effective_permission": {**env, "unexpected_extra_key": 1}})
+    assert _vu(bad_html) == ""
+    assert 'data-raw-state="STATE UNAVAILABLE"' in bad_html and "STATE UNAVAILABLE" in bad_html
+    # prior-session canonical envelope -> rejected -> "" (session mismatch)
+    assert _vu(_render({**_run(), "session_date": "2026-04-29", "effective_permission": env})) == ""
+    # absent EP -> "" (fail-closed, neutral banner)
+    assert _vu(_render({k: v for k, v in _run().items() if k != "effective_permission"})) == ""
+
+
 @pytest.mark.parametrize(
     "session_type, expected",
     [(None, "false"), ("SUNDAY_PREMARKET", "true")],
@@ -143,7 +184,8 @@ globalThis.__NOW__ = __NOW_MS__;
 Date.now = function () { return globalThis.__NOW__; };
 var banner = {
   hidden: true, textContent: "", style: {},
-  _a: { "data-session-inactive": "__INACTIVE__", "data-board-stale-after-s": "__THRESH__" },
+  _a: { "data-session-inactive": "__INACTIVE__", "data-board-stale-after-s": "__THRESH__",
+        "data-valid-until": "__VALID_UNTIL__" },
   getAttribute: function (k) { return this._a[k]; }
 };
 var updatedEl = {
@@ -166,7 +208,8 @@ process.exit(0);
 """
 
 
-def _run_client(*, age_seconds: float, inactive: bool, iso: str = _RUN_TS) -> dict:
+def _run_client(*, age_seconds: float, inactive: bool, iso: str = _RUN_TS,
+                valid_until: str = "") -> dict:
     node = shutil.which("node")
     # Fail loudly rather than skip: the client verdict is the whole point of the
     # feature, and CI's ubuntu image ships node.
@@ -178,6 +221,7 @@ def _run_client(*, age_seconds: float, inactive: bool, iso: str = _RUN_TS) -> di
         .replace("__INACTIVE__", "true" if inactive else "false")
         .replace("__THRESH__", str(BOARD_STALE_AFTER_SECONDS))
         .replace("__ISO__", iso)
+        .replace("__VALID_UNTIL__", valid_until)
         .replace("__BANNER_JS__", _STALENESS_BANNER_JS)
     )
     proc = subprocess.run(
@@ -193,12 +237,40 @@ def test_client_fresh_board_stays_hidden() -> None:
     assert out["hidden"] is True, f"fresh board should show no banner: {out}"
 
 
-def test_client_old_board_flags_page_age() -> None:
-    out = _run_client(age_seconds=BOARD_STALE_AFTER_SECONDS + 10, inactive=False)
+_FUTURE_VU = "2026-04-29T08:00:00Z"   # after any aged `now` in these fixtures -> not expired
+_PAST_VU = "2026-04-28T12:00:00Z"     # == run ts, before an aged `now` -> expired
+
+
+def test_client_aged_valid_decision_is_neutral() -> None:
+    """PRD-342: an aged board whose admitted decision is still within valid_until
+    reads as a neutral DECISION age, never the OLD/STALE warning."""
+    out = _run_client(age_seconds=BOARD_STALE_AFTER_SECONDS + 10, inactive=False,
+                      valid_until=_FUTURE_VU)
+    assert out["hidden"] is False
+    assert "DECISION" in out["text"]
+    assert "OLD" not in out["text"] and "STALE" not in out["text"]
+
+
+def test_client_expired_decision_flags_board_old() -> None:
+    """PRD-342: viewer clock past the ADMITTED valid_until -> genuine expiry keeps
+    the existing OLD warning."""
+    out = _run_client(age_seconds=BOARD_STALE_AFTER_SECONDS + 10, inactive=False,
+                      valid_until=_PAST_VU)
     assert out["hidden"] is False
     assert "OLD" in out["text"] and "BOARD" in out["text"]
     # informs the age, never instructs
     assert "trade" not in out["text"].lower()
+
+
+def test_client_aged_absent_valid_until_never_warns() -> None:
+    """PRD-342 (owner ruling 1 / Sol N1): with no admitted valid_until (fail-closed
+    authority), the banner shows the neutral DECISION age and NEVER fabricates an
+    expiry warning (no secondary validity clock)."""
+    out = _run_client(age_seconds=BOARD_STALE_AFTER_SECONDS + 10, inactive=False,
+                      valid_until="")
+    assert out["hidden"] is False
+    assert "DECISION" in out["text"]
+    assert "OLD" not in out["text"]
 
 
 def test_client_inactive_session_is_neutral_not_old() -> None:

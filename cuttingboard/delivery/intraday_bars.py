@@ -177,8 +177,14 @@ def _derive_5m(bars, session_date):  # noqa: ANN001
 
 def _caption(session_date: date, completed_end: str) -> str:
     """R10: state the ET session_date and the completed-candles-THROUGH (the END /
-    right edge of the last completed bin). Never states the raw source ``through``."""
-    return f"{session_date.isoformat()} intraday 5m - completed through {completed_end} ET"
+    right edge of the last completed bin). Never states the raw source ``through``.
+    PRD-342: single grammar ``5m · <Weekday Mon D> · through <h:MM AM/PM> ET``."""
+    end_12h = completed_end
+    try:
+        end_12h = datetime.strptime(completed_end, "%H:%M").strftime("%-I:%M %p")
+    except ValueError:
+        pass
+    return f"5m · {session_date.strftime('%a %b %-d')} · through {end_12h} ET"
 
 
 def _parse_dt(value: object) -> Optional[datetime]:

@@ -34,7 +34,7 @@ _FORBIDDEN = ("ALIGNED", "DIVERGING", "CONFLUENT", "systems agree", "supportive"
 # MARKET STRUCTURE's descendants after WATCHING plus GEX and HISTORY) -----------
 _GOLDEN_BELOW_SEAM = {
     "dashboard_pre_gex_golden.html": "d974a89ef8c36901caeb465ab8000bfd9aad4acc7225af784eb67a38a19f992f",
-    "dashboard_pre_a1c_chart_golden.html": "c67a18de7638745b118e6c8414af2683aafbde2b0bdd46cd1751018e38334cb5",
+    "dashboard_pre_a1c_chart_golden.html": "306792f59e1cc83d94e1cb9e1aaf7756aa89310f1ce960e6633c3e2964bb7920",
 }
 # fixture -> (below-seam sha, #today-zone sha, #system-state shape sha, #market-structure shape sha)
 # PRD-334 R11: the 4th slot is the MARKET STRUCTURE region shape (was #tape-zone,
@@ -50,10 +50,10 @@ _BASE = {
     # screening card compressed to a compact header + subdued screening-note line
     # (WATCHING is below the seam). The other three slots are above the seam and
     # unchanged.
-    "primary_chart_c_grade": ("e93994ebf4f43701719abee403c37fb2e592af9784a51bc561947ce24e6de0c2", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "aa5398f2e7378c3460d772c159e48f488569e093453ecf69aa89a3a77a5d6054", "a87253c520ea85b6448916304fe8897ad7bae1abdcb7a84c1480a9a54b5cd8da"),
-    "primary_chart_locked": ("fa604afe3a7485d1309c03c445ef68211167584a3872593c2722c5d36e01114f", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "f44c626b83638c700db4e3fac21a9a2e657214bcbfc49ec88253751a56f54e4c", "a1b01427ea1713f05b703d115c36e5f38bd26dfcdc06f659ce2abbf050eb53fc"),
-    "primary_chart_permitted": ("a9f11c297a7793767983bfc465128d0e803b519b14fa894e6d2db510e6270f69", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "0aca9da205ed7b45dc3168b1457c702b7a36498cf806bb7f82119a5a2e187c62", "a1b01427ea1713f05b703d115c36e5f38bd26dfcdc06f659ce2abbf050eb53fc"),
-    "primary_chart_stay_flat": ("c55ea490dfdd2cc34123b13c44d2647c31ae0415045baa7c1b5be4b0bc80b1d2", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "39a200802a473f73235b22d0a662285ea5aa4388475cb09f775fc183dc09882a", "a1b01427ea1713f05b703d115c36e5f38bd26dfcdc06f659ce2abbf050eb53fc"),
+    "primary_chart_c_grade": ("4a8c573d55f2be8e588bff6588b58e3cb0d28593b4cce2e8c4739ae3d2e998c2", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "aa5398f2e7378c3460d772c159e48f488569e093453ecf69aa89a3a77a5d6054", "a87253c520ea85b6448916304fe8897ad7bae1abdcb7a84c1480a9a54b5cd8da"),
+    "primary_chart_locked": ("f15658b713176d9d78970993c3cbd8d0717b76f2c39ffc9d5ab6ffe666d73fcf", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "f44c626b83638c700db4e3fac21a9a2e657214bcbfc49ec88253751a56f54e4c", "a1b01427ea1713f05b703d115c36e5f38bd26dfcdc06f659ce2abbf050eb53fc"),
+    "primary_chart_permitted": ("71604bb0e331466404e50ac6afecff5cafd7ba7ce713c12c79785372b2e3d36a", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "0aca9da205ed7b45dc3168b1457c702b7a36498cf806bb7f82119a5a2e187c62", "a1b01427ea1713f05b703d115c36e5f38bd26dfcdc06f659ce2abbf050eb53fc"),
+    "primary_chart_stay_flat": ("f37b2696be07f4019c3e59e38106db52f66dba07188cd9285982a35fbe497cb0", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "39a200802a473f73235b22d0a662285ea5aa4388475cb09f775fc183dc09882a", "a1b01427ea1713f05b703d115c36e5f38bd26dfcdc06f659ce2abbf050eb53fc"),
     "red_folder_error": ("4a2eefc61d1b86fed621e93e288fb3d367297bbb9f62ded0d9951d40418fda68", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "f403c437524bc787e4a8fc368928b8cd9ba1889ac843a4b74751185479d72e42"),
     "red_folder_expiring": ("4a2eefc61d1b86fed621e93e288fb3d367297bbb9f62ded0d9951d40418fda68", "7193f1c51ba67ad739c81595af452b9ce0252adf30d56aa9e923b92918c4a17a", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "f403c437524bc787e4a8fc368928b8cd9ba1889ac843a4b74751185479d72e42"),
     "session_inactive": ("a85e6f01f23659227d20ef79182aebb3ce5bd15781cb52e2dd7ad2169d5b0331", "d3c7a817cd633556c57fb2a55899c1e44392858fd0377bfa1f6a9e3668ef1a65", "2ba331f020aacb2ab5819b9842d29b0804478d3f4332820d7aae1fdd6e9b96db", "b55f6c58a2f920619bb9a1a4062987791af6f3c497367a0e051846049c9e2966"),
@@ -78,7 +78,9 @@ _R1_AUTHORITY = {
             "kill": None, "permission": None, "regime": "Risk-on regime"},
 }
 _R2_UPDATED_LINE = '<div class="value" id="cb-updated" data-updated-utc="2026-04-28T12:00:00+00:00">Updated Apr 28 · 5:00 AM PT</div>'
-_STALENESS_JS_SHA = "293812c1ded273bfd2133221939d6f4889f0af556bafd267429c00c0017d10cd"
+# PRD-342: regenerated for the valid_until-aware banner (neutral DECISION age vs
+# expired BOARD OLD; admitted data-valid-until read by the client clock).
+_STALENESS_JS_SHA = "e3ccb9fe0391e5afcad7ebe7ef0f2399d27718fb340d0cd2cfc1c7f3f0079898"
 
 
 @pytest.fixture(autouse=True)

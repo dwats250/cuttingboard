@@ -5336,7 +5336,7 @@ def test_a1c_admitted_intraday_replaces_daily_in_primary_slot(monkeypatch, tmp_p
     path = _a1c_write(tmp_path, _a1c_intraday_snapshot())
     html = _a1c_render_html(monkeypatch, intraday_path=path)
     assert html != golden                                    # daily was replaced
-    assert "completed through 09:40 ET" in html              # R10 completed-through caption (END)
+    assert "through 9:40 AM ET" in html                      # PRD-342 R10 completed-through caption (END)
     assert html.count('class="setup-chart"') == 1            # M30: exactly one chart in the slot
     assert "lvl-row" in html                                 # M30: the compact ladder is retained
 
@@ -5370,8 +5370,12 @@ def test_a1c_leaf_receives_runtime_inputs_and_drives_slot(monkeypatch, tmp_path)
     assert len(calls) == 1
     market_map, price_bars, skips, result = calls[0]
     assert "SPY" in market_map["symbols"]                      # the real runtime market_map
-    # the EXACT runtime _price_bars map, not a reconstruction (isolates M12):
-    assert price_bars == _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW)
+    # PRD-342: the leaf receives the FAITHFUL 2-tuple (bars, caption) projection of
+    # the renderer's price-bars map — the extended 5-tuple carries provenance for the
+    # caption only, and selection uses `bars` alone, so the winner is provably
+    # identical (M12 winner-parity preserved).
+    assert price_bars == {s: (t[0], t[1]) for s, t
+                          in _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW).items()}
     assert isinstance(skips, dict)                             # the runtime integrator_skips
     assert result == "SPY"                                     # leaf winner
     assert 'class="setup-chart"' in html                       # winner drives the slot
@@ -5391,7 +5395,8 @@ def test_a1c_leaf_fed_post_fixture_symbols(monkeypatch):  # R6/M29
     assert seen, "leaf not called in fixture mode"
     mm, pb, sk = seen[0]
     assert mm["symbols"] is FIXTURE_SYMBOLS                    # POST-replacement symbols feed the leaf
-    assert pb == _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW)  # runtime price bars
+    assert pb == {s: (t[0], t[1]) for s, t                            # PRD-342 faithful 2-tuple view
+                  in _dr._price_bars_by_symbol(_a1c_bars(symbols=("SPY",)), _A1C_NOW).items()}
     assert isinstance(sk, dict)                               # runtime integrator_skips
 
 
@@ -5399,7 +5404,7 @@ def test_a1c_non_primary_daily_chart_preserved_under_intraday(monkeypatch, tmp_p
     mm = _market_map({"SPY": _a1c_chartable("SPY", "A+"), "QQQ": _a1c_chartable("QQQ", "A")})
     path = _a1c_write(tmp_path, _a1c_intraday_snapshot())  # primary is SPY
     html = _a1c_render_html(monkeypatch, intraday_path=path, mm=mm)
-    assert "completed through 09:40 ET" in html               # SPY took the intraday slot
+    assert "through 9:40 AM ET" in html                       # SPY took the intraday slot (PRD-342)
     assert html.count('class="setup-chart"') == 2             # SPY intraday + QQQ disclosed daily
     assert 'class="setup-chart"' in _a1c_card(html, "QQQ")    # non-primary daily chart retained
 
@@ -5509,11 +5514,13 @@ def test_prd330_r2_header_lines_replace_the_kv_grid() -> None:
     order = [obs.index(k) for k in ('class="spy-clock"', 'id="spy-levels"', 'class="chart-controls"', 'class="spy-chart"', 'class="lvl-ladder')]
     assert order == sorted(order)
     # D-8: the map clock is time-only iff the map's Pacific day is the intended session day
-    cap = "bars through 2026-08-27 · yfinance 1d"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-28", cap) == "Levels updated 5:00 AM PT · daily bars through Aug 27"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-27", cap) == "Levels updated Apr 28 · 5:00 AM PT · daily bars through Aug 27"
-    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", None, cap).startswith("Levels updated Apr 28 · 5:00 AM PT")
-    assert _dr._spy_clock_line("garbage", "2026-04-28", "no caption") == "Levels updated Update time unavailable · daily bars through unknown date"
+    # PRD-342: _spy_clock_line takes the ISO `as_of` DIRECTLY (no caption prose-parse);
+    # the visible output is byte-unchanged.
+    as_of = "2026-08-27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-28", as_of) == "Levels updated 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", "2026-04-27", as_of) == "Levels updated Apr 28 · 5:00 AM PT · daily bars through Aug 27"
+    assert _dr._spy_clock_line("2026-04-28T12:00:00Z", None, as_of).startswith("Levels updated Apr 28 · 5:00 AM PT")
+    assert _dr._spy_clock_line("garbage", "2026-04-28", "") == "Levels updated Update time unavailable · daily bars through unknown date"
 
 
 def test_prd329_spy_chart_is_daily_neutral_with_named_clocks() -> None:
@@ -5571,10 +5578,10 @@ def test_prd329_spy_unavailable_when_healthy_map_lacks_spy_record() -> None:
         assert "<svg" not in obs and "lvl-ladder" not in obs
     for rec in (None, ["not", "a", "dict"], "SPY"):
         out: list[str] = []
-        _dr._render_spy_session(out.append, _spy_section(), (_PC_BARS, "cap"), rec, "OK", False, "clock")
+        _dr._render_spy_session(out.append, _spy_section(), (_PC_BARS, "cap", "2026-08-27", "yfinance", "1d"), rec, "OK", False, "clock")
         assert _S2_MAP_LINE.format("no SPY record") in "\n".join(out) and "<svg" not in "\n".join(out)
     out = []
-    _dr._render_spy_session(out.append, _spy_section(), (_PC_BARS, "cap"),
+    _dr._render_spy_session(out.append, _spy_section(), (_PC_BARS, "cap", "2026-08-27", "yfinance", "1d"),
                             {"current_price": 101.8, "watch_zones": None, "fib_levels": None}, "OK", False, "c")
     assert "<svg" in "\n".join(out) and 'class="lvl-ladder' in "\n".join(out)  # NOW-only ladder, no raise
 

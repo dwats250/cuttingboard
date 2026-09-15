@@ -14,8 +14,11 @@ variants, and `ui/contract.json` via the workflow `cp`) under the top-level
 `cuttingboard.effective_permission.persist` (the packet-s14 exclusive writer,
 R4) — NOT a `PipelineContract` builder key, so it is documented as the standalone
 `contract_types.EffectivePermissionEnvelope` TypedDict, not on `PipelineContract`
-(keeps the PRD-233 drift guards intact). Consumers are Slice 2; the field is inert
-until then.
+(keeps the PRD-233 drift guards intact). Slice 2 (PRD-340 Authority Projection) is
+MERGED into main: the field is CONSUMED via `authority_projection.admit_projection`
+at the cross-process read boundary (e.g. `dashboard_renderer.render_dashboard_html`).
+It is no longer inert. (PRD-339/PRD-340 registry rows remain IN PROGRESS pending
+formal commissioning closeout, tracked separately.)
 
 | Field path | Type | Notes |
 |---|---|---|

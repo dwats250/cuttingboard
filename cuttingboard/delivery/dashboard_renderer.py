@@ -383,12 +383,14 @@ def _spy_session_lines(spy_obs: dict) -> tuple[str, str]:
     return line1, line2
 
 
-def _spy_clock_line(mm_clock_label: str, intended: object, caption: str) -> str:
-    """PRD-330 R2 line 3: map clock (time-only iff same Pacific day as the session) + bars `as_of`."""
+def _spy_clock_line(mm_clock_label: str, intended: object, as_of: str) -> str:
+    """PRD-330 R2 line 3: map clock (time-only iff same Pacific day as the session) +
+    bars `as_of`. PRD-342: takes the ISO `as_of` DIRECTLY (no brittle
+    `caption.split("bars through ")` prose-parse); the visible output is unchanged."""
     parsed = _parse_utc_timestamp(mm_clock_label)
     same_day = parsed is not None and bool(intended) and parsed.astimezone(_PT).date().isoformat() == str(intended)[:10]
     clock = _operator_clock(parsed) if same_day else _operator_timestamp(parsed if parsed else mm_clock_label)
-    as_of = caption.split("bars through ", 1)[1][:10] if "bars through " in caption else ""
+    as_of = str(as_of)[:10] if as_of else ""
     # PRD-334 R4: plain language -- "Levels updated" instead of the internal
     # "Market-map levels"; both clocks (the levels read time and the daily-bars
     # date) are preserved.
@@ -491,10 +493,23 @@ _STALENESS_BANNER_JS = """
       banner.hidden = false;
       return;
     }
-    if (ageSec > staleAfter) {
+    // PRD-342: a genuinely EXPIRED decision (viewer clock past the ADMITTED
+    // session-validity bound baked as data-valid-until) keeps the warning; a
+    // healthy carried decision that is merely aged reads as a neutral DECISION age.
+    // Absent/unparseable valid_until (fail-closed authority) NEVER fabricates a
+    // warning (no secondary validity clock).
+    var vuIso = banner.getAttribute("data-valid-until");
+    var validUntil = vuIso ? new Date(vuIso) : null;
+    var expired = validUntil && !isNaN(validUntil.getTime()) && Date.now() > validUntil.getTime();
+    if (expired) {
       banner.textContent = "BOARD " + fmtAge(ageSec) + " OLD";
       banner.style.color = "var(--color-warning)";
       banner.style.borderColor = "var(--color-warning)";
+      banner.hidden = false;
+    } else if (ageSec > staleAfter) {
+      banner.textContent = "DECISION \\u00b7 " + fmtAge(ageSec);
+      banner.style.color = "#888";
+      banner.style.borderColor = "";
       banner.hidden = false;
     } else {
       banner.hidden = true;
@@ -1430,40 +1445,50 @@ def _load_intraday_bars_snapshot(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def _caption_weekday_date(as_of: str) -> str:
+    """`YYYY-MM-DD` -> `Fri Sep 11`; the raw value on any parse failure (never raises)."""
+    try:
+        return date.fromisoformat(str(as_of)[:10]).strftime("%a %b %-d")
+    except (ValueError, TypeError):
+        return str(as_of)
+
+
 def _price_bars_caption(snapshot: dict, as_of: str) -> str:
-    """PRD-321 R2: the honesty caption — the bars' `as_of` plus the sidecar's
-    own source provenance (`source.provider` / `source.interval`)."""
-    caption = f"bars through {as_of}"
+    """PRD-342: timeframe-first honesty caption `<interval> · through <Weekday Mon D>`
+    (e.g. `1D · through Fri Sep 11`). A prior completed-daily bar is presented as a
+    completed-daily date, never labelled stale. Source provider/interval stay
+    machine-readable on the chart caption (`data-provider` / `data-source-interval` /
+    `data-as-of`) via `_price_bars_by_symbol` + `_render_setup_chart_block`."""
+    interval = ""
     source = snapshot.get("source")
     if isinstance(source, dict):
-        provenance = " ".join(
-            part for part in (
-                str(source.get("provider") or "").strip(),
-                str(source.get("interval") or "").strip(),
-            ) if part
-        )
-        if provenance:
-            caption = f"{caption} · {provenance}"
-    return caption
+        interval = str(source.get("interval") or "").strip().upper()  # "1d" -> "1D"
+    prefix = f"{interval} · " if interval else ""
+    return f"{prefix}through {_caption_weekday_date(as_of)}"
 
 
 def _price_bars_by_symbol(
     snapshot: dict | None, now: datetime
-) -> dict[str, tuple[list, str]]:
-    """PRD-321 R2: `{symbol: (completed bars, caption)}` for the symbols that
-    clear the age guard.
+) -> dict[str, tuple[list, str, str, str, str]]:
+    """PRD-321 R2 / PRD-342: `{symbol: (completed bars, caption, as_of, provider,
+    source_interval)}` for the symbols that clear the age guard. as_of/provider/
+    source_interval are carried so the chart caption can expose machine-readable
+    provenance (`data-as-of` / `data-provider` / `data-source-interval`).
 
     The guard is UTC calendar-day arithmetic: a symbol is bars-absent when
     (UTC date of `now`) minus (its `as_of` date) exceeds 5 days. A symbol whose
     entry is malformed, whose `as_of` is unparseable, or whose bar list is
     empty is simply absent — OHLC is never synthesized or padded.
     """
-    usable: dict[str, tuple[list, str]] = {}
+    usable: dict[str, tuple[list, str, str, str, str]] = {}
     if not isinstance(snapshot, dict):
         return usable
     symbols = snapshot.get("symbols")
     if not isinstance(symbols, dict):
         return usable
+    _source = snapshot.get("source")
+    _provider = str(_source.get("provider") or "").strip() if isinstance(_source, dict) else ""
+    _interval = str(_source.get("interval") or "").strip() if isinstance(_source, dict) else ""
     now_date = now.astimezone(timezone.utc).date()
     for symbol, record in symbols.items():
         if not isinstance(record, dict):
@@ -1478,7 +1503,8 @@ def _price_bars_by_symbol(
             continue
         if (now_date - as_of_date).days > _PRICE_BARS_MAX_AGE_DAYS:
             continue
-        usable[str(symbol)] = (bars, _price_bars_caption(snapshot, as_of[:10]))
+        usable[str(symbol)] = (bars, _price_bars_caption(snapshot, as_of[:10]),
+                               as_of[:10], _provider, _interval)
     return usable
 
 
@@ -2329,7 +2355,9 @@ def _render_level_ladder(
     w("  </div>")
 
 
-def _render_setup_chart_block(w: object, svg: str, caption: str) -> None:
+def _render_setup_chart_block(w: object, svg: str, caption: str, *,
+                              provider: str = "", source_interval: str = "",
+                              as_of: str = "") -> None:
     """PRD-334 R2: the setup chart renders FLAT for every card -- the former
     per-candidate `chart-detail` disclosure (and the LEVEL MAP -> CHART two-level
     nesting) is removed. The radio workspace already shows one card at a time, so a
@@ -2337,7 +2365,16 @@ def _render_setup_chart_block(w: object, svg: str, caption: str) -> None:
     single canonical chart slot / A1-C intraday-source assignment is unchanged; only
     the disclosure wrapper is gone (superseding PRD-321 R3 / PRD-329 R1 nesting)."""
     w(f'  <div class="setup-chart">{svg}</div>')
-    w(f'  <div class="chart-caption">{_esc(caption)}</div>')
+    # PRD-342: machine-readable daily provenance when supplied (omit when absent —
+    # never a fabricated value); intraday callers pass none.
+    _attrs = "".join(
+        f' {k}="{_esc(v)}"' for k, v in (
+            ("data-provider", provider),
+            ("data-source-interval", source_interval),
+            ("data-as-of", as_of),
+        ) if v
+    )
+    w(f'  <div class="chart-caption"{_attrs}>{_esc(caption)}</div>')
 
 
 def _render_candidate_card(
@@ -2345,6 +2382,7 @@ def _render_candidate_card(
     contract_stop: float | None = None, operator_locked: bool = False,
     decision_permitted: bool = False,
     bars: list | None = None, bars_caption: str = "",
+    bars_provider: str = "", bars_interval: str = "", bars_as_of: str = "",
     chart_slot_available: bool = False,
     intraday_session: "intraday_bars.IntradaySession | None" = None,
 ) -> bool:
@@ -2550,6 +2588,7 @@ def _render_candidate_card(
         chart_neutral = operator_locked or (chart_slot_available and not decision_permitted)
         chart_svg = ""
         chart_caption = bars_caption
+        _used_intraday = False
         if chart_slot_available and intraday_session is not None:
             chart_svg = setup_chart.render_setup_chart_svg(
                 intraday_session.candles,
@@ -2563,6 +2602,7 @@ def _render_candidate_card(
             )
             if chart_svg:
                 chart_caption = intraday_session.caption
+                _used_intraday = True
         # PRD-321 R1/R2: the daily chart draws only from completed bars that passed
         # the loader's age guard; an empty SVG means "nothing honest to draw" and
         # the card degrades to the compact ladder alone (R4).
@@ -2586,7 +2626,14 @@ def _render_candidate_card(
         # the A1-C intraday-source assignment, unchanged -- but no longer gates
         # disclosure.
         if chart_svg:
-            _render_setup_chart_block(w, chart_svg, chart_caption)
+            # PRD-342: daily provenance rides the daily caption only; the intraday
+            # substitution carries its own caption and no daily provenance attrs.
+            _render_setup_chart_block(
+                w, chart_svg, chart_caption,
+                provider="" if _used_intraday else bars_provider,
+                source_interval="" if _used_intraday else bars_interval,
+                as_of="" if _used_intraday else bars_as_of,
+            )
         # PRD-321 R4: the compact ladder is the chart's subordinate exact-level
         # reference (rendered directly below it) AND the full fallback when no
         # bars are available. Both roles carry every authority semantic.
@@ -2634,13 +2681,16 @@ def _render_spy_session(
         price_valid = (isinstance(now_price, (int, float)) and not isinstance(now_price, bool)
                        and math.isfinite(now_price) and now_price > 0)
         if price_valid:
-            bars, caption = spy_bars if spy_bars else (None, "")
+            # PRD-342: the SPY session shows the `_spy_clock_line` (not a chart
+            # caption); it needs only bars + the ISO as_of (passed directly to
+            # _spy_clock_line, no caption prose-parse).
+            bars, spy_as_of = (spy_bars[0], spy_bars[2]) if spy_bars else (None, "")
             svg = setup_chart.render_setup_chart_svg(
                 bars, now_price, contract_entry=None, contract_stop=None,
                 watch_zones=zones, fib_levels=fibs, operator_locked=False, layers=("levels",),
             ) if bars else ""
             if svg:
-                w(f'  <div class="spy-clock">{_esc(_spy_clock_line(mm_clock_label, spy_obs.get("intended_session_date"), caption))}</div>')
+                w(f'  <div class="spy-clock">{_esc(_spy_clock_line(mm_clock_label, spy_obs.get("intended_session_date"), spy_as_of))}</div>')
                 _cid, _clabel = _LAYER_CONTROLS["levels"]
                 w(f'  <input type="checkbox" id="{_cid}" class="chart-toggle">')
                 w(f'  <div class="chart-controls"><label for="{_cid}" class="chart-toggle-label">{_clabel}</label></div>')
@@ -2958,9 +3008,20 @@ def render_dashboard_html(
 
     # PRD-250 freshness remains client-clocked and safety-visible, but is now a
     # compact treatment inside the authoritative card instead of a peer card.
+    # PRD-342: bake the ADMITTED session-validity bound so the client clock can tell
+    # a healthy carried decision (neutral DECISION age) from a genuinely EXPIRED one.
+    # The value comes ONLY through canonical admission (admit_ep) — never the raw
+    # envelope — and is called WITHOUT `now`, so an expired-but-canonical decision
+    # keeps its valid_until for the viewer clock; absent/malformed/prior-session
+    # fail-close to "" (neutral banner, never a fabricated warning; no secondary clock).
+    _banner_sess = str(run.get("session_date") or (str(run.get("timestamp") or ""))[:10])
+    _banner_pipeline_run = pipeline_run if pipeline_run is not None else run
+    _banner_valid_until = authority_projection.admit_ep(
+        _banner_pipeline_run, current_session_date=_banner_sess).valid_until or ""
     w(f'<div class="block" id="staleness-banner" hidden'
       f' style="text-align:center;font-weight:bold"'
       f' data-session-inactive="{"true" if inactive_session else "false"}"'
+      f' data-valid-until="{_esc(_banner_valid_until)}"'
       f' data-board-stale-after-s="{BOARD_STALE_AFTER_SECONDS}"></div>')
     w(f'<script>{_STALENESS_BANNER_JS}</script>')
     # PRD-335 R5: the canonical regime word is ALWAYS carried as data-regime on
@@ -3341,8 +3402,14 @@ def render_dashboard_html(
     # consumed (post-fixture-replacement `market_map`, `_price_bars`,
     # `integrator_skips`). The card whose symbol equals this result takes the slot;
     # the deleted latch is replaced by an equality check at the call site (R6).
+    # PRD-342: `select_primary_card_symbol`'s documented contract is
+    # `{sym: (bars, caption)}` and it uses `bars` alone; the renderer's extended
+    # 5-tuple carries provenance for the caption only. Pass the 2-tuple view so the
+    # shared leaf (also fed a 2-tuple map by the runtime seam) stays unchanged.
     _primary_card_symbol = select_primary_card_symbol(
-        market_map, _price_bars, integrator_skips
+        market_map,
+        {s: (t[0], t[1]) for s, t in _price_bars.items()},
+        integrator_skips,
     )
     # PRD-324 (A1-C R1/R2/R3): load the A1-P intraday sidecar and derive the
     # admitted completed-5m session for the primary; None => the daily chart stays.
@@ -3450,7 +3517,8 @@ def render_dashboard_html(
                 _hg_syms = [s for s in sorted_syms if symbols[s].get("grade", "") in _HIGH_GRADES]
 
                 def _emit_card(sym: str) -> None:
-                    _sym_bars, _sym_caption = _price_bars.get(sym, (None, ""))
+                    _sym_bars, _sym_caption, _sym_as_of, _sym_provider, _sym_interval = \
+                        _price_bars.get(sym, (None, "", "", "", ""))
                     _render_candidate_card(
                         w, sym, symbols[sym],
                         contract_entry=(contract_entry_map or {}).get(sym),
@@ -3459,6 +3527,8 @@ def render_dashboard_html(
                         decision_permitted=_decision_state == authority_projection.DECISION_TRADE_PERMITTED,
                         bars=_sym_bars,
                         bars_caption=_sym_caption,
+                        bars_provider=_sym_provider, bars_interval=_sym_interval,
+                        bars_as_of=_sym_as_of,
                         chart_slot_available=(sym == _primary_card_symbol),
                         intraday_session=_intraday_session,
                     )

@@ -78,8 +78,11 @@ def test_caption_states_completed_through_not_raw_source_through():
     session = _derive(_snapshot(_bin0_bars()))  # last bar 09:34; completed END 09:35 -> they differ
     assert session is not None
     assert session.completed_through == "09:35"
-    assert "09:35" in session.caption and _SESSION in session.caption
-    assert "09:34" not in session.caption  # never captions the raw source `through` (R10)
+    # PRD-342 grammar `5m · <Weekday Mon D> · through <h:MM AM/PM> ET`: states the
+    # completed-through END (9:35 AM) and the ET session_date (Thu Aug 27 == _SESSION).
+    assert "9:35 AM" in session.caption
+    assert "Thu Aug 27" in session.caption            # session_date stated (R10); 2026-08-27 is a Thursday
+    assert "9:34" not in session.caption              # never captions the raw source `through` (R10)
 
 
 # --- M3/M4/M5 membership and boundaries ---------------------------------------
