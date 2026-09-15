@@ -178,7 +178,7 @@ def test_harness_refuses_symlink_into_ui(tmp_path):
 def test_prd326_chart_case_renders_an_undisclosed_primary_chart(name):
     html = _render(_case(name))
     assert "<details" not in html.split('id="card-SPY"', 1)[1].split('class="setup-chart"', 1)[0]
-    assert "bars through 2026-08-27" in html                      # the daily caption
+    assert "1D · through Thu Aug 27" in html                      # the daily caption (PRD-342)
 
 
 @pytest.mark.parametrize("name", _D1_NO_CHART_CASES)
@@ -195,5 +195,5 @@ def test_prd326_harness_is_hermetic_against_a_live_intraday_sidecar(monkeypatch,
     monkeypatch.setattr(_dr, "_INTRADAY_BARS_SNAPSHOT_PATH", planted)
     render_all(out_dir=tmp_path / "out")
     html = (tmp_path / "out" / "fixture_primary_chart_stay_flat.html").read_text(encoding="utf-8")
-    assert "bars through 2026-08-27" in html and "completed through" not in html
+    assert "1D · through Thu Aug 27" in html and "5m ·" not in html  # daily case; no intraday marker
     assert _dr._INTRADAY_BARS_SNAPSHOT_PATH == planted            # restored after rendering

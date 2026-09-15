@@ -813,7 +813,9 @@ def test_prd321_chart_renders_from_the_snapshot_with_an_as_of_caption() -> None:
     html = _render(_market_map({"SPY": _chartable()}), _bars_snapshot())
     card = _pc_card(html)
     assert 'class="setup-chart"' in card
-    assert "bars through 2026-08-27 · yfinance 1d" in card
+    assert "1D · through Thu Aug 27" in card                 # PRD-342 timeframe-first caption
+    assert 'data-provider="yfinance"' in card and 'data-source-interval="1d"' in card  # machine-readable provenance
+    assert 'data-as-of="2026-08-27"' in card
     # Source-bar fidelity: one candle per snapshot bar, direction from the input.
     assert card.count('class="candle-body"') == len(_PC_BARS)
     assert card.count('class="candle-wick"') == len(_PC_BARS)
@@ -827,7 +829,7 @@ def test_prd321_age_guard_admits_exactly_five_calendar_days() -> None:
         html = _render(_market_map({"SPY": _chartable()}), _bars_snapshot(as_of=as_of))
         card = _pc_card(html)
         assert ('class="setup-chart"' in card) is expect_chart, (delta, expect_chart)
-        assert (f"bars through {as_of}" in card) is expect_chart
+        assert ('class="chart-caption"' in card) is expect_chart   # PRD-342: caption present iff chart
         # Either way the compact ladder is present with its exact levels.
         assert 'class="lvl-ladder' in card
 
@@ -866,7 +868,7 @@ def test_prd321_unusable_snapshot_changes_nothing_outside_the_chart_region(snaps
     degraded = _render(mm, snapshot)
     assert degraded == baseline
     assert 'class="setup-chart"' not in degraded
-    assert "bars through" not in degraded
+    assert 'class="chart-caption"' not in degraded
     assert 'class="lvl-ladder' in degraded
 
 
@@ -1007,7 +1009,7 @@ def test_prd321_invalid_current_price_renders_no_chart_and_no_ladder(bad_price) 
     html = _render(_market_map({"SPY": entry}), _bars_snapshot())   # must not raise
     assert 'class="setup-chart"' not in html
     assert 'class="lvl-ladder' not in html
-    assert "bars through" not in html
+    assert 'class="chart-caption"' not in html
     # PRD-158 translation 12 / PRD-226: suppressed outright, not replaced by a
     # placeholder. Mutation: drop `now_valid` from the caller gate -> the
     # ladder's belt-and-suspenders guard emits "Chart unavailable" and this
@@ -1175,7 +1177,7 @@ def test_prd326_non_permitted_intraday_primary_chart_is_neutral(monkeypatch, tmp
     path.write_text(json.dumps(_intraday_snapshot(_NOW, primary="AAA")), encoding="utf-8")
     monkeypatch.setattr(_dr, "_INTRADAY_BARS_SNAPSHOT_PATH", path)
     card = _d1_card(_d1_render(_run(outcome="NO_TRADE"), **_D1_CONTRACTS), "AAA")
-    assert "completed through 09:40 ET" in card
+    assert "through 9:40 AM ET" in card                      # PRD-342 intraday grammar
     _assert_neutral(_d1_chart(card))
 
 
@@ -1212,7 +1214,7 @@ def test_prd326_directives_stay_keyed_on_lock() -> None:
 def test_prd326_no_primary_renders_no_placeholder(monkeypatch) -> None:
     run = _run(outcome="NO_TRADE")
     html = _d1_render(run, bars=False, **_D1_CONTRACTS)
-    assert 'class="setup-chart"' not in html and "bars through" not in html
+    assert 'class="setup-chart"' not in html and 'class="chart-caption"' not in html
     assert 'class="lvl-ladder' in _d1_card(html, "AAA")             # fallback ladder
     assert 'class="lvl-riskband lvl-lockrisk"' not in html                # no lock palette
     # M9: force the slot open with nothing honest to draw -> still no placeholder.
