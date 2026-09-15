@@ -9,7 +9,7 @@
 <body>
 <div class="wrap">
 <div class="block operator-zone" id="verdict-zone">
-<div class="block" id="staleness-banner" hidden style="text-align:center;font-weight:bold" data-session-inactive="false" data-board-stale-after-s="5400"></div>
+<div class="block" id="staleness-banner" hidden style="text-align:center;font-weight:bold" data-session-inactive="false" data-valid-until="2026-04-29T08:00:00+00:00" data-board-stale-after-s="5400"></div>
 <script>
 (function () {
   function fmtAge(sec) {
@@ -41,10 +41,23 @@
       banner.hidden = false;
       return;
     }
-    if (ageSec > staleAfter) {
+    // PRD-342: a genuinely EXPIRED decision (viewer clock past the ADMITTED
+    // session-validity bound baked as data-valid-until) keeps the warning; a
+    // healthy carried decision that is merely aged reads as a neutral DECISION age.
+    // Absent/unparseable valid_until (fail-closed authority) NEVER fabricates a
+    // warning (no secondary validity clock).
+    var vuIso = banner.getAttribute("data-valid-until");
+    var validUntil = vuIso ? new Date(vuIso) : null;
+    var expired = validUntil && !isNaN(validUntil.getTime()) && Date.now() > validUntil.getTime();
+    if (expired) {
       banner.textContent = "BOARD " + fmtAge(ageSec) + " OLD";
       banner.style.color = "var(--color-warning)";
       banner.style.borderColor = "var(--color-warning)";
+      banner.hidden = false;
+    } else if (ageSec > staleAfter) {
+      banner.textContent = "DECISION \u00b7 " + fmtAge(ageSec);
+      banner.style.color = "#888";
+      banner.style.borderColor = "";
       banner.hidden = false;
     } else {
       banner.hidden = true;

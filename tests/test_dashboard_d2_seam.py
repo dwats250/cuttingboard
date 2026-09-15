@@ -78,7 +78,9 @@ _R1_AUTHORITY = {
             "kill": None, "permission": None, "regime": "Risk-on regime"},
 }
 _R2_UPDATED_LINE = '<div class="value" id="cb-updated" data-updated-utc="2026-04-28T12:00:00+00:00">Updated Apr 28 · 5:00 AM PT</div>'
-_STALENESS_JS_SHA = "293812c1ded273bfd2133221939d6f4889f0af556bafd267429c00c0017d10cd"
+# PRD-342: regenerated for the valid_until-aware banner (neutral DECISION age vs
+# expired BOARD OLD; admitted data-valid-until read by the client clock).
+_STALENESS_JS_SHA = "e3ccb9fe0391e5afcad7ebe7ef0f2399d27718fb340d0cd2cfc1c7f3f0079898"
 
 
 @pytest.fixture(autouse=True)

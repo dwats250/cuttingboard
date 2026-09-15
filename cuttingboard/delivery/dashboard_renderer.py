@@ -491,10 +491,23 @@ _STALENESS_BANNER_JS = """
       banner.hidden = false;
       return;
     }
-    if (ageSec > staleAfter) {
+    // PRD-342: a genuinely EXPIRED decision (viewer clock past the ADMITTED
+    // session-validity bound baked as data-valid-until) keeps the warning; a
+    // healthy carried decision that is merely aged reads as a neutral DECISION age.
+    // Absent/unparseable valid_until (fail-closed authority) NEVER fabricates a
+    // warning (no secondary validity clock).
+    var vuIso = banner.getAttribute("data-valid-until");
+    var validUntil = vuIso ? new Date(vuIso) : null;
+    var expired = validUntil && !isNaN(validUntil.getTime()) && Date.now() > validUntil.getTime();
+    if (expired) {
       banner.textContent = "BOARD " + fmtAge(ageSec) + " OLD";
       banner.style.color = "var(--color-warning)";
       banner.style.borderColor = "var(--color-warning)";
+      banner.hidden = false;
+    } else if (ageSec > staleAfter) {
+      banner.textContent = "DECISION \\u00b7 " + fmtAge(ageSec);
+      banner.style.color = "#888";
+      banner.style.borderColor = "";
       banner.hidden = false;
     } else {
       banner.hidden = true;
@@ -2958,9 +2971,20 @@ def render_dashboard_html(
 
     # PRD-250 freshness remains client-clocked and safety-visible, but is now a
     # compact treatment inside the authoritative card instead of a peer card.
+    # PRD-342: bake the ADMITTED session-validity bound so the client clock can tell
+    # a healthy carried decision (neutral DECISION age) from a genuinely EXPIRED one.
+    # The value comes ONLY through canonical admission (admit_ep) — never the raw
+    # envelope — and is called WITHOUT `now`, so an expired-but-canonical decision
+    # keeps its valid_until for the viewer clock; absent/malformed/prior-session
+    # fail-close to "" (neutral banner, never a fabricated warning; no secondary clock).
+    _banner_sess = str(run.get("session_date") or (str(run.get("timestamp") or ""))[:10])
+    _banner_pipeline_run = pipeline_run if pipeline_run is not None else run
+    _banner_valid_until = authority_projection.admit_ep(
+        _banner_pipeline_run, current_session_date=_banner_sess).valid_until or ""
     w(f'<div class="block" id="staleness-banner" hidden'
       f' style="text-align:center;font-weight:bold"'
       f' data-session-inactive="{"true" if inactive_session else "false"}"'
+      f' data-valid-until="{_esc(_banner_valid_until)}"'
       f' data-board-stale-after-s="{BOARD_STALE_AFTER_SECONDS}"></div>')
     w(f'<script>{_STALENESS_BANNER_JS}</script>')
     # PRD-335 R5: the canonical regime word is ALWAYS carried as data-regime on
