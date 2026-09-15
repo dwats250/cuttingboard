@@ -118,26 +118,32 @@ def test_valid_until_baked_from_admitted_ep_only() -> None:
         posture_permission_line="No new trades permitted.",
         operator_lock_line="No new trades permitted — operator cannot monitor.").to_envelope()
 
-    def _vu(run: dict) -> str:
-        html = render_dashboard_html(_payload(macro_drivers=_macro_drivers()), run,
+    def _render(run: dict) -> str:
+        return render_dashboard_html(_payload(macro_drivers=_macro_drivers()), run,
                                      market_map=_market_map({"SPY": _mm_symbol()}))
+
+    def _vu(html: str) -> str:
         m = re.search(r'data-valid-until="([^"]*)"', _banner_open_tag(html))
         assert m, "data-valid-until attribute not emitted"
         return m.group(1)
 
     # admitted (canonical, current session) -> the envelope's valid_until
-    assert _vu({**_run(), "session_date": sess, "effective_permission": env}) == env["valid_until"]
-    # expired-but-canonical survives admission (admit_ep called without `now`) — Sol N2
+    assert _vu(_render({**_run(), "session_date": sess, "effective_permission": env})) == env["valid_until"]
+    # expired-but-canonical survives admission (admit_ep called without `now`) — Sol design-N2
     past = {**env, "valid_until": "2020-01-01T00:00:00+00:00"}
-    assert _vu({**_run(), "session_date": sess, "effective_permission": past}) == "2020-01-01T00:00:00+00:00"
-    # malformed with a PARSEABLE valid_until -> rejected -> "" (no raw leak) — Sol N1
-    bad = {**env, "unexpected_extra_key": 1}
-    assert _vu({**_run(), "session_date": sess, "effective_permission": bad}) == ""
+    assert _vu(_render({**_run(), "session_date": sess, "effective_permission": past})) == "2020-01-01T00:00:00+00:00"
+    # Proof 11 (Sol design-N1 + impl-review): a malformed envelope with a PARSEABLE
+    # valid_until fails closed. SAME render: the banner carrier is "" (no raw leak)
+    # AND the independent decision-state surface is STATE UNAVAILABLE — a regression
+    # that keeps the banner empty but renders a confident decision-state fails here.
+    bad_html = _render({**_run(), "session_date": sess,
+                        "effective_permission": {**env, "unexpected_extra_key": 1}})
+    assert _vu(bad_html) == ""
+    assert 'data-raw-state="STATE UNAVAILABLE"' in bad_html and "STATE UNAVAILABLE" in bad_html
     # prior-session canonical envelope -> rejected -> "" (session mismatch)
-    prior = {**_run(), "session_date": "2026-04-29", "effective_permission": env}
-    assert _vu(prior) == ""
+    assert _vu(_render({**_run(), "session_date": "2026-04-29", "effective_permission": env})) == ""
     # absent EP -> "" (fail-closed, neutral banner)
-    assert _vu({k: v for k, v in _run().items() if k != "effective_permission"}) == ""
+    assert _vu(_render({k: v for k, v in _run().items() if k != "effective_permission"})) == ""
 
 
 @pytest.mark.parametrize(
