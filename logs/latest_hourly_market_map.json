@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.015773385124124142,
-      "price": 159.08999633789062,
+      "pct_change_decimal": -0.018556676698210876,
+      "price": 158.64010620117188,
       "structure": "BREAKOUT",
       "symbol": "USO"
     }
@@ -20,8 +20,8 @@
       "SLV"
     ]
   },
-  "generated_at": "2026-09-16T13:32:52Z",
-  "generation_id": "hourly-20260916T133252Z",
+  "generated_at": "2026-09-16T13:47:51Z",
+  "generation_id": "hourly-20260916T134751Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -35,14 +35,14 @@
   "session_date": "2026-09-16",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-16T13:32:52Z"
+    "run_at_utc": "2026-09-16T13:47:51Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 95.48999786376953,
+      "current_price": 94.94999694824219,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -98,7 +98,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 398.9849853515625,
+      "current_price": 398.29998779296875,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -108,12 +108,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "CHOPPY",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "C",
-        "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "CHOPPY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -154,7 +154,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 708.0050048828125,
+      "current_price": 709.1845092773438,
       "fib_levels": {
         "retracements": {
           "0.382": 715.9437,
@@ -220,7 +220,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 58.3650016784668,
+      "current_price": 58.275001525878906,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -230,12 +230,12 @@
       "lifecycle": {
         "current_grade": "F",
         "current_setup_state": "CHOPPY",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "C",
-        "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "F",
+        "previous_setup_state": "CHOPPY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": null,
       "reason_for_grade": "Market data unavailable for this run.",
@@ -276,7 +276,7 @@
       "asset_group": "INDEX",
       "bias": "MIXED",
       "confidence": "MEDIUM",
-      "current_price": 759.3200073242188,
+      "current_price": 759.7899780273438,
       "fib_levels": {
         "retracements": {
           "0.382": 767.9847,
@@ -341,8 +341,8 @@
     "XLE": {
       "asset_group": "ENERGY",
       "bias": "BULLISH",
-      "confidence": "LOW",
-      "current_price": 64.87000274658203,
+      "confidence": "MEDIUM",
+      "current_price": 64.66500091552734,
       "fib_levels": {
         "retracements": {
           "0.382": 64.3135,
@@ -353,32 +353,32 @@
         "swing_high": 66.17,
         "swing_low": 61.31
       },
-      "grade": "A+",
+      "grade": "B",
       "invalidation": [
         "loses EMA9 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
-        "current_grade": "A+",
-        "current_setup_state": "ACTIONABLE",
-        "grade_transition": "UPGRADED",
+        "current_grade": "B",
+        "current_setup_state": "DEVELOPING",
+        "grade_transition": "DOWNGRADED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "B",
-        "previous_setup_state": "DEVELOPING",
+        "previous_grade": "A+",
+        "previous_setup_state": "ACTIONABLE",
         "setup_state_transition": "CHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "A+: bullish trending_up, regime aligned, near key level",
-      "setup_state": "ACTIONABLE",
-      "structure": "TRENDING_UP",
+      "reason_for_grade": "B: bullish pullback, regime aligned, near key level",
+      "setup_state": "DEVELOPING",
+      "structure": "PULLBACK",
       "symbol": "XLE",
       "trade_framing": {
         "direction": "LONG",
         "downgrade": "wait if price loses EMA9 or structure turns choppy",
         "entry": "hold above EMA9 with constructive follow-through",
-        "if_now": "TAKE",
-        "setup": "energy bullish trending_up",
+        "if_now": "WAIT",
+        "setup": "energy bullish pullback",
         "trade_type": "call_spread",
         "upgrade": "improves on clean hold near key level with expanding participation"
       },
