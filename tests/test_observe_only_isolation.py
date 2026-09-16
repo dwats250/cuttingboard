@@ -325,7 +325,19 @@ def _run_real_notify(observe_ret, tmp, monkeypatch, validate_calls):
                         lambda title=None, body=None, *a, **k: notif.append((title, body)) or True)
     monkeypatch.setattr(runtime, "_fetch_observe_only_quotes", observe_ret)
 
-    result = _execute_notify_run(mode=MODE_LIVE, run_date=date(2026, 4, 23), notify_mode=NOTIFY_HOURLY)
+    # Pin a fixed timezone-aware slot so the hourly notification header --
+    # baked into latest_hourly_run.json via alert_body -- is byte-identical
+    # across the paired A/B/C runs and cannot cross a real wall-clock minute
+    # boundary (the pre-fix flake: "4:26 PM" vs "4:27 PM"). Rides the existing
+    # production slot_utc seam of _execute_notify_run; no production behaviour
+    # changes, no scrub of the alert body.
+    paired_run_slot_utc = datetime(2026, 4, 23, 20, 0, tzinfo=timezone.utc)
+    result = _execute_notify_run(
+        mode=MODE_LIVE,
+        run_date=date(2026, 4, 23),
+        notify_mode=NOTIFY_HOURLY,
+        slot_utc=paired_run_slot_utc,
+    )
 
     files = {}
     for fn in ("latest_hourly_contract.json", "latest_hourly_run.json",
