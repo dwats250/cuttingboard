@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.011730780968299279,
-      "price": 154.1699981689453,
+      "pct_change_decimal": -0.012102567232572116,
+      "price": 154.11199951171875,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -12,20 +12,18 @@
     "fib_deferred_symbols": [
       "SPY",
       "QQQ",
-      "GDX",
       "GLD",
       "SLV"
     ],
     "unavailable_symbols": [
       "SPY",
       "QQQ",
-      "GDX",
       "GLD",
       "SLV"
     ]
   },
-  "generated_at": "2026-09-17T13:47:50Z",
-  "generation_id": "hourly-20260917T134750Z",
+  "generated_at": "2026-09-17T14:03:02Z",
+  "generation_id": "hourly-20260917T140302Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -39,70 +37,75 @@
   "session_date": "2026-09-17",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-17T13:47:50Z"
+    "run_at_utc": "2026-09-17T14:03:02Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
-      "confidence": "LOW",
-      "current_price": 95.30999755859375,
-      "fib_levels": null,
-      "grade": "F",
+      "confidence": "HIGH",
+      "current_price": 95.93000030517578,
+      "fib_levels": {
+        "retracements": {
+          "0.382": 100.1386,
+          "0.5": 98.43,
+          "0.618": 96.7214
+        },
+        "source": "last_20_bars_high_low",
+        "swing_high": 105.67,
+        "swing_low": 91.19
+      },
+      "grade": "A+",
       "invalidation": [
-        "loses EMA21 with weak recovery",
+        "loses EMA9 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
-        "current_grade": "F",
-        "current_setup_state": "CHOPPY",
-        "grade_transition": "UNCHANGED",
+        "current_grade": "A+",
+        "current_setup_state": "ACTIONABLE",
+        "grade_transition": "UPGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
         "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "UNCHANGED"
+        "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": null,
-      "reason_for_grade": "Market data unavailable for this run.",
-      "setup_state": "CHOPPY",
-      "structure": "CHOPPY",
+      "preferred_trade_structure": "bullish defined-risk continuation",
+      "reason_for_grade": "A+: bullish trending_up, regime aligned, near key level",
+      "setup_state": "ACTIONABLE",
+      "structure": "TRENDING_UP",
       "symbol": "GDX",
       "trade_framing": {
-        "direction": "NEUTRAL",
-        "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for cleaner structure around EMA21",
-        "if_now": "WAIT",
-        "setup": "metals choppy structure",
-        "trade_type": "none",
-        "upgrade": "improves with cleaner directional structure near a key level"
+        "direction": "LONG",
+        "downgrade": "wait if price loses EMA9 or structure turns choppy",
+        "entry": "hold above EMA9 with constructive follow-through",
+        "if_now": "TAKE",
+        "setup": "metals bullish trending_up",
+        "trade_type": "call_spread",
+        "upgrade": "improves on clean hold near key level with expanding participation"
       },
       "watch_zones": [
-        {
-          "context": "primary trend reference",
-          "level": 95.529,
-          "type": "EMA21"
-        },
         {
           "context": "fast trend reference",
           "level": 95.9288,
           "type": "EMA9"
         },
         {
-          "context": "trend base reference",
-          "level": 91.0617,
-          "type": "EMA50"
+          "context": "primary trend reference",
+          "level": 95.529,
+          "type": "EMA21"
         }
       ],
       "what_to_look_for": [
-        "Market data unavailable for this run; review during live market session."
+        "watch hold above EMA9",
+        "look for higher low with expanding volume"
       ]
     },
     "GLD": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 400.3550109863281,
+      "current_price": 400.43499755859375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -158,7 +161,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 714.6500244140625,
+      "current_price": 714.844970703125,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -214,7 +217,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 59.345001220703125,
+      "current_price": 59.38999938964844,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -270,7 +273,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 761.3200073242188,
+      "current_price": 760.5549926757812,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -308,14 +311,14 @@
           "type": "EMA9"
         },
         {
-          "context": "primary trend reference",
-          "level": 762.9856,
-          "type": "EMA21"
-        },
-        {
           "context": "trend base reference",
           "level": 758.1663,
           "type": "EMA50"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 762.9856,
+          "type": "EMA21"
         }
       ],
       "what_to_look_for": [
@@ -326,7 +329,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 64.03500366210938,
+      "current_price": 63.8650016784668,
       "fib_levels": {
         "retracements": {
           "0.382": 64.3135,

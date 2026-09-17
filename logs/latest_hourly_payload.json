@@ -17,18 +17,18 @@
   },
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.08970466818250422,
-      "level": 76075.65625,
+      "change_pct": 0.44222359640101955,
+      "level": 76480.6875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.21830755027747228,
-      "level": 100.0989990234375,
+      "change_pct": -0.20734083759675065,
+      "level": 100.11000061035156,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": 1.0986666257167539,
-      "level": 2443.1201171875,
+      "change_pct": 1.5605521198240535,
+      "level": 2454.159912109375,
       "symbol": "ETH-USD"
     },
     "eurusd": {
@@ -37,62 +37,65 @@
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": 1.7184112579724131,
-      "level": 4409.89990234375,
+      "change_pct": 1.720720102796529,
+      "level": 4410.0,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -0.8605802821021181,
-      "level": 2.880000114440918,
+      "change_pct": 0.30981284100320305,
+      "level": 2.9140000343322754,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": -1.5938176463492408,
-      "level": 100.63999938964844,
+      "change_pct": -1.7796027716478948,
+      "level": 100.44999694824219,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -6.025656543703643,
-      "change_pct": -1.2185351535951912,
-      "level": 4.945000171661377,
+      "change_bps": -5.439602360485188,
+      "change_pct": -1.0986876690921605,
+      "level": 4.950999736785889,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": -0.8225864453443344,
-      "level": 5.304999828338623,
+      "change_pct": -0.7478026177638022,
+      "level": 5.309000015258789,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": 2.912777002294285,
-      "level": 66.06999969482422,
+      "change_pct": 3.115264945592432,
+      "level": 66.19999694824219,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.06934706968362071,
-      "level": 1.3977999687194824,
+      "change_pct": -0.05504642043584936,
+      "level": 1.3980000019073486,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": -0.32325069714849636,
-      "level": 155.7220001220703,
+      "change_pct": -0.35781633097761556,
+      "level": 155.66799926757812,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": -13.04347591958764,
-      "level": 15.399999618530273,
+      "change_pct": -10.784861617595427,
+      "level": 15.800000190734863,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20260917T134750Z",
+    "generation_id": "hourly-20260917T140302Z",
     "symbols_scanned": 29,
-    "timestamp": "2026-09-17T13:47:50Z"
+    "timestamp": "2026-09-17T14:03:02Z"
   },
   "run_status": "OK",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
-    "continuation_audit": null,
+    "continuation_audit": {
+      "accepted_count": 0,
+      "rejected_count": 6
+    },
     "option_setups_detail": [],
     "rejected": [
       {
@@ -135,13 +138,13 @@
         "detail": null,
         "reason": "CHOP",
         "stage": "QUALIFICATION",
-        "symbol": "GDX"
+        "symbol": "GLD"
       },
       {
         "detail": null,
-        "reason": "CHOP",
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
-        "symbol": "GLD"
+        "symbol": "IWM"
       },
       {
         "detail": null,
@@ -205,7 +208,7 @@
       },
       {
         "detail": null,
-        "reason": "2 soft gates failed: stop distance 0.06 below 1\u00d7 ATR14 (0.06); price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "2 soft gates failed: stop distance 0.06 below 1\u00d7 ATR14 (0.06); price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "QUALIFICATION",
         "symbol": "^TNX"
       },
@@ -247,9 +250,9 @@
       },
       {
         "detail": null,
-        "reason": "R:R 2.00 below 2.0 minimum",
+        "reason": "stop distance 3.53 below 1\u00d7 ATR14 (3.53)",
         "stage": "WATCHLIST",
-        "symbol": "IWM"
+        "symbol": "GDX"
       },
       {
         "detail": null,
@@ -259,15 +262,15 @@
       },
       {
         "detail": null,
-        "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "reason": "price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
         "stage": "WATCHLIST",
         "symbol": "META"
       }
     ]
   },
   "summary": {
-    "confidence": 0.875,
-    "market_regime": "RISK_ON",
+    "confidence": 1.0,
+    "market_regime": "EXPANSION",
     "outcome": null,
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
