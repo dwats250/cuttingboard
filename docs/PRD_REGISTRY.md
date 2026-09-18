@@ -360,6 +360,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-340 | — | Effective-Permission Slice 2: Authority Projection | IN PROGRESS | [PRD-340](prd_history/PRD-340.md) |
 | PRD-341 | #334 | Cockpit polish: Market Structure MIX colour + WATCHING compression | COMPLETE | [PRD-341](prd_history/PRD-341.md) |
 | PRD-342 | — | Freshness and provenance wording: neutral decision-age banner + timeframe-first chart captions | IN PROGRESS | [PRD-342](prd_history/PRD-342.md) |
+| PRD-343 | — | Hourly admission / notification truth: read-only pre-flight admission before the ordinary hourly Telegram send (HIGH-RISK / MATERIAL; Stage-0, held for review + Gate A) | IN PROGRESS | [PRD-343](prd_history/PRD-343.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
