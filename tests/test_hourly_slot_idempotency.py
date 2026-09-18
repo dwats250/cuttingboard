@@ -18,6 +18,8 @@ from cuttingboard.notifications.hourly_slot import (
     save_last_slot,
 )
 
+pytestmark = pytest.mark.usefixtures("admitted_hourly_authority")  # PRD-343 R9
+
 
 def _audit_path(tmp: Path) -> Path:
     return tmp / "logs" / "audit.jsonl"
@@ -349,3 +351,38 @@ def test_runner_boundary_end_to_end_plus_25m_sends_plus_26m_suppresses(tmp_path,
     suppressed = _notification_rows(tmp_path)[0]
     assert suppressed["reason"] == "outside_routine_window"
     assert suppressed["state_key"].endswith(":named=07:00")
+
+
+def test_refused_slot_redispatch_reaches_runner_and_sends_one_failure(tmp_path, monkeypatch, intraday_now):
+    """PRD-343 D (Ruling 2): a pre-flight REFUSED slot never persists
+    last_hourly_slot.json, so a same-slot re-arrival is NOT suppressed by the
+    runner's dedup boundary; it reaches _execute_notify_run again and yields a
+    second failure send. Two failure sends total, zero ordinary; runner exits 1."""
+    from unittest.mock import MagicMock
+
+    import cuttingboard.runtime as runtime
+    from cuttingboard.validation import ValidationSummary
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runtime, "_load_accepted_authority", lambda *_a, **_k: None)
+    halted = MagicMock(spec=ValidationSummary)
+    halted.system_halted, halted.halt_reason = True, "test halt"
+    halted.valid_quotes, halted.symbols_validated, halted.symbols_attempted = {}, 0, 0
+
+    with (
+        patch("cuttingboard.alert_runner.datetime") as mock_dt,
+        patch("cuttingboard.runtime.fetch_all", return_value={}),
+        patch("cuttingboard.runtime.normalize_all", return_value={}),
+        patch("cuttingboard.runtime.extract_fetch_failures", return_value={}),
+        patch("cuttingboard.runtime.validate_quotes", return_value=halted),
+        patch("cuttingboard.runtime.send_notification", return_value=True) as mock_send,
+    ):
+        mock_dt.now.return_value = intraday_now
+        assert alert_runner.main([]) == 1
+        assert not (tmp_path / "logs" / "last_hourly_slot.json").exists()
+        assert alert_runner.main([]) == 1
+
+    assert mock_send.call_count == 2
+    assert [c.args[0] for c in mock_send.call_args_list] == ["HOURLY ERROR", "HOURLY ERROR"]
+    assert all("REFUSED" in c.args[1] for c in mock_send.call_args_list)
+    assert not any(r.get("reason") == "suppressed_same_slot" for r in _notification_rows(tmp_path))

@@ -1097,3 +1097,40 @@ def test_prd319_hourly_has_ohlcv_cache_restore() -> None:
     )
     assert "actions/cache/restore@v4" in text
     assert "path: data/cache" in text
+
+
+def test_hourly_restores_accepted_tip_for_preflight_admission() -> None:
+    # PRD-343 R2 / D1: the runner's read-only pre-flight compares the carrier it
+    # will persist against the RESTORED publish tip; without this token the
+    # in-runner accepted envelope is main's frozen copy.
+    text = _workflow_text("hourly_alert.yml")
+    restore_line = next(
+        ln for ln in text.splitlines() if "ci_restore_publish_state.sh" in ln
+    )
+    assert "logs/latest_hourly_contract.json" in restore_line, (
+        "hourly must restore logs/latest_hourly_contract.json (PRD-343 R2)."
+    )
+
+
+def test_hourly_freezes_workflow_session_before_runner() -> None:
+    # PRD-343 R1 / D3: ONE frozen CB_WORKFLOW_SESSION exported to $GITHUB_ENV in a
+    # step positioned BEFORE "Run hourly alert", read by both the runner pre-flight
+    # and the publisher's PUBLISH_SESSION override.
+    text = _workflow_text("hourly_alert.yml")
+    export_idx = text.find('CB_WORKFLOW_SESSION=$(date -u +%F)" >> "$GITHUB_ENV"')
+    run_idx = text.find("- name: Run hourly alert")
+    assert export_idx != -1, "hourly must export CB_WORKFLOW_SESSION to $GITHUB_ENV (PRD-343 R1)."
+    assert run_idx != -1
+    assert export_idx < run_idx, (
+        "CB_WORKFLOW_SESSION must be frozen BEFORE the Run hourly alert step (PRD-343 R1)."
+    )
+
+
+def test_hourly_failure_upload_pins_contract_and_run_surface() -> None:
+    # PRD-343 R7: the R5b-recovered ERROR/HALT contract and the FAIL summary are
+    # part of the uploaded failure-artifact surface.
+    text = _workflow_text("hourly_alert.yml")
+    upload = text[text.find("- name: Upload failure artifacts"):]
+    upload = upload[: upload.find("retention-days")]
+    assert "logs/latest_hourly_contract.json" in upload
+    assert "logs/latest_hourly_run.json" in upload

@@ -21,6 +21,8 @@ import pytest
 
 import cuttingboard.runtime as runtime
 
+pytestmark = pytest.mark.usefixtures("admitted_hourly_authority")  # PRD-343 R9
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # 2026-05-11 is a Monday; most_recent_completed_session_date(2026-05-12T14:00Z)

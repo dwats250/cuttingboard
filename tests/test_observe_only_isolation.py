@@ -18,6 +18,9 @@ from datetime import datetime, timezone
 from cuttingboard import config
 import cuttingboard.runtime as runtime
 from cuttingboard.normalization import NormalizedQuote
+import pytest
+
+pytestmark = pytest.mark.usefixtures("admitted_hourly_authority")  # PRD-343 R9
 
 
 def _quote(symbol: str, price: float = 50.0, pct: float = 0.01) -> NormalizedQuote:

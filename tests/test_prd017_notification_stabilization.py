@@ -26,6 +26,9 @@ from cuttingboard.output import (
     send_telegram,
 )
 from tests.ep_test_helpers import make_ep
+import pytest
+
+pytestmark = pytest.mark.usefixtures("admitted_hourly_authority")  # PRD-343 R9
 
 
 def build_notification_message(contract, *, effective_permission=None):

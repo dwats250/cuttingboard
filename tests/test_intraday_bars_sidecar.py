@@ -22,6 +22,8 @@ import cuttingboard.runtime as runtime
 from cuttingboard.notifications import NOTIFY_HOURLY
 from cuttingboard.runtime import MODE_LIVE, _execute_notify_run
 
+pytestmark = pytest.mark.usefixtures("admitted_hourly_authority")  # PRD-343 R9
+
 _ET = ZoneInfo("America/New_York")
 
 # Captured at import time, BEFORE the conftest autouse (function-scoped) replaces
