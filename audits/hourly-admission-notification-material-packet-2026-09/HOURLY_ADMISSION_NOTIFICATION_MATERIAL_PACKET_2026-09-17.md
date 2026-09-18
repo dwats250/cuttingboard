@@ -8,7 +8,11 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at
   packet head 6505e2a3: ACCEPT WITH CHANGES (5 REQUIRED, 4 RECOMMENDED) --
   CODEX_EVENT_1_REVIEW_2026-09-17.md. All 5 REQUIRED verified by the author
   against the head and ACTIONED in this ONE consolidated correction; the 4
-  RECOMMENDED also ACTIONED. EVENT 2 exact-corrected-head confirmation PENDING.
+  RECOMMENDED also ACTIONED. EVENT 2 ATTEMPT 1 (against c6f0803c): NOT
+  CONFIRMED -- REQ-3 residual (loader clock at the authority expiry boundary)
+  + M6 non-discriminating; NO new material boundary omission --
+  CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-09-17.md. Bounded repair applied
+  in this revision (D2, D6, test H, M6). EVENT 2 ATTEMPT 2 PENDING.
 BASE: main def0eb83963bc02865ae46759f323ec47d1f89fe (merge of PR #337).
 PROVENANCE: promoted from the owner-charged read-only design recon of
 2026-09-17 ("HOURLY AUTHORITY-ADMISSION / NOTIFICATION TRUTH", MODE:
@@ -213,26 +217,41 @@ never a republish of another producer's copy. Without it the in-runner
 accepted envelope is main's frozen copy and the pre-flight would be weaker
 than the publisher on the "behind tip" branch.
 
-D2. Hoist the carrier, not the artifact clock. In `_execute_notify_run`, the
-block now at :755-761 (`_acc` / `_hourly_ep`) moves to immediately BEFORE the
-ordinary send (:711). The loader's staleness clock at that point is a
-dedicated `_preflight_now = datetime.now(timezone.utc)`; the artifact
-`run_at_utc` at :715 STAYS where it is (after the send) so that on runs where
-`regime is None` (validation-halted / system-halted) the generation
-identifiers, contract and summary timestamps, and published bytes are derived
-exactly as today. `carry_forward` and `unavailable` read no clock, so the
-carried envelope is identical whichever `now` the loader used (the loader's
-`now` only affects the stale check by seconds). The later block at :755-761
-is deleted; the `persist()` calls at :762-763 stay where they are.
+D2. Pre-flight the carrier; do NOT move the persisted carrier or the artifact
+clock. In `_execute_notify_run`, a PRE-FLIGHT copy of the carrier computation
+runs immediately BEFORE the ordinary send (:711):
+`_preflight_now = datetime.now(timezone.utc)`;
+`_pf_acc = _load_accepted_authority(date_str, _preflight_now)`;
+`_pf_ep = carry_forward(...)` with the same observed flags, else
+`unavailable(date_str)`. The EXISTING block at :755-761 (loader with
+`run_at_utc`, carry, `persist()` at :762-763) stays exactly where it is and
+remains the ONLY source of the persisted envelope; the artifact clock
+`run_at_utc` at :715 stays after the send. Consequences:
+- On admissible runs, contract, summary, generation identifiers, and the
+  persisted envelope are derived exactly as today (nothing downstream of the
+  send moves).
+- The pre-flight is a pre-image of the persisted carrier computed seconds
+  earlier. `carry_forward` and `unavailable` read no clock; the only
+  clock-sensitive step is `admit_persisted`'s expiry compare (:228-232). The
+  two can differ ONLY if the accepted authority's `valid_until` falls in the
+  seconds between `_preflight_now` and `run_at_utc`. `valid_until` is always
+  `session_date + 1 day at 08:00Z` (effective_permission.py:83-88); the
+  canonical hourly slots are 06:00-13:00 PT (hourly_slot.py:32), i.e. no
+  earlier than 13:00Z, so no routine dispatch can straddle 08:00Z. A
+  `--force-slot` manual run at 07:59:5xZ could; that residual is recorded in
+  D5 as EXPIRY-BOUNDARY and pinned by test H. This preserves today's
+  post-send admission semantics for the persisted carrier byte-for-byte
+  rather than changing them (Event-1 REQ-3, Event-2 attempt-1 residual).
+The cost is one extra read of two small JSON files per hourly run.
 
 D3. In-process canonical pre-flight with ONE frozen workflow session.
-Immediately after `_hourly_ep` exists, and only when
+Immediately after `_pf_ep` exists, and only when
 `mode == MODE_LIVE and notify_mode in _HOURLY_MODES`:
 
 ```
 admit_session = os.environ.get("CB_WORKFLOW_SESSION") or date_str
 accepted = ep_authority._read_authority(str(LATEST_HOURLY_CONTRACT_PATH))
-incoming = _hourly_ep.to_envelope()
+incoming = _pf_ep.to_envelope()
 admissible = (
     ep_authority.publication_admits(accepted, incoming)
     and ep_authority.admit_persisted(
@@ -291,20 +310,29 @@ publication authority. Two residual classes, recorded separately:
 - UTC-SESSION DRIFT (closed by D3): deterministic input drift between runner
   and publisher session dates is not a residual; it is closed by the frozen
   `CB_WORKFLOW_SESSION` and pinned by test G.
+- EXPIRY-BOUNDARY (retained, bounded, ruled): if the accepted authority's
+  `valid_until` (always 08:00Z) falls in the seconds between the pre-flight
+  clock and the artifact clock, the pre-flight admits, the ordinary alert is
+  sent, the persisted carrier is UNAVAILABLE (today's semantics, unchanged),
+  and the publisher refuses. Unreachable by any canonical slot (>= 13:00Z);
+  reachable only by a manual `--force-slot` run at 07:59:5xZ. Pinned by test
+  H so the behavior is explicit, not accidental.
 
 D6. Unchanged for admissible runs: alert wording, send count (one),
-`save_last_slot`, sidecars, publish, Pages. Contract and summary content are
-unchanged because the artifact clock `run_at_utc` is not hoisted (D2); the
-hoisted loader uses its own `_preflight_now`, and the carried envelope does
-not depend on it. A market-stress HALT hourly on an admissible day is
-unaffected (`carry_forward` raises rank; R5 admits a rank raise).
+`save_last_slot`, sidecars, publish, Pages, and the persisted carrier.
+Contract and summary content are unchanged because neither the artifact
+clock `run_at_utc` nor the persisted-carrier block moves (D2); the pre-flight
+is an additional read-only computation before the send. A market-stress HALT
+hourly on an admissible day is unaffected (`carry_forward` raises rank; R5
+admits a rank raise).
 
 ## 7. FILES (ESTIMATED SURFACE -- NOT YET APPROVED; Gate A sets the ceiling)
 
 Production:
-- `cuttingboard/runtime/__init__.py` (hoist ~8 lines; pre-flight ~17 lines
-  incl. the session read; exception class ~3 lines; HALT-context compose
-  ~3 lines)
+- `cuttingboard/runtime/__init__.py` (pre-flight carrier copy ~8 lines;
+  pre-flight admission ~17 lines incl. the session read; exception class
+  ~3 lines; HALT-context compose ~3 lines; existing carrier/persist block
+  untouched)
 - `.github/workflows/hourly_alert.yml` (1 token in the restore list; ~3
   lines freezing `CB_WORKFLOW_SESSION` before "Run hourly alert")
 
@@ -389,6 +417,15 @@ G override it to `None` or leave it unapplied.
   pre-flight refuses (one failure send, zero ordinary), matching what the
   publisher would do with the same frozen session. RED on a pre-flight that
   derives its session from `run_date` alone.
+- H. `test_hourly_expiry_boundary_between_preflight_and_artifact_clock`
+  (two controlled clocks, `monkeypatch.setattr(runtime, "datetime", ...)`
+  per the tests/test_operationalization.py:206 precedent, successive `now()`
+  values t0 < valid_until < t1): pre-flight at t0 admits -> exactly one
+  ORDINARY send; the persisted carrier (loaded at t1 = run_at_utc) is
+  UNAVAILABLE, exactly as the pre-packet runtime produces at t1; and
+  `publication_admits(accepted_tip, persisted_envelope)` is False. This pins
+  the ruled EXPIRY-BOUNDARY residual and proves the persisted-carrier
+  semantics did not move.
 - F. No daily test touched; `tests/test_prd300_delivery_backstop.py` and the
   cuttingboard.yml notifier tests unchanged.
 - Hygiene: `hourly_alert.yml` restore list contains
@@ -402,8 +439,15 @@ Mutation proofs (must be RED):
 - M3: drop the HALT-context prefix -> test B2 RED.
 - M4: remove the restore-list token -> hygiene test RED.
 - M5: replace `admit_session` with `date_str` -> test G RED.
-- M6: hoist `run_at_utc` above the send -> an admissible system-halted run's
-  summary/contract timestamp equality assertion (added to test E) RED.
+- M6: hoist `run_at_utc` above the send -> test E (system_halted, regime
+  None) with two controlled successive `now()` values t0 (pre-send) and t1
+  (post-send) asserts `summary["timestamp"]`/contract `generated_at` equal
+  t1, the POST-send tick; a hoisted clock yields t0 -> RED. (Equality of
+  summary and contract with each other is NOT the assertion; both would
+  still agree.)
+- M7: replace the pre-flight's own loader with the persisted block's result
+  (i.e. move the persisted carrier above the send) -> test H RED (the
+  persisted carrier would no longer be UNAVAILABLE at t1).
 
 ## 10. NOTIFICATION OWNERSHIP
 
@@ -465,5 +509,20 @@ schema or authority change to unwind.
   harness; FILES). REC-1 ACTIONED (citations refreshed); REC-2 ACTIONED
   (named module-scoped fixture; count corrected); REC-3 ACTIONED (test A
   seeds an accepted tip); REC-4 ACTIONED (D5 two residual classes).
-- EVENT 2 exact-corrected-head confirmation: pending.
+- EVENT 2 ATTEMPT 1 (Sol, job codex-20260918T011657Z-a3b4, against
+  c6f0803c): NOT CONFIRMED -- REQ-1/2/4/5 and REC-1..4 CONFIRMED; REQ-3
+  residual: hoisting the loader moved `admit_persisted`'s expiry compare
+  earlier, so an authority valid at pre-flight but expired at the artifact
+  clock would be carried where today it is UNAVAILABLE; M6 asserted only
+  summary/contract timestamp equality, which a hoisted clock still satisfies.
+  No new material boundary omission -- `CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-09-17.md`.
+- Author verification: `_valid_until` = session_date + 1 day 08:00Z
+  (effective_permission.py:83-88) CONFIRMED; canonical slots 06:00-13:00 PT
+  (hourly_slot.py:32) CONFIRMED; `runtime.datetime` patch precedent
+  (tests/test_operationalization.py:206) CONFIRMED.
+- Repair (this revision): D2 no longer moves the persisted carrier or its
+  loader clock; the pre-flight is a separate read-only computation; D5 gains
+  the EXPIRY-BOUNDARY residual; test H and M7 added; M6 rewritten to assert
+  the post-send tick under two controlled clocks; FILES line updated.
+- EVENT 2 ATTEMPT 2 exact-corrected-head confirmation: pending.
 - Helm design-direction ruling from the review-clean packet: pending.
