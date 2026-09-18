@@ -6,10 +6,12 @@ CONFIRMED AT bb3e7affc9bc3eedc0bca9712019ee1026f58015 (Event-2 attempt 3,
 CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-17.md). This status line and
 the section-13 cycle record are the only edits after that head; the design
 body is byte-identical to bb3e7aff.
-NEXT: Helm design-direction ruling from this review-clean packet (GOV-2 sec2
-step 6), then Stage-0 implementation PRD, fresh-context PRD review, Gate A.
+HELM DESIGN-DIRECTION RULING RECORDED 2026-09-17 (section 0 below; GOV-2
+sec2 step 6): APPROVED. Binding design = the body at bb3e7aff. Stage-0 PRD
+drafting AUTHORIZED (downstream PRD: PRD-343); implementation NOT authorized
+before explicit Gate A.
 CLASS: HIGH-RISK. MATERIALITY: MATERIAL (owner ruling 3, recorded below).
-AUTHORIZES NO IMPLEMENTATION, NO PRD, NO GATE A, NO MERGE.
+AUTHORIZES NO IMPLEMENTATION, NO GATE A, NO MERGE.
 GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at
   packet head 6505e2a3: ACCEPT WITH CHANGES (5 REQUIRED, 4 RECOMMENDED) --
   CODEX_EVENT_1_REVIEW_2026-09-17.md. All 5 REQUIRED verified by the author
@@ -39,6 +41,75 @@ Ceilings below are ESTIMATES carried into the downstream PRD (GOV-2 sec5).
 > -> Event-2 exact-corrected-head confirmation -> return for the owner
 > design-direction ruling -> bounded implementation PRD -> fresh-context
 > independent PRD review -> explicit Gate A -> only then implement.
+
+## 0. HELM DESIGN-DIRECTION RULING (Dustin / HELM, 2026-09-17; GOV-2 sec2 step 6)
+
+Recorded from the owner charge "OWNER DESIGN-DIRECTION RULING -- HOURLY
+ADMISSION / NOTIFICATION TRUTH" (2026-09-17):
+
+- RULING: APPROVED. The review-clean MATERIAL design at bb3e7aff is the
+  binding design direction. Durable clean review record: 770fe79f. This
+  ruling authorizes Stage-0 PRD drafting ONLY; production implementation
+  requires explicit Gate A after the PRD's fresh-context independent review.
+- APPROVED MECHANISM (1-11): freeze one workflow session identity before the
+  hourly runner begins; runner and publisher consume that same frozen
+  session; restore the hourly-owned persisted contract read-only so the
+  pre-flight compares against the actual accepted published tip; before the
+  ordinary hourly Telegram send compute a separate READ-ONLY pre-flight copy
+  of the authority carrier; evaluate it with the existing canonical
+  `publication_admits` and `admit_persisted` only (no duplication,
+  approximation, reinterpretation or fork of their semantics); if
+  inadmissible, enter the existing hourly failure path BEFORE ordinary
+  notification; that path remains responsible for exactly one failure
+  Telegram attempt per refused dispatch, preservation of any observed
+  market-stress HALT reason/context, explicit notice that the hourly update
+  was refused / not published, traceback/diagnostics, error contract, and a
+  failing operational exit; zero ordinary success notifications and zero
+  publication for an inadmissible carrier; liveness remains able to go RED.
+- CRITICAL AUTHORITY BOUNDARY: the pre-flight is NOT a second persisted
+  authority path; it is a read-only early evaluation of the same canonical
+  admission rules. The existing persisted carrier construction, its artifact
+  clock, authority-version ordering, session semantics and publisher-side R5
+  enforcement remain canonical and unchanged. Sol's Event-2 finding is
+  binding negative guidance: DO NOT hoist or relocate the canonical
+  persisted-carrier computation.
+- BEHAVIORAL INVARIANT: a user-facing ordinary hourly alert and successful
+  hourly publication must agree on authority admissibility; fresh
+  observational market data cannot override this.
+- HEALTHY-RUN NON-REGRESSION: ordinary Telegram output byte/semantically
+  unchanged; exactly one normal notification; no failure notification;
+  downstream carrier construction stays in its current position; existing
+  readiness and R5 checks remain; publication and Pages unchanged. Nothing
+  downstream of the ordinary-send seam moves unless required by the
+  reviewed PRD and explicitly approved at Gate A.
+- REFUSAL BEHAVIOR: ordinary count 0; failure attempt count 1 per workflow
+  dispatch; publish count 0; R5 authoritative; diagnostic/error artifacts
+  survive; workflow reports failure; liveness can report RED; no
+  stale/prior-session/invalid EffectivePermission becomes user-facing as
+  though authoritative.
+- SCOPE: approximately 30-45 production lines, approximately four workflow
+  lines, bounded test-fixture support for existing hourly tests that omit a
+  persisted admitted carrier. The Stage-0 PRD establishes the reviewed FILES
+  and LOC ceilings before Gate A. No opportunistic refactor.
+- OUT OF SCOPE: qualification; trade decisions; EffectivePermission resolver
+  semantics; authority-version semantics; carry/recovery rules; operator
+  availability; market-stress HALT semantics; Cloudflare scheduling; GitHub
+  scheduling responsibility; publish-branch ownership; Pages workflow;
+  Telegram transport; cross-run notification persistence; runtime
+  decomposition; unrelated workflow cleanup.
+- NEXT AUTHORIZED ACTS: draft the Stage-0 PRD from this design and ruling;
+  no re-recon; fresh-context independent review of the exact PRD revision;
+  bounded corrections only; return with the reviewed PRD revision, proposed
+  binding FILES ceiling, proposed prod/test LOC ceilings, mutation/test
+  plan, any unresolved reviewer finding; STOP for explicit Gate A.
+- PROCESS RULING (confirmation retries): the three-attempt sequence is
+  accepted for this packet. Future MATERIAL cycles follow GOV-2 strictly
+  (one review, one consolidated correction, one exact-head confirmation);
+  a NOT CONFIRMED that discovers a substantive semantic defect, material
+  boundary omission, architecture issue, new consumer, or changed
+  FILES/LOC/risk assumption means STOP and return to the owner; a purely
+  mechanical recording/wording defect may be corrected without reopening
+  but must not become an unlimited loop; when uncertain, STOP and escalate.
 
 ## 1. INCIDENT EVIDENCE (2026-09-15)
 
