@@ -28,6 +28,8 @@ from cuttingboard.sector_router import SectorRouterState
 from cuttingboard.structure import StructureResult
 from cuttingboard.validation import ValidationSummary
 
+pytestmark = pytest.mark.usefixtures("admitted_hourly_authority")  # PRD-343 R9
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -1890,3 +1892,254 @@ def test_prd325_tradeable_path_order_and_permission_pruning_unchanged(tmp_path, 
     assert rec["result"]["status"] == SUMMARY_STATUS_SUCCESS
     assert events[: events.index("lines") + 1] == [
         "classify", "generate", "permission", "fetch_ohlcv:GDX", "qualify", "audit", "lines"], events
+
+
+# ---------------------------------------------------------------------------
+# PRD-343: read-only pre-flight admission before the ordinary hourly send
+# ---------------------------------------------------------------------------
+
+_D = date(2026, 4, 23)
+
+
+def _accepted_daily_ep(session_date: str = "2026-04-23"):
+    """Resolver-provenanced admitted daily EP for session D (a benign carry is byte-identical, R5(d))."""
+    from cuttingboard import config as _config
+    from cuttingboard import effective_permission as ep
+
+    return ep.resolve_effective_permission(
+        mode="live", outcome_is_trade=False, system_halted=False, operator_locked=False,
+        session_date=session_date, run_uid="a" * 32,
+        posture_permission_line="No new trades permitted.",
+        operator_lock_line=_config.OPERATOR_LOCK_PERMISSION,
+    )
+
+
+def _seed_accepted_tip(tmp_path, envelope: dict) -> None:
+    """Seed the restored publish tip logs/latest_hourly_contract.json (D1)."""
+    p = tmp_path / "logs" / "latest_hourly_contract.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"effective_permission": envelope}), encoding="utf-8")
+
+
+def _read_hourly_contract(tmp_path) -> dict:
+    return json.loads((tmp_path / "logs" / "latest_hourly_contract.json").read_text(encoding="utf-8"))
+
+
+def _titles(mock_send) -> list[str]:
+    return [c.args[0] for c in mock_send.call_args_list]
+
+
+def _bodies(mock_send) -> list[str]:
+    return [c.args[1] for c in mock_send.call_args_list]
+
+
+def _last_result(status: str):
+    """Pin the recorded transport result to match the mocked send (notification_sent derives from it)."""
+    from cuttingboard.output import NotificationResult
+    return patch(
+        "cuttingboard.runtime.get_last_notification_result",
+        return_value=NotificationResult(
+            notification_status=status, notification_reason=None,
+            notification_attempted=status != "NOT_REQUESTED", notification_transport="telegram",
+            notification_http_status=200 if status == "SENT" else None, notification_retry_count=0),
+    )
+
+
+def _no_accepted_authority(monkeypatch) -> None:
+    """Override the module fixture: the carrier is inadmissible (accepted None)."""
+    import cuttingboard.runtime as runtime
+    monkeypatch.setattr(runtime, "_load_accepted_authority", lambda *_a, **_k: None)
+
+
+def _stateful_clock(monkeypatch, t0: datetime, t1: datetime):
+    """R7 STATEFUL clock: runtime datetime.now() is t0 until advance() (called by the mocked send), then t1."""
+    import cuttingboard.runtime as runtime
+    state = {"now": t0}
+
+    class _Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            cur = state["now"]
+            return cur if tz is not None else cur.replace(tzinfo=None)
+
+    monkeypatch.setattr(runtime, "datetime", _Clock)
+
+    def _advance():
+        state["now"] = t1
+    return _advance
+
+
+def test_hourly_admissible_carrier_sends_ordinary_once(tmp_path, monkeypatch):
+    """A: admitted carrier + restored accepted tip -> one ordinary send, SUCCESS, slot persisted."""
+    from cuttingboard import effective_permission as ep
+
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    tip = _accepted_daily_ep().to_envelope()
+    _seed_accepted_tip(tmp_path, tip)
+    slot = datetime(2026, 4, 23, 14, 30, tzinfo=timezone.utc)
+    patches = _patch_pipeline_stay_flat()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7] as mock_send:
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY, slot_utc=slot)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+    assert "ERROR" not in _titles(mock_send)[0]
+    assert "REFUSED" not in _bodies(mock_send)[0]
+    assert (tmp_path / "logs" / "last_hourly_slot.json").exists()
+    persisted = _read_hourly_contract(tmp_path)["effective_permission"]
+    assert ep.publication_admits(tip, persisted) is True
+    assert ep.admit_persisted(persisted, current_session_date="2026-04-23", now=None) is not None
+
+
+def test_hourly_inadmissible_carrier_blocks_ordinary_send(tmp_path, monkeypatch):
+    """B (R5): accepted None -> refusal BEFORE the ordinary send; one failure send, FAIL, slot never persisted."""
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    _no_accepted_authority(monkeypatch)
+    slot = datetime(2026, 4, 23, 14, 30, tzinfo=timezone.utc)
+    patches = _patch_pipeline_stay_flat()
+    with (patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6],
+          patches[7] as mock_send, _last_result("SENT")):
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY, slot_utc=slot)
+
+    assert result["status"] == SUMMARY_STATUS_FAIL
+    assert mock_send.call_count == 1
+    (title,), (body,) = _titles(mock_send), _bodies(mock_send)
+    assert title == "HOURLY ERROR"
+    assert "REFUSED" in body and "not published" in body
+    assert (tmp_path / "traceback.txt").exists()
+    assert "HourlyPublicationInadmissible" in (tmp_path / "traceback.txt").read_text(encoding="utf-8")
+    assert not (tmp_path / "logs" / "last_hourly_slot.json").exists()
+    hourly_run = _read_hourly_run(tmp_path)
+    assert hourly_run["status"] == SUMMARY_STATUS_FAIL
+    assert hourly_run["notification_sent"] is True
+    contract = _read_hourly_contract(tmp_path)
+    assert contract["status"] == "ERROR"
+    assert contract["outcome"] == "HALT"
+    assert contract["artifacts"]["notification_sent"] is True
+    assert "REFUSED" in json.dumps(contract)
+
+
+def test_hourly_inadmissible_carrier_halt_context_preserved(tmp_path, monkeypatch):
+    """B2 (R6, Ruling 1): kill switch tripped + accepted None -> ONE failure send
+    whose body carries the exact bounded halt_reason AND the refusal; no
+    ordinary HALT alert."""
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
+
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    _no_accepted_authority(monkeypatch)
+    patches = _patch_pipeline_trip()
+    with (patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6],
+          patches[7], patches[8], patches[9], patches[10] as mock_send):
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_FAIL
+    assert mock_send.call_count == 1
+    assert _titles(mock_send) == ["HOURLY ERROR"]
+    body = _bodies(mock_send)[0]
+    assert KILL_SWITCH_HALT_REASON in body
+    assert "REFUSED" in body and "not published" in body
+
+
+@pytest.mark.parametrize("send_kwargs", [{"return_value": False}, {"side_effect": RuntimeError("telegram down")}])
+def test_hourly_refusal_notice_transport_failure_still_fails(tmp_path, monkeypatch, send_kwargs):
+    """C: failure-notice transport fails (False / raises) -> FAIL, artifacts written, one attempt, sent False."""
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    _no_accepted_authority(monkeypatch)
+    patches = _patch_pipeline_stay_flat()
+    patches[7] = patch("cuttingboard.runtime.send_notification", **send_kwargs)
+    with (patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6],
+          patches[7] as mock_send, _last_result("FAILED_TRANSPORT")):
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_FAIL
+    assert mock_send.call_count == 1
+    assert (tmp_path / "traceback.txt").exists()
+    assert _read_hourly_run(tmp_path)["notification_sent"] is False
+    assert _read_hourly_contract(tmp_path)["artifacts"]["notification_sent"] is False
+
+
+def test_hourly_system_halted_artifact_clock_is_post_send(tmp_path, monkeypatch):
+    """E / M6: admissible system-halted run (regime None) under a STATEFUL two-clock:
+    the artifact clock is read AFTER the send, so summary/contract timestamps
+    equal t1 (post-send), never t0 (pre-flight). A hoisted run_at_utc yields t0."""
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    t0 = datetime(2026, 4, 23, 14, 30, 0, tzinfo=timezone.utc)
+    t1 = datetime(2026, 4, 23, 14, 30, 7, tzinfo=timezone.utc)
+    advance = _stateful_clock(monkeypatch, t0, t1)
+
+    def _send(*_a, **_k):
+        advance()
+        return True
+
+    with (
+        patch("cuttingboard.runtime.fetch_all", return_value={}),
+        patch("cuttingboard.runtime.normalize_all", return_value={}),
+        patch("cuttingboard.runtime.extract_fetch_failures", return_value={}),
+        patch("cuttingboard.runtime.validate_quotes", return_value=_validation(halted=True)),
+        patch("cuttingboard.runtime.send_notification", side_effect=_send) as mock_send,
+    ):
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY)
+
+    mock_send.assert_called_once()
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    t1_iso = "2026-04-23T14:30:07Z"
+    assert _read_hourly_run(tmp_path)["timestamp"] == t1_iso
+    assert _read_hourly_contract(tmp_path)["generated_at"] == t1_iso
+
+
+def test_hourly_preflight_uses_frozen_workflow_session(tmp_path, monkeypatch):
+    """G (R1/M5): carrier session_date = run_date D but CB_WORKFLOW_SESSION = D+1
+    -> the pre-flight refuses exactly as the publisher would with the same
+    frozen session (one failure send, zero ordinary). RED when the pre-flight
+    derives its session from run_date alone."""
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    monkeypatch.setenv("CB_WORKFLOW_SESSION", "2026-04-24")
+    patches = _patch_pipeline_stay_flat()
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7] as mock_send:
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_FAIL
+    assert mock_send.call_count == 1
+    assert _titles(mock_send) == ["HOURLY ERROR"]
+    assert "REFUSED" in _bodies(mock_send)[0]
+
+
+def test_hourly_expiry_boundary_synthetic_two_clock_seam(tmp_path, monkeypatch, admitted_hourly_authority):
+    """H / M7 (SYNTHETIC direct-seam proof, not an operational scenario): run_date
+    held at D; accepted carrier session D (valid_until D+1 08:00Z) restored through
+    the REAL loader; pre-flight at t0 = D+1 07:59:59Z admits -> one ORDINARY send;
+    the persisted carrier loaded at t1 = D+1 08:00:01Z is UNAVAILABLE exactly as
+    the pre-PRD runtime produces, and the publisher would refuse it."""
+    import cuttingboard.runtime as runtime
+    from cuttingboard import effective_permission as ep
+
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime, "_load_accepted_authority", admitted_hourly_authority)  # the real loader
+    tip = _accepted_daily_ep().to_envelope()
+    assert tip["valid_until"] == "2026-04-24T08:00:00+00:00"
+    (tmp_path / "logs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "logs" / "latest_run.json").write_text(
+        json.dumps({"effective_permission": tip}), encoding="utf-8")
+    t0 = datetime(2026, 4, 24, 7, 59, 59, tzinfo=timezone.utc)
+    t1 = datetime(2026, 4, 24, 8, 0, 1, tzinfo=timezone.utc)
+    advance = _stateful_clock(monkeypatch, t0, t1)
+
+    def _send(*_a, **_k):
+        advance()
+        return True
+
+    with (
+        patch("cuttingboard.runtime.fetch_all", return_value={}),
+        patch("cuttingboard.runtime.normalize_all", return_value={}),
+        patch("cuttingboard.runtime.extract_fetch_failures", return_value={}),
+        patch("cuttingboard.runtime.validate_quotes", return_value=_validation(halted=True)),
+        patch("cuttingboard.runtime.send_notification", side_effect=_send) as mock_send,
+    ):
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_SUCCESS
+    mock_send.assert_called_once()
+    assert _titles(mock_send) != ["HOURLY ERROR"]
+    persisted = _read_hourly_contract(tmp_path)["effective_permission"]
+    assert persisted["verdict"] == ep.VERDICT_UNAVAILABLE
+    assert ep.publication_admits(tip, persisted) is False

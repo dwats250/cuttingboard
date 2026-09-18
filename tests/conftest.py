@@ -164,3 +164,31 @@ def _default_intraday_card_fetch_omission(monkeypatch):
     # misnamed target still surfaces — the seam would hit the real fetch and the
     # R12 network-guard test would go red.
     monkeypatch.setattr(_runtime, "_fetch_intraday_card_bars", lambda symbol: None, raising=False)
+
+
+@pytest.fixture
+def admitted_hourly_authority(monkeypatch):
+    """PRD-343 R9: NAMED (never suite-wide autouse) fixture for live-hourly test
+    modules. Patches ``cuttingboard.runtime._load_accepted_authority`` to return a
+    same-day admitted EP (resolved by the production resolver for the session_date
+    the runtime asks for), so the read-only pre-flight admits and the ordinary send
+    proceeds exactly as before PRD-343. Returns the ORIGINAL loader so a test can
+    restore the real restore/read boundary (test H).
+    """
+    import cuttingboard.runtime as _runtime
+    from cuttingboard import config as _config
+    from cuttingboard import effective_permission as _ep
+
+    original = _runtime._load_accepted_authority
+
+    def _admitted(session_date, now, *paths):
+        del now, paths
+        return _ep.resolve_effective_permission(
+            mode="live", outcome_is_trade=False, system_halted=False,
+            operator_locked=False, session_date=str(session_date), run_uid="a" * 32,
+            posture_permission_line="No new trades permitted.",
+            operator_lock_line=_config.OPERATOR_LOCK_PERMISSION,
+        )
+
+    monkeypatch.setattr(_runtime, "_load_accepted_authority", _admitted)
+    return original

@@ -124,7 +124,7 @@ jobs:
       # latest_run.json (carry_forward reads it); the carried-forward field is
       # force-added onto latest_hourly_contract.json below.
       - name: Restore publish state
-        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json logs/regime_history.jsonl 'logs/run_*.json'
+        run: bash tools/ci_restore_publish_state.sh logs/audit.jsonl logs/last_hourly_slot.json logs/latest_hourly_contract.json logs/latest_hourly_market_map.json logs/latest_run.json logs/macro_drivers_snapshot.json logs/regime_history.jsonl 'logs/run_*.json'
 
       - name: Check Telegram config presence
         run: |
@@ -150,6 +150,11 @@ jobs:
       - name: Record alert-runner start
         id: starttime
         run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      # PRD-343 R1: ONE frozen workflow session read by both the runner's
+      # pre-flight admission and the publisher (PUBLISH_SESSION override).
+      - name: Freeze workflow session
+        run: echo "CB_WORKFLOW_SESSION=$(date -u +%F)" >> "$GITHUB_ENV"
 
       - name: Run hourly alert
         env:

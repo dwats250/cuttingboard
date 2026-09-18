@@ -16,6 +16,9 @@ from unittest.mock import MagicMock, patch
 
 from cuttingboard import config
 from cuttingboard.output import send_telegram, send_notification
+import pytest
+
+pytestmark = pytest.mark.usefixtures("admitted_hourly_authority")  # PRD-343 R9
 
 
 # ---------------------------------------------------------------------------

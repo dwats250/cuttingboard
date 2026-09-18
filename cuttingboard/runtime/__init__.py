@@ -16,6 +16,7 @@ import argparse
 import json
 import logging
 import math
+import os
 import subprocess
 import sys
 import time
@@ -537,6 +538,12 @@ def _load_flow() -> Optional[dict]:
     return load_flow_snapshot(path).symbols
 
 
+class HourlyPublicationInadmissible(Exception):
+    """PRD-343 R5: the hourly authority carrier would be refused by the publisher
+    (R5 publication_admits / admit_persisted); raised BEFORE the ordinary send so
+    the existing failure branch delivers one failure notice and the run FAILs."""
+
+
 def _execute_notify_run(
     mode: str,
     run_date: date,
@@ -704,6 +711,37 @@ def _execute_notify_run(
                 outcome=OUTCOME_NO_TRADE,
                 operator_locked=operator_locked and not validation_summary.system_halted,
             )
+
+        if mode == MODE_LIVE and notify_mode in _HOURLY_MODES:
+            # PRD-343 R3/R4: READ-ONLY pre-flight of the carrier the persisted block
+            # below will compute; canonical admission (publication_admits +
+            # admit_persisted) against the restored publish tip, with the ONE frozen
+            # workflow session (R1). Nothing here is persisted; the persisted-carrier
+            # block and the artifact clock after the send are unchanged (D2).
+            _preflight_now = datetime.now(timezone.utc)
+            _pf_acc = _load_accepted_authority(date_str, _preflight_now)
+            _pf_ep = ep_authority.carry_forward(
+                accepted=_pf_acc,
+                observed_halted=validation_summary.system_halted,
+                observed_operator_locked=operator_locked and not validation_summary.system_halted,
+                operator_lock_line=config.OPERATOR_LOCK_PERMISSION,
+            ) if _pf_acc is not None else ep_authority.unavailable(date_str)
+            admit_session = os.environ.get("CB_WORKFLOW_SESSION") or date_str
+            _pf_incoming = _pf_ep.to_envelope()
+            admissible = (
+                ep_authority.publication_admits(
+                    ep_authority._read_authority(str(LATEST_HOURLY_CONTRACT_PATH)), _pf_incoming)
+                and ep_authority.admit_persisted(
+                    _pf_incoming, current_session_date=admit_session, now=None) is not None
+            )
+            if not admissible:
+                # R6: preserve the bounded HALT source when the kill switch tripped.
+                _refusal = "Hourly board update REFUSED, not published (R5)"
+                if hourly_kill_switch:
+                    _refusal = f"{validation_summary.halt_reason} | {_refusal}"
+                else:
+                    _refusal = f"{_refusal}: authority carrier inadmissible"
+                raise HourlyPublicationInadmissible(_refusal)
 
         alert_sent = False
         notification_result: Optional[NotificationResult] = None
