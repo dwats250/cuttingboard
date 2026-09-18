@@ -1730,6 +1730,12 @@
       "title": "Hourly admission / notification truth: read-only pre-flight admission before the ordinary hourly Telegram send",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 346,
+      "title": "clean_generated_artifacts.sh restores the full tracked generated set (PATCH; HIGH-RISK by INFRA file)",
+      "status": "PROPOSED",
+      "commit": null
     }
   ]
 }
