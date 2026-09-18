@@ -1730,6 +1730,12 @@
       "title": "Hourly admission / notification truth: read-only pre-flight admission before the ordinary hourly Telegram send",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 345,
+      "title": "prd_close.sh --next matches the canonical bulleted Next-step line (PATCH on PRD-164 R5 / PRD-183)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
