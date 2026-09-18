@@ -12,7 +12,12 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at
   CONFIRMED -- REQ-3 residual (loader clock at the authority expiry boundary)
   + M6 non-discriminating; NO new material boundary omission --
   CODEX_EVENT_2_CONFIRMATION_ATTEMPT_1_2026-09-17.md. Bounded repair applied
-  in this revision (D2, D6, test H, M6). EVENT 2 ATTEMPT 2 PENDING.
+  in that revision (D2, D6, test H, M6). EVENT 2 ATTEMPT 2 (against
+  fef7f4ef): NOT CONFIRMED -- one truth/test-characterization residual (the
+  EXPIRY-BOUNDARY example was unreachable as written; slots start 06:30 PT);
+  mechanism sound, NOT DESIGN INCOMPLETE --
+  CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-17.md. Wording repair applied
+  in this revision (D2, D5, test H). EVENT 2 ATTEMPT 3 PENDING.
 BASE: main def0eb83963bc02865ae46759f323ec47d1f89fe (merge of PR #337).
 PROVENANCE: promoted from the owner-charged read-only design recon of
 2026-09-17 ("HOURLY AUTHORITY-ADMISSION / NOTIFICATION TRUTH", MODE:
@@ -232,16 +237,24 @@ remains the ONLY source of the persisted envelope; the artifact clock
   send moves).
 - The pre-flight is a pre-image of the persisted carrier computed seconds
   earlier. `carry_forward` and `unavailable` read no clock; the only
-  clock-sensitive step is `admit_persisted`'s expiry compare (:228-232). The
-  two can differ ONLY if the accepted authority's `valid_until` falls in the
-  seconds between `_preflight_now` and `run_at_utc`. `valid_until` is always
-  `session_date + 1 day at 08:00Z` (effective_permission.py:83-88); the
-  canonical hourly slots are 06:00-13:00 PT (hourly_slot.py:32), i.e. no
-  earlier than 13:00Z, so no routine dispatch can straddle 08:00Z. A
-  `--force-slot` manual run at 07:59:5xZ could; that residual is recorded in
-  D5 as EXPIRY-BOUNDARY and pinned by test H. This preserves today's
-  post-send admission semantics for the persisted carrier byte-for-byte
-  rather than changing them (Event-1 REQ-3, Event-2 attempt-1 residual).
+  clock-sensitive step is `admit_persisted`'s expiry compare (:228-232),
+  which runs only AFTER the session-equality check (:224-225,
+  `envelope["session_date"] != current_session_date -> None`). Both loader
+  calls pass the same `run_date` as `current_session_date` (:755), so the
+  only admissible carrier has `session_date == run_date == D`, whose
+  `valid_until` is `D+1 08:00Z` (effective_permission.py:83-88). For the two
+  loader results to differ, one process started on date D would have to
+  still be between its pre-flight and its artifact clock at 08:00Z on D+1.
+  With canonical slots at 06:30-13:00 PT (hourly_slot.py:27-42, i.e.
+  13:30Z-21:00Z) and the 8-minute step timeout, that is unreachable in
+  production, including by a manual `--force-slot` run: a run at 07:59:5xZ
+  on D+1 has `run_date = D+1` and rejects the D carrier as prior-session
+  before expiry is considered. The residual is therefore SYNTHETIC ONLY
+  (recorded in D5 as EXPIRY-BOUNDARY) and test H pins the seam with two
+  controlled clocks that straddle `valid_until` while holding `run_date`
+  fixed. This preserves today's post-send admission semantics for the
+  persisted carrier byte-for-byte rather than changing them (Event-1 REQ-3;
+  Event-2 attempt-1 residual; attempt-2 reachability correction).
 The cost is one extra read of two small JSON files per hourly run.
 
 D3. In-process canonical pre-flight with ONE frozen workflow session.
@@ -310,13 +323,17 @@ publication authority. Two residual classes, recorded separately:
 - UTC-SESSION DRIFT (closed by D3): deterministic input drift between runner
   and publisher session dates is not a residual; it is closed by the frozen
   `CB_WORKFLOW_SESSION` and pinned by test G.
-- EXPIRY-BOUNDARY (retained, bounded, ruled): if the accepted authority's
-  `valid_until` (always 08:00Z) falls in the seconds between the pre-flight
-  clock and the artifact clock, the pre-flight admits, the ordinary alert is
-  sent, the persisted carrier is UNAVAILABLE (today's semantics, unchanged),
-  and the publisher refuses. Unreachable by any canonical slot (>= 13:00Z);
-  reachable only by a manual `--force-slot` run at 07:59:5xZ. Pinned by test
-  H so the behavior is explicit, not accidental.
+- EXPIRY-BOUNDARY (synthetic only, retained for honesty): if the accepted
+  authority's `valid_until` (D+1 08:00Z for a session-D carrier) fell in the
+  seconds between the pre-flight clock and the artifact clock of a process
+  whose `run_date` is still D, the pre-flight would admit, the ordinary alert
+  would be sent, the persisted carrier would be UNAVAILABLE (today's
+  semantics, unchanged), and the publisher would refuse. Because
+  `admit_persisted` requires `session_date == run_date` before comparing
+  expiry, no production dispatch (canonical 13:30Z-21:00Z, or a manual
+  `--force-slot` on any wall date) can reach this window; it exists only
+  under a synthetic two-clock harness. Pinned by test H so the seam is
+  characterized, not assumed.
 
 D6. Unchanged for admissible runs: alert wording, send count (one),
 `save_last_slot`, sidecars, publish, Pages, and the persisted carrier.
@@ -417,15 +434,18 @@ G override it to `None` or leave it unapplied.
   pre-flight refuses (one failure send, zero ordinary), matching what the
   publisher would do with the same frozen session. RED on a pre-flight that
   derives its session from `run_date` alone.
-- H. `test_hourly_expiry_boundary_between_preflight_and_artifact_clock`
-  (two controlled clocks, `monkeypatch.setattr(runtime, "datetime", ...)`
-  per the tests/test_operationalization.py:206 precedent, successive `now()`
-  values t0 < valid_until < t1): pre-flight at t0 admits -> exactly one
-  ORDINARY send; the persisted carrier (loaded at t1 = run_at_utc) is
-  UNAVAILABLE, exactly as the pre-packet runtime produces at t1; and
-  `publication_admits(accepted_tip, persisted_envelope)` is False. This pins
-  the ruled EXPIRY-BOUNDARY residual and proves the persisted-carrier
-  semantics did not move.
+- H. `test_hourly_expiry_boundary_synthetic_two_clock_seam` (SYNTHETIC
+  direct-seam proof, not an operational scenario): `run_date` fixed at D,
+  accepted carrier session D with `valid_until` D+1 08:00Z, and
+  `monkeypatch.setattr(runtime, "datetime", ...)` per the
+  tests/test_operationalization.py:206 precedent yielding successive `now()`
+  values t0 = D+1 07:59:59Z (pre-flight) and t1 = D+1 08:00:01Z (artifact
+  clock). Asserts: pre-flight at t0 admits -> exactly one ORDINARY send; the
+  persisted carrier (loaded at t1) is UNAVAILABLE, exactly as the pre-packet
+  runtime produces at t1; `publication_admits(accepted_tip,
+  persisted_envelope)` is False. This characterizes the EXPIRY-BOUNDARY seam
+  and proves the persisted-carrier semantics did not move; it makes no claim
+  that the window is reachable in production.
 - F. No daily test touched; `tests/test_prd300_delivery_backstop.py` and the
   cuttingboard.yml notifier tests unchanged.
 - Hygiene: `hourly_alert.yml` restore list contains
@@ -524,5 +544,18 @@ schema or authority change to unwind.
   loader clock; the pre-flight is a separate read-only computation; D5 gains
   the EXPIRY-BOUNDARY residual; test H and M7 added; M6 rewritten to assert
   the post-send tick under two controlled clocks; FILES line updated.
-- EVENT 2 ATTEMPT 2 exact-corrected-head confirmation: pending.
+- EVENT 2 ATTEMPT 2 (Sol, job codex-20260918T012204Z-87ee, against
+  fef7f4ef): NOT CONFIRMED -- REQ-1/2/4/5, REC-1..4, 2a, 2c-2f CONFIRMED;
+  M6 now discriminating; residual: the EXPIRY-BOUNDARY operational example
+  (manual run at 07:59:5xZ) is unreachable because `admit_persisted` checks
+  `session_date == run_date` (:224-225) before expiry, and canonical slots
+  start 06:30 PT (hourly_slot.py:27-42), not 06:00. Not DESIGN INCOMPLETE --
+  `CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-17.md`.
+- Author verification: slot list (6,30)..(13,0) CONFIRMED; session-equality
+  check precedes the expiry compare CONFIRMED (:224-232).
+- Repair (this revision, wording/test-characterization only): D2 and D5
+  restate the residual as SYNTHETIC ONLY with the session-equality argument;
+  test H renamed and described as a direct-seam two-clock proof with
+  `run_date` held fixed; canonical range corrected to 06:30-13:00 PT.
+- EVENT 2 ATTEMPT 3 exact-corrected-head confirmation: pending.
 - Helm design-direction ruling from the review-clean packet: pending.
