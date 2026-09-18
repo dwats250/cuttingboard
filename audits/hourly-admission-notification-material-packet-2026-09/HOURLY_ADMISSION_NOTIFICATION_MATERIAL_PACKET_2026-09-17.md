@@ -1,7 +1,13 @@
 # Hourly authority-admission / notification truth -- MATERIAL design packet
 
 ```
-STATUS: CORRECTED MATERIAL PACKET -- 2026-09-17 -- DESIGN ONLY
+STATUS: REVIEW-CLEAN MATERIAL PACKET -- 2026-09-17 -- DESIGN ONLY
+CONFIRMED AT bb3e7affc9bc3eedc0bca9712019ee1026f58015 (Event-2 attempt 3,
+CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-17.md). This status line and
+the section-13 cycle record are the only edits after that head; the design
+body is byte-identical to bb3e7aff.
+NEXT: Helm design-direction ruling from this review-clean packet (GOV-2 sec2
+step 6), then Stage-0 implementation PRD, fresh-context PRD review, Gate A.
 CLASS: HIGH-RISK. MATERIALITY: MATERIAL (owner ruling 3, recorded below).
 AUTHORIZES NO IMPLEMENTATION, NO PRD, NO GATE A, NO MERGE.
 GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at
@@ -17,7 +23,9 @@ GOV-2 PACKET-REVIEW CYCLE: EVENT 1 (Sol/Codex, fresh context, HIGH) at
   EXPIRY-BOUNDARY example was unreachable as written; slots start 06:30 PT);
   mechanism sound, NOT DESIGN INCOMPLETE --
   CODEX_EVENT_2_CONFIRMATION_ATTEMPT_2_2026-09-17.md. Wording repair applied
-  in this revision (D2, D5, test H). EVENT 2 ATTEMPT 3 PENDING.
+  in that revision (D2, D5, test H). EVENT 2 ATTEMPT 3 (against bb3e7aff):
+  CONFIRMED-CLEAN, no new findings --
+  CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-17.md. CYCLE COMPLETE.
 BASE: main def0eb83963bc02865ae46759f323ec47d1f89fe (merge of PR #337).
 PROVENANCE: promoted from the owner-charged read-only design recon of
 2026-09-17 ("HOURLY AUTHORITY-ADMISSION / NOTIFICATION TRUTH", MODE:
@@ -557,5 +565,8 @@ schema or authority change to unwind.
   restate the residual as SYNTHETIC ONLY with the session-equality argument;
   test H renamed and described as a direct-seam two-clock proof with
   `run_date` held fixed; canonical range corrected to 06:30-13:00 PT.
-- EVENT 2 ATTEMPT 3 exact-corrected-head confirmation: pending.
+- EVENT 2 ATTEMPT 3 (Sol, job codex-20260918T012551Z-213f, against
+  bb3e7aff): CONFIRMED-CLEAN; REQ-1..5, REC-1..4, 2a-2f all CONFIRMED; new
+  findings none -- `CODEX_EVENT_2_CONFIRMATION_ATTEMPT_3_2026-09-17.md`.
+  CYCLE COMPLETE. Held for the Helm design-direction ruling.
 - Helm design-direction ruling from the review-clean packet: pending.
