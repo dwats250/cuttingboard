@@ -2143,3 +2143,54 @@ def test_hourly_expiry_boundary_synthetic_two_clock_seam(tmp_path, monkeypatch, 
     persisted = _read_hourly_contract(tmp_path)["effective_permission"]
     assert persisted["verdict"] == ep.VERDICT_UNAVAILABLE
     assert ep.publication_admits(tip, persisted) is False
+
+
+
+# RC-1 (R4 five-class malformed-tip guard; R5b failure-path recovery; R6 exact strings)
+_MALFORMED_TIP_REFUSAL = "Hourly board update REFUSED, not published (R5): restored authority tip malformed/unreadable"
+_MALFORMED_TIPS = {  # the object classes carry a FUTURE generated_at: an un-cleared tip makes
+    "empty": "",  # safe_write_latest refuse the write silently, so M9 is RED for every class
+    "invalid_json": "{not json",
+    "top_level_not_object": "[1, 2]",
+    "no_effective_permission": '{"generated_at": "2099-01-01T00:00:00Z", "status": "OK"}',
+    "effective_permission_not_object": '{"generated_at": "2099-01-01T00:00:00Z", "effective_permission": "x"}',
+}
+
+
+@pytest.mark.parametrize("tip_class, tripped", [(c, False) for c in _MALFORMED_TIPS] + [("invalid_json", True)])
+def test_hourly_malformed_restored_tip_refuses_before_send(tmp_path, monkeypatch, tip_class, tripped):
+    """RC-1 / M8 / M9: PRESENT-but-unreadable restored tip + ADMITTED carrier -> refusal
+    BEFORE the ordinary send (M8: zero ordinary, one failure send, FAIL, traceback) and
+    the truthful ERROR/HALT contract REPLACES the corrupted local tip through the
+    unchanged safe_write_latest (M9). summary["errors"][0] is str(exc) untruncated; the
+    tripped case pins the EXACT 114-char R6 form with the halt_reason preserved."""
+    from contextlib import ExitStack
+    from cuttingboard.runtime import KILL_SWITCH_HALT_REASON
+
+    _setup_tmp_artifacts(monkeypatch, tmp_path)
+    (tmp_path / "logs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "logs" / "latest_hourly_contract.json").write_text(_MALFORMED_TIPS[tip_class], encoding="utf-8")
+    expected = (f"{KILL_SWITCH_HALT_REASON} | Hourly board REFUSED, not published (R5): tip malformed"
+                if tripped else _MALFORMED_TIP_REFUSAL)
+    assert len(expected) <= 120
+    patches = _patch_pipeline_trip() if tripped else _patch_pipeline_stay_flat()
+    with ExitStack() as stack, _last_result("SENT"):
+        for p in patches[:-1]:
+            stack.enter_context(p)
+        mock_send = stack.enter_context(patches[-1])
+        result = _execute_notify_run(mode=MODE_LIVE, run_date=_D, notify_mode=NOTIFY_HOURLY)
+
+    assert result["status"] == SUMMARY_STATUS_FAIL
+    assert mock_send.call_count == 1 and _titles(mock_send) == ["HOURLY ERROR"]
+    assert expected in _bodies(mock_send)[0].splitlines()
+    tb = (tmp_path / "traceback.txt").read_text(encoding="utf-8").rstrip()
+    assert tb.endswith(f"HourlyPublicationInadmissible: {expected}")
+    summary = _read_hourly_run(tmp_path)
+    assert summary["status"] == SUMMARY_STATUS_FAIL and summary["notification_sent"] is True
+    assert summary["errors"] == [expected]
+    assert expected in summary["alert_body"].splitlines()
+    contract = _read_hourly_contract(tmp_path)
+    assert contract["status"] == "ERROR" and contract["outcome"] == "HALT"
+    assert contract["artifacts"]["notification_sent"] is True
+    assert contract["system_state"]["stay_flat_reason"] == expected
+    assert not (tmp_path / "logs" / "last_hourly_slot.json").exists()

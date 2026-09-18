@@ -1124,3 +1124,13 @@ def test_hourly_freezes_workflow_session_before_runner() -> None:
     assert export_idx < run_idx, (
         "CB_WORKFLOW_SESSION must be frozen BEFORE the Run hourly alert step (PRD-343 R1)."
     )
+
+
+def test_hourly_failure_upload_pins_contract_and_run_surface() -> None:
+    # PRD-343 R7: the R5b-recovered ERROR/HALT contract and the FAIL summary are
+    # part of the uploaded failure-artifact surface.
+    text = _workflow_text("hourly_alert.yml")
+    upload = text[text.find("- name: Upload failure artifacts"):]
+    upload = upload[: upload.find("retention-days")]
+    assert "logs/latest_hourly_contract.json" in upload
+    assert "logs/latest_hourly_run.json" in upload

@@ -541,7 +541,13 @@ def _load_flow() -> Optional[dict]:
 class HourlyPublicationInadmissible(Exception):
     """PRD-343 R5: the hourly authority carrier would be refused by the publisher
     (R5 publication_admits / admit_persisted); raised BEFORE the ordinary send so
-    the existing failure branch delivers one failure notice and the run FAILs."""
+    the existing failure branch delivers one failure notice and the run FAILs.
+    ``malformed_tip`` (R4/R5b): the refused tip was PRESENT but unreadable; the
+    failure branch recognizes that case ONLY by this flag, never by message text."""
+
+    def __init__(self, reason: str, *, malformed_tip: bool = False) -> None:
+        super().__init__(reason)
+        self.malformed_tip = malformed_tip
 
 
 def _execute_notify_run(
@@ -728,9 +734,17 @@ def _execute_notify_run(
             ) if _pf_acc is not None else ep_authority.unavailable(date_str)
             admit_session = os.environ.get("CB_WORKFLOW_SESSION") or date_str
             _pf_incoming = _pf_ep.to_envelope()
+            # R4: read the restored tip ONCE. A PRESENT tip the canonical reader
+            # cannot read (empty / invalid JSON / non-object / missing or non-object
+            # effective_permission) is an integrity failure, never bootstrap.
+            accepted = ep_authority._read_authority(str(LATEST_HOURLY_CONTRACT_PATH))
+            if accepted is None and Path(LATEST_HOURLY_CONTRACT_PATH).exists():
+                _refusal = "Hourly board update REFUSED, not published (R5): restored authority tip malformed/unreadable"
+                if hourly_kill_switch:  # R6: 114-char form fits the 120-char cap untruncated
+                    _refusal = f"{validation_summary.halt_reason} | Hourly board REFUSED, not published (R5): tip malformed"
+                raise HourlyPublicationInadmissible(_refusal, malformed_tip=True)
             admissible = (
-                ep_authority.publication_admits(
-                    ep_authority._read_authority(str(LATEST_HOURLY_CONTRACT_PATH)), _pf_incoming)
+                ep_authority.publication_admits(accepted, _pf_incoming)
                 and ep_authority.admit_persisted(
                     _pf_incoming, current_session_date=admit_session, now=None) is not None
             )
@@ -1006,6 +1020,12 @@ def _execute_notify_run(
                 # never contract-compliant.
                 kill_switch=True,
             )
+            if isinstance(exc, HourlyPublicationInadmissible) and exc.malformed_tip:
+                # PRD-343 R5b: recovery of the corrupted local artifact DESTINATION
+                # only (never authority recovery): clear the malformed tip THIS run
+                # refused so the UNCHANGED safe_write_latest path can write the
+                # truthful ERROR/HALT contract; the malformed carrier stays refused.
+                Path(LATEST_HOURLY_CONTRACT_PATH).unlink(missing_ok=True)
             _write_hourly_artifacts(failure_summary, error_contract)
         return {"status": SUMMARY_STATUS_FAIL, "suppressed": False}
 
