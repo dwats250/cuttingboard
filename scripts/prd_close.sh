@@ -258,11 +258,14 @@ if n != 1:
     errors.append("'- **Active PRD:**' bullet not found in PROJECT_STATE.md")
 
 # (d) Next-step line (PRD-164 R5) — rewritten only when --next is supplied;
-# fails loud when supplied but the line is absent.
+# fails loud when supplied but the line is absent. PRD-345: the canonical
+# PROJECT_STATE form is the BULLETED "- **Next step:** ..." (PRD-183); the
+# optional "- " prefix is captured and re-emitted so the legacy unbulleted
+# form keeps working too.
 if next_step:
     state_text, n = re.subn(
-        r"^\*\*Next step.*$",
-        lambda _m: f"**Next step:** {next_step}",
+        r"^(- )?\*\*Next step.*$",
+        lambda m: f"{m.group(1) or ''}**Next step:** {next_step}",
         state_text, count=1, flags=re.MULTILINE,
     )
     if n != 1:

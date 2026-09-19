@@ -524,26 +524,17 @@ def _try_fred_quote(symbol: str) -> RawQuote:
                         f"no FRED series mapped for {symbol}")
 
     url = _fred_csv_url(series_id, fetched_at.date() - timedelta(days=_FRED_WINDOW_DAYS))
-    last_error: Optional[str] = None
-    text: Optional[str] = None
-    for attempt in range(config.FETCH_RETRIES):
-        try:
-            text = _run_with_timeout(
-                lambda: _fetch_fred_csv(url, config.FETCH_TIMEOUT_SECONDS),
-                config.FETCH_TIMEOUT_SECONDS * 3,
-            )
-            break
-        except Exception as exc:
-            last_error = str(exc)
-            logger.warning(
-                f"fred {symbol} attempt {attempt + 1}/{config.FETCH_RETRIES} failed: {exc}"
-            )
-            if attempt < config.FETCH_RETRIES - 1:
-                time.sleep(config.FETCH_BACKOFF_SECONDS)
-
-    if text is None:
-        logger.error(f"fred {symbol}: fetch unavailable — last error: {last_error}")
-        return RawQuote(symbol, 0.0, 0.0, None, fetched_at, "fred", False, last_error)
+    # PRD-344 (owner ruling 2026-09-18): OPTIONAL display-only context gets ONE
+    # network attempt bounded by the urlopen socket timeout — no retry loop, no
+    # backoff, no outer _run_with_timeout wrapper (on Python 3.11 the futures
+    # TimeoutError aliases the socket timeout, so the wrapper relabelled a 10 s
+    # socket timeout as "timed out after 30s"). Failure -> fail-closed "--".
+    try:
+        text = _fetch_fred_csv(url, config.FETCH_TIMEOUT_SECONDS)
+    except Exception as exc:
+        reason = f"{type(exc).__name__}: {exc}"
+        logger.warning(f"fred {symbol}: fetch failed — {reason}; driver unavailable")
+        return RawQuote(symbol, 0.0, 0.0, None, fetched_at, "fred", False, reason)
 
     # Parse ONCE (deterministic; a stale/malformed CSV must not spin the retry
     # loop). fetched_at.date() is the staleness reference — fetched_at_utc itself

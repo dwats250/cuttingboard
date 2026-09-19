@@ -55,7 +55,7 @@ PROJECT_STATE = """\
 - **Proposed / next:** PRD-201 (later thing) — unstarted.
 - **Test baseline:** 2400 passing, 1 xfailed (`python -m pytest tests -q` at `abc0001`).
 
-**Next step:** finish PRD-200 implementation.
+- **Next step:** finish PRD-200 implementation.
 
 ## Recent ships
 
@@ -219,14 +219,14 @@ def test_r5_next_unchanged_when_omitted(tmp_path: Path) -> None:
     tree = _make_tree(tmp_path)
     assert _run(tree).returncode == 0
     state = _state(tree)
-    assert "**Next step:** finish PRD-200 implementation." in state
+    assert "- **Next step:** finish PRD-200 implementation." in state   # R3: byte-identical
 
 
 def test_r5_next_set_when_supplied(tmp_path: Path) -> None:
     tree = _make_tree(tmp_path)
     assert _run(tree, "--next", "ship PRD-202").returncode == 0
     state = _state(tree)
-    next_line = [ln for ln in state.splitlines() if ln.startswith("**Next step")]
+    next_line = [ln for ln in state.splitlines() if "**Next step" in ln]
     assert len(next_line) == 1
     assert "ship PRD-202" in next_line[0]
 
@@ -404,3 +404,40 @@ def test_tests_or_ci_summary_required(tmp_path: Path) -> None:
     )
     assert res.returncode != 0
     assert "missing --tests or --ci-summary" in res.stderr
+
+
+# --- PRD-345: --next matches the canonical BULLETED Next-step line ----------
+
+def test_prd345_r1_bulleted_next_step_rewritten_in_place_bullet_preserved(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    res = _run(tree, "--next", "new text")
+    assert res.returncode == 0, res.stderr
+    lines = [ln for ln in _state(tree).splitlines() if "**Next step" in ln]
+    assert len(lines) == 1, lines
+    assert re.fullmatch(r"- \*\*Next step:\*\* new text", lines[0]), lines[0]
+    assert "finish PRD-200 implementation" not in _state(tree)
+
+
+def test_prd345_r2_absent_next_step_with_next_fails_loud_and_writes_nothing(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    sp = tree / "docs" / "PROJECT_STATE.md"
+    sp.write_text("\n".join(ln for ln in sp.read_text().splitlines() if "**Next step" not in ln) + "\n")
+    before = {p: p.read_text() for p in (
+        sp, tree / "docs" / "PRD_REGISTRY.md",
+        tree / "docs" / "prd_history" / "PRD-200.md", tree / "docs" / "prd_index.json",
+    )}
+    res = _run(tree, "--next", "new text")
+    assert res.returncode != 0
+    assert "Next step" in res.stderr, res.stderr
+    for p, original in before.items():
+        assert p.read_text() == original, f"{p.name} was modified despite abort"
+
+
+def test_prd345_r4_legacy_unbulleted_next_step_still_rewritten(tmp_path: Path) -> None:
+    tree = _make_tree(tmp_path)
+    sp = tree / "docs" / "PROJECT_STATE.md"
+    sp.write_text(sp.read_text().replace("- **Next step:**", "**Next step:**", 1))
+    res = _run(tree, "--next", "new text")
+    assert res.returncode == 0, res.stderr
+    lines = [ln for ln in _state(tree).splitlines() if "**Next step" in ln]
+    assert lines == ["**Next step:** new text"], lines
