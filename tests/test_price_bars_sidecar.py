@@ -386,6 +386,7 @@ def test_no_module_outside_the_writer_references_the_sidecar():
         Path("cuttingboard/runtime/_constants.py"),
         Path("cuttingboard/runtime/__init__.py"),
         Path("cuttingboard/delivery/dashboard_renderer.py"),
+        Path("scripts/clean_generated_artifacts.sh"),
     }
     offenders: list[str] = []
     for root in ("cuttingboard", "tools", "scripts", "ui"):

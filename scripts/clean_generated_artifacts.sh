@@ -11,6 +11,17 @@ GENERATED=(
   logs/latest_hourly_run.json
   logs/latest_payload.json
   logs/market_map.json
+  # PRD-346: the remaining fixed mutable paths the pipelines commit (run_*.json history stays out)
+  logs/last_hourly_slot.json
+  logs/latest_hourly_market_map.json
+  logs/latest_run.json
+  logs/macro_drivers_snapshot.json
+  logs/price_bars_snapshot.json
+  logs/regime_history.jsonl
+  logs/trend_structure_snapshot.json
+  ui/contract.json
+  ui/dashboard.html
+  ui/index.html
 )
 
 for f in "${GENERATED[@]}"; do

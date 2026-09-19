@@ -1742,6 +1742,12 @@
       "title": "prd_close.sh --next matches the canonical bulleted Next-step line",
       "status": "COMPLETE",
       "commit": "#342"
+    },
+    {
+      "number": 346,
+      "title": "clean_generated_artifacts.sh restores the full tracked generated set (PATCH; HIGH-RISK by INFRA file)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
