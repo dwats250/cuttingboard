@@ -1730,6 +1730,12 @@
       "title": "Hourly admission / notification truth: read-only pre-flight admission before the ordinary hourly Telegram send",
       "status": "IN PROGRESS",
       "commit": null
+    },
+    {
+      "number": 344,
+      "title": "FRED DGS2/DGS5 fail-fast: one network attempt, truthful timeout diagnostic (PATCH on PRD-336 R3)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }

@@ -113,7 +113,6 @@ def test_try_fred_quote_network_failure_never_raises(monkeypatch) -> None:
         raise OSError("network down")
 
     monkeypatch.setattr(ingestion, "_fetch_fred_csv", _boom)
-    monkeypatch.setattr(ingestion.config, "FETCH_RETRIES", 1)   # no backoff delay
     q = ingestion._try_fred_quote("DGS5")
 
     assert q.fetch_succeeded is False   # never raises — optional driver renders "--"
@@ -129,3 +128,51 @@ def test_try_fred_quote_unmapped_series_never_raises() -> None:
 def test_dgs5_is_registered_on_the_fred_carrier() -> None:
     assert ingestion._FRED_SERIES_BY_SYMBOL.get("DGS5") == "DGS5"
     assert ingestion._FRED_SERIES_BY_SYMBOL.get("DGS2") == "DGS2"
+
+
+# --- PRD-344: fail-fast (one attempt, truthful diagnostic) -------------------
+
+@pytest.mark.parametrize("symbol", ["DGS2", "DGS5"])
+def test_fred_timeout_makes_exactly_one_attempt(monkeypatch, caplog, symbol) -> None:
+    """R1/R2/R3: a hanging FRED endpoint costs ONE socket timeout, never a retry
+    loop, and the recorded reason is the real exception (not the outer '30s')."""
+    calls: list[str] = []
+    sleeps: list[float] = []
+
+    def _hang(url: str, timeout: float) -> str:
+        calls.append(url)
+        raise TimeoutError("timed out")          # what urlopen raises on Py3.11
+
+    monkeypatch.setattr(ingestion, "_fetch_fred_csv", _hang)
+    monkeypatch.setattr(ingestion.time, "sleep", lambda s: sleeps.append(s))
+    caplog.set_level("WARNING", logger="cuttingboard.ingestion")
+
+    q = ingestion._try_fred_quote(symbol)
+
+    assert len(calls) == 1, f"expected exactly one network attempt, got {len(calls)}"
+    assert sleeps == [], "no backoff sleep on the optional FRED driver"
+    assert q.fetch_succeeded is False and q.source == "fred"
+    assert q.price == 0.0 and q.as_of is None     # no fabricated / carried value
+    assert q.failure_reason is not None and "timed out" in q.failure_reason
+    fred_records = [r for r in caplog.records if symbol in r.getMessage() and "fred" in r.getMessage()]
+    assert fred_records and fred_records[0].levelname == "WARNING"
+    joined = " ".join(r.getMessage() for r in fred_records)
+    assert "TimeoutError" in joined and "timed out" in joined
+    assert "after 30s" not in joined            # the false outer-wrapper label is gone
+
+
+def test_fred_success_makes_exactly_one_attempt(monkeypatch) -> None:
+    """R4: the success path is unchanged and also touches the network once."""
+    today = date.today()
+    prior = today - timedelta(days=1)
+    text = _csv("DGS2", [(prior.isoformat(), "4.00"), (today.isoformat(), "4.10")])
+    calls: list[str] = []
+
+    def _ok(url: str, timeout: float) -> str:
+        calls.append(url)
+        return text
+
+    monkeypatch.setattr(ingestion, "_fetch_fred_csv", _ok)
+    q = ingestion._try_fred_quote("DGS2")
+    assert len(calls) == 1
+    assert q.fetch_succeeded is True and q.price == 4.10 and q.as_of == today
