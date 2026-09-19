@@ -32,9 +32,11 @@ def _seed(root: Path, paths: list[str]) -> None:
 
 def _repo(tmp_path: Path, tracked: list[str]) -> Path:
     _git(tmp_path, "init", "-q")
-    _git(tmp_path, "config", "user.email", "t@t"); _git(tmp_path, "config", "user.name", "t")
+    _git(tmp_path, "config", "user.email", "t@t")
+    _git(tmp_path, "config", "user.name", "t")
     _seed(tmp_path, tracked)
-    _git(tmp_path, "add", "-A"); _git(tmp_path, "commit", "-q", "-m", "seed")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-q", "-m", "seed")
     return tmp_path
 
 
