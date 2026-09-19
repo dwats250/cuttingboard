@@ -16,6 +16,7 @@ set (which is exactly why the pin, not the coincidence, is load-bearing).
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -117,4 +118,71 @@ def test_ruff_check_passes() -> None:
     result = _ruff("check", "cuttingboard/", "tests/")
     assert result.returncode == 0, (
         f"ruff check failed:\n{result.stdout}\n{result.stderr}"
+    )
+
+
+def _resolved_rule_codes() -> set[str]:
+    """Rule CODEs the pinned ruff RESOLVES, parsed from the
+    ``linter.rules.enabled = [ ... ]`` block of ``ruff check --show-settings``;
+    a missing/unterminated block fails loud (never a silent empty set)."""
+    result = _ruff("check", "--show-settings", "cuttingboard/config.py")
+    assert result.returncode == 0, f"--show-settings failed:\n{result.stdout}\n{result.stderr}"
+    lines = result.stdout.splitlines()
+    start = next((i for i, ln in enumerate(lines)
+                  if ln.strip().startswith("linter.rules.enabled = [")), None)
+    assert start is not None, f"no 'linter.rules.enabled = [' block:\n{result.stdout}"
+    end = next((j for j in range(start + 1, len(lines)) if lines[j].strip() == "]"), None)
+    assert end is not None, "unterminated 'linter.rules.enabled' block in --show-settings"
+    return set(re.findall(r"\(([A-Z]+[0-9]+)\)", "\n".join(lines[start : end + 1])))
+
+
+def _declared_rule_codes() -> set[str]:
+    """Expand ``[tool.ruff.lint].select`` against ruff's OWN catalogs (no
+    hand-maintained code list): resolve each selector to its owning linter via
+    ``ruff linter`` (code prefix = linter prefix + category prefix, so Pylint
+    "PL"+"E" is "PLE" and never shadows pycodestyle "E", and FastAPI/FBT/FIX stay
+    out of "F"), then take that linter's STABLE codes sharing the selector."""
+    select = _load()["tool"]["ruff"]["lint"]["select"]
+    rules_proc = _ruff("rule", "--all", "--output-format", "json")
+    linters_proc = _ruff("linter", "--output-format", "json")
+    assert rules_proc.returncode == 0, f"ruff rule catalog failed:\n{rules_proc.stderr}"
+    assert linters_proc.returncode == 0, f"ruff linter catalog failed:\n{linters_proc.stderr}"
+    rules = json.loads(rules_proc.stdout)
+
+    prefix_to_linter: dict[str, str] = {}
+    for entry in json.loads(linters_proc.stdout):
+        base = entry.get("prefix") or ""
+        if base:
+            prefix_to_linter[base] = entry["name"]
+        for category in entry.get("categories") or []:
+            if category.get("prefix"):
+                prefix_to_linter[base + category["prefix"]] = entry["name"]
+
+    def _owner(selector: str) -> str:
+        candidates = [p for p in prefix_to_linter if selector.startswith(p)]
+        assert candidates, f"no ruff linter owns selector {selector!r}"
+        return prefix_to_linter[max(candidates, key=len)]
+
+    codes: set[str] = set()
+    for selector in select:
+        owner = _owner(selector)
+        codes |= {
+            rule["code"] for rule in rules
+            if rule["linter"] == owner and rule["code"].startswith(selector)
+            and isinstance(rule.get("status"), dict) and "Stable" in rule["status"]
+        }
+    return codes
+
+
+def test_resolved_rule_set_equals_declared_expansion() -> None:
+    """PRD-274 / PRD-198 invariant 2: the COMPLETE resolved rule set equals the
+    COMPLETE declared-``select`` expansion — a missing or undeclared family turns
+    this RED naming the symmetric difference; an empty side fails loud."""
+    resolved = _resolved_rule_codes()
+    declared = _declared_rule_codes()
+    assert resolved, "RESOLVED rule set is empty — parse of ruff --show-settings failed"
+    assert declared, "DECLARED rule set is empty — select expansion produced nothing"
+    assert resolved == declared, (
+        f"resolved != declared; declared missing from RESOLVED: {sorted(declared - resolved)}; "
+        f"undeclared extras in RESOLVED: {sorted(resolved - declared)}"
     )
