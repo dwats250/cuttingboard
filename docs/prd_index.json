@@ -1734,7 +1734,7 @@
     {
       "number": 346,
       "title": "clean_generated_artifacts.sh restores the full tracked generated set (PATCH; HIGH-RISK by INFRA file)",
-      "status": "PROPOSED",
+      "status": "IN PROGRESS",
       "commit": null
     }
   ]
