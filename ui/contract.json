@@ -29,73 +29,73 @@
     "valid_until": "2026-09-22T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-09-21T15:02:01Z",
-  "generation_id": "hourly-20260921T150201Z",
+  "generated_at": "2026-09-21T16:02:00Z",
+  "generation_id": "hourly-20260921T160200Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 5.925954661628492,
-      "level": 85969.0,
+      "change_pct": 5.893861231434736,
+      "level": 85942.953125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.07477352884736276,
-      "level": 100.38400268554688,
+      "change_pct": 0.09171945726481003,
+      "level": 100.4010009765625,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": 3.5970734778226023,
-      "level": 2739.199951171875,
+      "change_pct": 4.18707219714367,
+      "level": 2754.800048828125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.11475830148167908,
-      "level": 1.1475785970687866,
+      "change_pct": -0.1605889902379699,
+      "level": 1.1470520496368408,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -0.3981073019144029,
-      "level": 4378.2998046875,
+      "change_pct": -0.18881216288897937,
+      "level": 4387.5,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -1.111885497448598,
-      "level": 2.8459999561309814,
+      "change_pct": -1.1813731634293074,
+      "level": 2.8440001010894775,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": -2.1496267385552588,
-      "level": 91.94999694824219,
+      "change_pct": -2.1070589882011905,
+      "level": 91.98999786376953,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -3.869571207661221,
-      "change_pct": -0.7803127891385695,
-      "level": 4.959000110626221,
+      "change_bps": -3.6726267080318635,
+      "change_pct": -0.7402996842265746,
+      "level": 4.960999965667725,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": -0.6753001229526012,
-      "level": 5.295000076293945,
+      "change_pct": -0.6377864309917121,
+      "level": 5.296999931335449,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -0.19505928421633942,
-      "level": 66.51499938964844,
+      "change_pct": 0.02251784799891658,
+      "level": 66.66000366210938,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": 0.2145630743479895,
-      "level": 1.4012000560760498,
+      "change_pct": 0.2903669483854994,
+      "level": 1.4022599458694458,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.39590845952035914,
-      "level": 157.4759979248047,
+      "change_pct": 0.3946340969424151,
+      "level": 157.4739990234375,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": -0.8102689792935482,
-      "level": 14.6899995803833,
+      "change_pct": 0.7427390517257867,
+      "level": 14.920000076293945,
       "symbol": "^VIX"
     }
   },
@@ -117,8 +117,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 6,
     "total_votes": 8,
-    "vix_level": 14.6899995803833,
-    "vix_pct_change": -0.008102689792935483,
+    "vix_level": 14.920000076293945,
+    "vix_pct_change": 0.007427390517257867,
     "vote_breakdown": {
       "BTC pct_change": "RISK_ON",
       "DXY pct_change": "NEUTRAL",
@@ -151,7 +151,7 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 12.58 below 1\u00d7 ATR14 (12.58); price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 12.58 below 1\u00d7 ATR14 (12.58); price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "COIN"
     },
@@ -223,7 +223,7 @@
     },
     {
       "detail": null,
-      "reason": "3 soft gates failed: stop distance 0.5% below 1.0% minimum; R:R 2.00 below 2.0 minimum; price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "3 soft gates failed: stop distance 0.5% below 1.0% minimum; R:R 2.00 below 2.0 minimum; price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "USDCAD=X"
     },
@@ -241,7 +241,7 @@
     },
     {
       "detail": null,
-      "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "^TNX"
     },
@@ -253,13 +253,13 @@
     },
     {
       "detail": null,
-      "reason": "price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "ETH-USD"
     },
     {
       "detail": null,
-      "reason": "price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "QQQ"
     },
@@ -283,13 +283,13 @@
     },
     {
       "detail": null,
-      "reason": "price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "AAPL"
     },
     {
       "detail": null,
-      "reason": "price 3.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 4.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "META"
     }
