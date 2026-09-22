@@ -1,5 +1,5 @@
 {
-  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n7:00 AM\nRegime: RISK_ON\n29/31 validated\nVIX 14.7 (-0.9%)",
+  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n8:00 AM\nRegime: NEUTRAL\n29/31 validated\nVIX 14.5 (-2.7%)",
   "alert_title": "OBSERVE ONLY \u2014 OPERATOR LOCK",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
@@ -9,7 +9,7 @@
   "candidate_lines": [],
   "candidates_qualified": 0,
   "candidates_watchlist": 0,
-  "confidence": 0.25,
+  "confidence": 0.125,
   "data_status": "ok",
   "effective_permission": {
     "authority_version": [
@@ -29,14 +29,14 @@
   },
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-09-22T14:02:14Z",
-  "generation_id": "hourly-20260922T140214Z",
+  "generated_at": "2026-09-22T15:02:14Z",
+  "generation_id": "hourly-20260922T150214Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-09-22T14:00:00Z",
+  "hourly_slot_utc": "2026-09-22T15:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
-  "net_score": 2,
+  "net_score": 1,
   "notification_attempted": true,
   "notification_http_status": 200,
   "notification_reason": null,
@@ -48,13 +48,13 @@
   "outcome": "NO_TRADE",
   "permission": "No new trades permitted \u2014 operator cannot monitor.",
   "posture": "STAY_FLAT",
-  "regime": "RISK_ON",
+  "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-09-22T14:02:14Z",
-  "run_id": "hourly-20260922T140214Z",
+  "run_at_utc": "2026-09-22T15:02:14Z",
+  "run_id": "hourly-20260922T150214Z",
   "session_date": "2026-09-22",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-09-22T14:02:14Z",
+  "timestamp": "2026-09-22T15:02:14Z",
   "warnings": []
 }
