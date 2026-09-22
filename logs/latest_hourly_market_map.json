@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.013546332947920849,
-      "price": 146.3699951171875,
+      "pct_change_decimal": -0.00545890737148703,
+      "price": 147.57000732421875,
       "structure": "PULLBACK",
       "symbol": "USO"
     }
@@ -18,8 +18,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-09-22T15:02:14Z",
-  "generation_id": "hourly-20260922T150214Z",
+  "generated_at": "2026-09-22T16:02:26Z",
+  "generation_id": "hourly-20260922T160226Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +33,14 @@
   "session_date": "2026-09-22",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-22T15:02:14Z"
+    "run_at_utc": "2026-09-22T16:02:26Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 95.41999816894531,
+      "current_price": 95.75,
       "fib_levels": {
         "retracements": {
           "0.382": 100.1386,
@@ -53,7 +53,7 @@
       },
       "grade": "C",
       "invalidation": [
-        "loses EMA21 with weak recovery",
+        "loses EMA9 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
@@ -74,7 +74,7 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for clearer reaction around EMA21",
+        "entry": "wait for clearer reaction around EMA9",
         "if_now": "WAIT",
         "setup": "metals low-quality range",
         "trade_type": "none",
@@ -82,14 +82,14 @@
       },
       "watch_zones": [
         {
-          "context": "primary trend reference",
-          "level": 95.4544,
-          "type": "EMA21"
-        },
-        {
           "context": "fast trend reference",
           "level": 95.5561,
           "type": "EMA9"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 95.4544,
+          "type": "EMA21"
         },
         {
           "context": "trend base reference",
@@ -98,7 +98,7 @@
         }
       ],
       "what_to_look_for": [
-        "watch hold above EMA21",
+        "watch hold above EMA9",
         "look for higher low with expanding volume"
       ]
     },
@@ -106,7 +106,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 396.94989013671875,
+      "current_price": 396.8999938964844,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -162,7 +162,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 744.7999877929688,
+      "current_price": 744.280029296875,
       "fib_levels": {
         "retracements": {
           "0.382": 726.4316,
@@ -228,7 +228,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 59.34000015258789,
+      "current_price": 59.31999969482422,
       "fib_levels": {
         "retracements": {
           "0.382": 61.2425,
@@ -294,7 +294,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 773.4400024414062,
+      "current_price": 772.9400024414062,
       "fib_levels": {
         "retracements": {
           "0.382": 764.5199,
@@ -360,7 +360,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 62.44499969482422,
+      "current_price": 62.64500045776367,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -398,14 +398,14 @@
           "type": "EMA21"
         },
         {
-          "context": "trend base reference",
-          "level": 61.3984,
-          "type": "EMA50"
-        },
-        {
           "context": "fast trend reference",
           "level": 63.8387,
           "type": "EMA9"
+        },
+        {
+          "context": "trend base reference",
+          "level": 61.3984,
+          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
