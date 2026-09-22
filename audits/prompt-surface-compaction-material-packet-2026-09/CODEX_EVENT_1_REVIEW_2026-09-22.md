@@ -121,3 +121,38 @@ NON-FINDINGS:
 5. AUTHORITY / GOVERNANCE: MATERIAL, CLASS GOVERNANCE, and LANE HIGH-RISK are correctly applied; GOV-2 steps 1-5, the no-downstream-authority rule, provisional ceiling labels, and PRD-255's lower-number-document ordering are stated correctly. PRD-346.md is absent, so the stated closeout hold is current. No implementation or merge authority is claimed.
 6. FACTUAL DEFECTS: All remaining packet file paths, line counts, cited authority sections, and quoted literals checked with nl/rg resolve at bcb859bd5148d92b9e6707981ca094dbc5053965. The non-resolving or misclassified items are exhaustively listed in F2, F3, and F6.
 
+## Dispositions
+
+Recorded with the one consolidated author correction (packet rev 2, GOV-2 s2 step 4;
+author seat AUTHORITY: DESIGN / Navigator, no certification). Every finding above was
+re-verified at HEAD before disposition; all cited lines resolve as the reviewer stated.
+
+- F1 (BOUNDARY-RESET): ACTIONED -> packet s2A (complete instruction-surface inventory
+  refresh with the re-runnable command; 59 tracked Markdown files + the non-Markdown
+  instruction carriers classified) and s2 (docs/dev_workflow.md classified OUT with reason).
+  Header records this as the one permitted first-discovery refresh (GOV-2 s6).
+- F2 (COMPLETENESS): ACTIONED -> items 1-2 in A2; 3-4 in A5; 5 in A15; 6 in A13; 7 in A14;
+  8 in A15 and A16; 9 in s7 (listed) and s8 (out-of-slice debt, not repaired). The inbound
+  citation re-sweep by path and by section name is recorded in the s4 trailer (c).
+- F3 (FACTUAL): ACTIONED -> s4 rebuilt row-by-row from HEAD and split into 4A (present in
+  payload) and 4B (external, referenced only): item 1 -> B1; item 2 -> A7; item 3 -> A10;
+  item 4 -> B3 ("Review Dispatch" added, OWNER_MERGE row withdrawn); item 5 -> A17.
+- F4 (CONTRACT): ACTIONED -> s2 intents, A18 and A20 mark CLAUDE_HOOKS.md:48-53 and
+  prd-authoring :143-161 PRESERVED; s6 P2 examples replaced with verified pure-history
+  ranges (:40-47, scope-lock :121-130); P3 redefined to require proof of no consumer, with
+  no example offered.
+- F5 (CONTRACT): ACTIONED -> s5 (rule-unit definition incl. structural units and
+  operator-less authority; equal force AND equal scope; load-path proof for every citation),
+  s6 (default/exception/quantifier changes forbidden), s9.3 (sha256 of extracted content
+  replaces occurrence counts).
+- F6 (FACTUAL): ACTIONED -> A3 (SILENT; harness loader is the decisive consumer; the test
+  stays green on a move) and A7 (loud validator branches :788-795 / :817-839 separated from
+  silent or process-only cases).
+- F7 (GOVERNANCE): ACTIONED -> Q3 and Q6 marked contract-changing alternatives that require
+  a revised packet and renewed independent review if selected; Astra confined to the R4
+  PRD-review seat (header, s9.6); the ledger review is PROPOSED and uncommissioned (s5, Q7);
+  the GOV-2-required implementation review is stated as independent of Astra (s9.7).
+
+No finding is PARTIALLY ACTIONED or DISPUTED. Confirmation of these dispositions at the
+exact corrected head is the reviewer's, not the author's (EVENT 2 pending).
+
