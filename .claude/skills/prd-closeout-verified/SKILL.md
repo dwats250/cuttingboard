@@ -18,22 +18,15 @@ It is NOT a substitute for:
 
 - Implementation review or test-pass verification
 - The review gate (fresh-context Claude review artifact; second-model
-  disposition per PRD-242 — the registry validator enforces artifact-or-sentence
-  for HIGH-RISK closes at CI)
+  disposition per PRD-242)
 - Pushing to `origin` — push is a separate, explicit human/agent action
   outside this skill
 
 Closeout is the *last* step of the implementation PR (PRD-229 Same-PR
-Closeout, `docs/PRD_PROCESS.md`): implementation commits are on the
-branch, the PR is open (so its number exists), and the closeout commit
-is pushed into that same PR before merge. If the implementation commits
-have not landed on the branch yet, refuse and direct the user to land
-them first. Hex-hash mode (closing out after a hand-merge, recording
-the merge SHA) remains supported for that flow only.
-
-Dashboard/UI artifact refresh, if required by the PRD, must be
-completed before closeout. This skill does not detect or perform UI
-refreshes.
+Closeout, `docs/PRD_PROCESS.md`). If the implementation commits have not
+landed on the branch yet, refuse and direct the user to land them first.
+Hex-hash mode (closing out after a hand-merge, recording the merge SHA)
+remains supported for that flow only.
 
 ## When to trigger
 
@@ -56,19 +49,13 @@ Default is **DRAFT_ONLY**.
   PROJECT_STATE deltas, PRD-NNN.md STATUS line, prd_index.json entry)
   and the Verification Report. Do not write or commit.
 - **WRITE_MODE** — invoke `scripts/prd_close.sh --commit` with the
-  args (plus optional `--next`). As of PRD-164 the script produces a
-  **complete single-commit closeout**: it flips the existing registry
-  row in place to `COMPLETE @ <hash>`, sets both PRD-doc status markers
+  args (plus optional `--next`). The script produces a **complete
+  single-commit closeout**: it flips the existing registry row in place
+  to `COMPLETE @ <hash>`, sets both PRD-doc status markers
   (`Status: COMPLETE` header + `STATUS: COMPLETE @ <hash>` trailing),
   resets the bulleted `- **Active PRD:**` line to `none in progress`,
   updates the `Test baseline` line, and prepends a `## Recent ships`
-  row (PRD-183 realigned these edits to the new PROJECT_STATE format).
-  No separate "registry/state fixup" commit is required. Phase 2 then
-  verifies the script's output.
-
-Push to `origin` is intentionally out of scope. If the user wants the
-closeout pushed, they perform `git push` themselves after the skill
-returns.
+  row. Phase 2 then verifies the script's output.
 
 If unclear, ask once, then default to DRAFT_ONLY.
 
@@ -83,8 +70,7 @@ The skill needs these arguments before Phase 1:
 - `title` — PRD title, exact match to the PRD header
 - `tests` — total passing test count after PRD lands
 - `added` — net new tests added (0 for docs-only PRDs)
-- `summary` — one-paragraph what + why; recorded in the closeout
-  commit body (the new PROJECT_STATE format has no prose summary line)
+- `summary` — one-paragraph what + why; recorded in the closeout commit body
 - `next` — *optional*; the new `**Next step` text. Passed through to
   `prd_close.sh --next`. When omitted, the `**Next step` line is left
   unchanged (the script never clobbers it with a canned string).
@@ -116,8 +102,7 @@ registry row in `docs/PRD_REGISTRY.md` (typically with status
 
 If the row is missing at preflight, stop and report the inconsistency.
 Resolve it manually before re-invoking the skill. Silent creation of a
-missing row during closeout would mask a deeper bookkeeping break
-(implementation started without registering the PRD) and is forbidden.
+missing row during closeout is forbidden.
 
 Note: `scripts/prd_close.sh` will *append* a row when one is missing.
 This skill's preflight runs **before** invoking that script precisely
@@ -218,8 +203,8 @@ Bookkeeping allowlist (V12):
 
 - Does not write the implementation commit. That happened earlier.
 - Does not run tests. Test baseline must be supplied as input.
-- Does not refresh dashboard/UI artifacts. Dashboard/UI artifact
-  refresh, if required by the PRD, must be completed before closeout.
+- Does not detect or perform dashboard/UI artifact refreshes. Dashboard/UI
+  artifact refresh, if required by the PRD, must be completed before closeout.
 - Does not push to `origin`. Push is a separate, explicit action the
   user performs after this skill returns.
 - Does not invoke Codex or Claude cross-review.

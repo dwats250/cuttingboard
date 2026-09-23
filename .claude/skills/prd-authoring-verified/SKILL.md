@@ -42,10 +42,8 @@ The skill operates in one of two modes. Default is **DRAFT_ONLY**.
   response. Do not write any file. Do not touch the registry.
 - **WRITE_MODE** — write the PRD to `docs/prd_history/PRD-NNN.md`. Do
   NOT edit `docs/PRD_REGISTRY.md` unless the user has explicitly stated
-  implementation is starting in this same session. Per
-  `docs/PRD_PROCESS.md § Registry Maintenance`: "Add a row to
-  PRD_REGISTRY.md with status IN PROGRESS before implementation
-  begins."
+  implementation is starting in this same session (per
+  `docs/PRD_PROCESS.md § Registry Maintenance`).
 
 The user selects the mode. If unclear, ask once, then default to
 DRAFT_ONLY.
@@ -80,11 +78,9 @@ Guessing is forbidden.
 1. Read `docs/PROJECT_STATE.md` to confirm active PRD and next number.
 2. Read `docs/PRD_REGISTRY.md` to pick the next free `PRD-NNN`.
 3. Decide template:
-   - Cosmetic (PRD-229 Cosmetic Carve-Out, `docs/PRD_PROCESS.md`):
-     ui copy / CSS / layout, or comment/docstring-only edits, touching
-     no R12 behavior surface → a ≤10-line MICRO note (GOAL + FILES +
-     one FAIL line), no template; batch into the weekly polish PRD
-     when one is running.
+   - Cosmetic (PRD-229 Cosmetic Carve-Out, `docs/PRD_PROCESS.md`) → a
+     ≤10-line MICRO note (GOAL + FILES + one FAIL line), no template;
+     batch into the weekly polish PRD when one is running.
    - Micro (`docs/PRD_MICRO_TEMPLATE.md`) only if ALL eligibility
      criteria in `docs/PRD_PROCESS.md § LANE Axis` (MICRO row + R12
      safety net) and the micro template's own criteria hold.
