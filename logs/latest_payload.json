@@ -1,92 +1,92 @@
 {
   "effective_permission": {
     "authority_version": [
-      "2026-09-22",
+      "2026-09-23",
       1,
       1
     ],
     "decision_seq": 1,
-    "decision_uid": "fc51c5800d4f4312927dfbce10e569c0",
+    "decision_uid": "a9d08f4620b74c5287e264bef8fe727f",
     "permission_line": "No new trades permitted \u2014 operator cannot monitor.",
     "recovery_basis": null,
     "restriction_rank": 1,
-    "run_uid": "fc51c5800d4f4312927dfbce10e569c0",
-    "session_date": "2026-09-22",
-    "valid_until": "2026-09-23T08:00:00+00:00",
+    "run_uid": "a9d08f4620b74c5287e264bef8fe727f",
+    "session_date": "2026-09-23",
+    "valid_until": "2026-09-24T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.5985212039676108,
-      "level": 86076.6484375,
+      "change_pct": -0.8674609252856115,
+      "level": 85450.3125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.10163251358590814,
-      "level": 100.46099853515625,
+      "change_pct": 0.20551893948833724,
+      "level": 100.9280014038086,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -0.5584800910837678,
-      "level": 2759.889892578125,
+      "change_pct": -1.254450762042816,
+      "level": 2718.840087890625,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.06877364613838471,
-      "level": 1.1460003852844238,
+      "change_pct": -0.3536763800214128,
+      "level": 1.1409013271331787,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -0.2009612197140693,
-      "level": 4370.2998046875,
+      "change_pct": -0.9086713398972603,
+      "level": 4340.2001953125,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": 5.799647106985413,
-      "level": 3.009999990463257,
+      "change_pct": 0.6937897937600347,
+      "level": 3.193000078201294,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": -2.8073578316468297,
-      "level": 90.36000061035156,
+      "change_pct": 1.9362097218554106,
+      "level": 91.08000183105469,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -2.3884107394909497,
-      "change_pct": -0.48358183372555735,
-      "level": 4.939000129699707,
+      "change_bps": 2.008049607190061,
+      "change_pct": 0.4025761108611854,
+      "level": 4.98799991607666,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": -0.4154047574050443,
-      "level": 5.27400016784668,
+      "change_pct": 0.37714465448278633,
+      "level": 5.322999954223633,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -0.21811712566018418,
-      "level": 66.33499908447266,
+      "change_pct": -2.311022899672722,
+      "level": 65.5199966430664,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": 0.12328626191585254,
-      "level": 1.4049400091171265,
+      "change_pct": 0.15998829606149925,
+      "level": 1.4086500406265259,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": -0.02543276931818645,
-      "level": 157.27099609375,
+      "change_pct": 0.2756116936180142,
+      "level": 157.9040069580078,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": -1.2785974749193596,
-      "level": 14.670000076293945,
+      "change_pct": 0.7037324503960165,
+      "level": 14.3100004196167,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20260922T130142Z",
+    "generation_id": "live-20260923T130114Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-09-22T13:01:42Z"
+    "timestamp": "2026-09-23T13:01:14Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -142,16 +142,16 @@
     ],
     "spy_observation": {
       "current_price": null,
-      "intended_session_date": "2026-09-22",
-      "observed_at_utc": "2026-09-21T19:59:00+00:00",
+      "intended_session_date": "2026-09-23",
+      "observed_at_utc": "2026-09-22T19:59:00+00:00",
       "observed_symbol": "SPY",
       "orb": {
-        "observed_at_utc": "2026-09-21T19:30:00+00:00",
+        "observed_at_utc": "2026-09-22T19:30:00+00:00",
         "orb_high": null,
         "orb_low": null,
         "reason": "pre_open_prior_session",
         "state": "PRE_OPEN",
-        "trading_date": "2026-09-22"
+        "trading_date": "2026-09-23"
       },
       "price_vs_vwap": null,
       "reason": "pre_open_prior_session",
