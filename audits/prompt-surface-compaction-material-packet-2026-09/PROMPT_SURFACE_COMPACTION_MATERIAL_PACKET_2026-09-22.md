@@ -1,16 +1,17 @@
 # Prompt-Surface Compaction MATERIAL Packet (2026-09-22)
 
-STATUS: PROVISIONAL rev 3 (narrowed claim per owner ruling R7; GOV-2 cycle 2 pending).
-NOT review-clean: cycle 1 ended DESIGN INCOMPLETE (EVENT 2 @ 3224360a); a NEW bounded GOV-2
-Codex cycle must run on this narrowed packet. Authorizes NOTHING: no design-direction ruling,
-no Stage-0, no Gate A, no implementation, no merge is implied.
+STATUS: PROVISIONAL rev 4 (one consolidated cycle-2 correction after C2 EVENT 1 @ 394006f0).
+NOT review-clean until the cycle-2 EXACT-CORRECTED-HEAD CONFIRMATION lands. Authorizes
+NOTHING: no design-direction ruling, no Stage-0, no Gate A, no implementation, no merge is
+implied. This is the ONE consolidated correction GOV-2 s7 allows in cycle 2; a further omitted
+Markdown class found at confirmation returns the packet to DESIGN INCOMPLETE and stops the slice.
 GOVERNED CLAIM (R7, verbatim): "Complete inventory and semantic-no-op compaction of
 Cuttingboard's LIVE agent-facing Markdown instruction/control surface." It is NOT a claim to
 enumerate every agent-control surface of every file type (see s2B for the specifically
 discovered non-Markdown frozen dependencies, about which no completeness is claimed).
 CLASS GOVERNANCE / LANE HIGH-RISK / MATERIAL (owner ruling R2). Reserved number: PRD-347
 (NOT opened; Stage-0 waits for the design-direction ruling, R5). Base: main @ 73a13762;
-branch claude/prompt-surface-compaction-packet, HEAD at authoring 98489532 (tree identical to
+branch claude/prompt-surface-compaction-packet, HEAD at authoring 2f70cbaf (tree identical to
 73a13762 outside this packet directory).
 Seats (R4): Fable = AUTHORITY: DESIGN / Navigator (this author: provisional design and
 proposed wording only). Codex = AUTHORITY: REVIEW (cycle-2 packet review + mechanical
@@ -38,10 +39,16 @@ preserves the current green baseline; it does not validate the proposed edits (G
    confirmation of the narrowed claim.
 5. Owner ruling R7 (2026-09-22): NARROW THE CLAIM to the Markdown surface; record the
    discovered non-Markdown controls as frozen external dependencies; start a new cycle.
-6. rev 3 (this revision): narrowed claim; cycle-1 EVENT 2 defects 1-4 fixed; payload
-   unchanged (exactly 7 files).
-7. Cycle 2 (PENDING): independent Codex review of the narrowed packet; at most one
-   consolidated correction; exact-corrected-head confirmation (s11).
+6. rev 3 @ 394006f0: narrowed claim; cycle-1 EVENT 2 defects 1-4 fixed; payload unchanged.
+7. Cycle-2 EVENT 1 INITIAL PACKET REVIEW (Codex gpt-5.6-sol, effort low, unmodified runner)
+   @ 394006f0: CHANGES REQUIRED, C2-F1..F3; record committed 2f70cbaf
+   (CODEX_C2_EVENT_1_REVIEW_2026-09-22.md). C2-F1 = the FIRST newly discovered Markdown
+   class in cycle 2 (audit-local prompt/charge Markdown excluded by a blanket pre-filter).
+8. rev 4 (this revision): the one consolidated cycle-2 correction - complete Markdown
+   inventory refresh with no pre-filter (s2A), class-H occurrence manifest (s4, s9), proof
+   carrier embedded in the ledger (s5, s9). Payload unchanged (exactly 7 files).
+9. Cycle-2 EVENT 2 EXACT-CORRECTED-HEAD CONFIRMATION (PENDING, s11). A further omitted class
+   there = DESIGN INCOMPLETE; the slice stops.
 
 Owner rulings 2026-09-22 (Dustin), recorded as minimum provenance:
 - R1 Proceed now as a bounded governance-maintenance window (explicit owner priority decision);
@@ -76,8 +83,8 @@ Owner rulings 2026-09-22 (Dustin), recorded as minimum provenance:
   history is kept as provenance. Separately parked by the owner: a cbagent `--effort`
   tooling change made outside this slice was reverted (s8).
 Also out of scope per the charge: product behavior, model seating (docs/AGENT_SEATING.md),
-unrelated cleanup. Evidence base: the author's re-verification of every file:line below at
-98489532.
+unrelated cleanup. Owner instruction for rev 4: do not broaden the payload. Evidence base:
+the author's re-verification of every file:line below at 2f70cbaf.
 
 ## 1. Objective and non-goals
 
@@ -87,14 +94,15 @@ authoritative text lives in a canonical source (replace with a by-name citation)
 historical explanation / rationale narrative, (c) ritualized procedure proven to have no
 consumer, and (d) obsolete model handholding, while preserving every authority, scope,
 review, security, fail-closed, parser/interface, and owner-held constraint: byte-for-byte
-where a consumer depends on the literal (s4 class H), and at equal force and equal scope for
-every rule unit (s4 class L, s5 ledger).
+and occurrence-for-occurrence where a consumer depends on the literal (s4 class H), and at
+equal force and equal scope for every rule unit (s4 class L, s5 ledger).
 
 Non-goals: no governance redesign; no change to precedence, owner holds, the merge wall, lanes,
 or review gates; no edit to any code, test, tool, hook, settings, or workflow file (s2B files
 included); no rewording of ratified or owner-authored text (R3); no seating change; no
-side-finding fixes (R6); no completeness claim about non-Markdown control surfaces (R7). Q3
-and Q6 in section 10 are contract-changing alternatives, not part of this contract.
+side-finding fixes (R6); no completeness claim about non-Markdown control surfaces (R7); no
+edit to any audits/, review, prompt, or evidence Markdown (R3; s2A G3). Q3 and Q6 in section
+10 are contract-changing alternatives, not part of this contract.
 
 ## 2. Payload boundary (ESTIMATED SURFACE - NOT YET APPROVED)
 
@@ -106,7 +114,7 @@ Candidates decided deliberately. IN = payload. OUT = excluded (reason in section
 | docs/CLAUDE_HOOKS.md (87) | IN | Drop pure history: :40-47 (PRD-254 allow-path story), :63-69 (PRD-243 detector retirement story). PRESERVE :48-53 (current Bash-not-covered decision), :9-13 table rows, and every rule unit of :19-38, :55-61, :71-79, :81-87 (A18, s2B). | ~55 |
 | .claude/skills/prd-authoring-verified/SKILL.md (180) | IN | Drop restated PRD_PROCESS policy (:83-91 lane criteria -> cite), retired-row explanation text at :115 (marker kept), shared boilerplate. PRESERVE :65-66 hard rule, :143-161 recon chain + helper thresholds (A20), V-table :106-115, report :120-133, refusals :173-180. | ~160 |
 | .claude/skills/prd-closeout-verified/SKILL.md (240) | IN | Drop restated Same-PR Closeout / PRD-242 policy (:20-36 -> cite PRD_PROCESS by section); keep script contract :51-93, registry-row invariant :111-124, two-phase :126-182, V-table :162-173, report :184-199, refusals :217-240. | ~205 |
-| .claude/skills/prd-review-claude/SKILL.md (288) | IN | Drop retired-mechanism narrative (e.g. :106-110 prd_eval retirement story; the slot-lock rule and refusal stay); keep stage-locked paths :99-114, review structure :115-170, two-phase :171-222, V-table :210-222, report :224-243, refusals :277-288. HIGH-RISK file. | ~240 |
+| .claude/skills/prd-review-claude/SKILL.md (288) | IN | Drop retired-mechanism narrative (e.g. :106-110 prd_eval retirement story; the slot-lock rule and refusal stay); keep stage-locked paths :99-114, review structure :115-170 (incl. the `audits/EXECUTION_DOCTRINE.md` cites :154, :189, B7), two-phase :171-222, V-table :210-222, report :224-243, refusals :277-288. HIGH-RISK file. | ~240 |
 | .claude/skills/scope-lock-precommit/SKILL.md (263) | IN | Drop PRD-276/277/278 narrative (:121-130 connector story, :132-140 "why the carve-out has a carve-out" rationale); keep FILES parsing :73-93, allowlist :95-115 incl. the GOVERNANCE exception :107-114, protected-set procedure :141-176, V-table :198-206, report :211-224, refusals :250-263 verbatim. | ~230 |
 | docs/PRD_REVIEW_TEMPLATE.md (255) | IN | Drop PRD-120 "Why this exists" narrative (:237-249) and rationale asides; keep section order :25-82, checklist :83-108, Review Independence :144-191, REVIEWED STATE :157, Filename convention :12-16, Mapping-Table checklist :192-255, LANE literals :166-170. HIGH-RISK file. | ~210 |
 | AGENTS.md (84) | OUT | Overlap with CLAUDE.md is by design: Codex loads AGENTS.md, not CLAUDE.md (:3-4), so the wall restatement cannot be replaced by a citation without moving rules out of Codex's load set (forbidden, s6). Residual gain < 10 lines. See Q1. | - |
@@ -125,30 +133,74 @@ settings, or workflow file is in the payload. The GOVERNANCE HIGH-RISK FILES set
 (PRD_PROCESS.md:458; validator :38-45) intersects the payload at CLAUDE.md, the prd-review-claude
 skill, and docs/PRD_REVIEW_TEMPLATE.md, so LANE: HIGH-RISK is forced and CI-enforced (PRD >= 276).
 
-## 2A. Complete LIVE agent-facing MARKDOWN instruction-surface inventory (R7 claim; GOV-2 s6 refresh)
+## 2A. Complete LIVE agent-facing MARKDOWN inventory (R7 claim; cycle-2 GOV-2 s6 refresh, C2-F1)
 
-Claim scope: every tracked Markdown file, per R7. Non-Markdown control surfaces are NOT
-inventoried here; the specifically discovered ones are frozen in s2B without a completeness
-claim. Method (re-runnable, re-verified at 98489532): `git ls-files '*.md' | grep -v -E
-'^(docs/prd_history/|audits/|reports/|logs/|docs/session_resume/|docs/superpowers/)' | sort`
-= 59 files (excluded groups: prd_history 627, audits 202, session_resume 1, superpowers 1,
-reports/logs 0; the two singletons are classified below). `.github/campaign/charge_prompt.md`
-is one of the 59 Markdown files (correcting rev 2, which mislabelled it a non-Markdown
-carrier); it is classified once, in the last row. Every one of the 59 is classified.
+LIVE test (operational, applied to every group below). A Markdown file is LIVE agent-facing
+instruction/control at HEAD iff at least one of: (a) a harness auto-loads it into an agent's
+context (repo-root `CLAUDE.md` for Claude Code; `AGENTS.md` for Codex; `.claude/skills/*/
+SKILL.md` via the skill loader; the user-level auto-memory `MEMORY.md`); (b) a file loaded
+under (a), or a canonical source it names (CLAUDE.md:124-144), directs agents to read or
+follow it on a named trigger (CLAUDE.md:71-72 mode files; :78-81 named triggers; a skill's own
+`Read` step; an explicit path citation inside a loaded skill); (c) automation or a
+commissioning act feeds it to a model as a prompt/charge (`campaign_control.yml` ->
+`charge_prompt.md`, s2B X7; cbagent `codex exec - < prompt` reading a packet-directory prompt
+file, s2B-adjacent). A file meeting only (c) for a single SHA-pinned event is LIVE for that
+event only; once the event's record is committed it is evidence. LIVE is necessary, not
+sufficient, for payload: payload also requires not-R3-excluded and a compaction gain (s2).
 
-| Class | Files | Decision |
-|---|---|---|
-| Payload | the 7 IN files of section 2 | IN |
-| Decided OUT candidates | AGENTS.md, CODEX.md, docs/contract/{MODE_RECON,MODE_DESIGN,MODE_IMPLEMENT,MODE_REVIEW,MODE_STEWARD,CHARGE_TEMPLATE}.md, docs/AGENT_WORKFLOW.md, .claude/skills/session-handoff/SKILL.md, docs/PRD_TEMPLATE.md, docs/PRD_MICRO_TEMPLATE.md, docs/tools/GITNEXUS.md, docs/dev_workflow.md | OUT (reasons in s2) |
-| R3 ratified / owner / binding plans | docs/PRD_PROCESS.md, docs/governance/*.md (3), docs/DECISIONS.md, VISION.md, docs/plans/*-v0.1.md (3) | OUT (R3) |
-| Seating | docs/AGENT_SEATING.md | OUT (charge) |
-| State / data (parser-bound) | docs/PROJECT_STATE.md, docs/PRD_REGISTRY.md (+ docs/prd_index.json, not Markdown) | OUT (s3) |
-| Recon cache / engineering reference (describe the system, not agent authority) | docs/SCHEMA_MAP.md, docs/CALL_SITE_MAP.md, docs/architecture.md, docs/sidecar_doctrine.md, docs/audit_doctrine.md, docs/artifact_flow_map.md, docs/decision_quality_map.md, docs/system_logic_map.md, docs/renderer_decomposition_map.md, docs/regime_model.md, docs/trade_qualification.md, docs/universe_taxonomy.md, docs/manual_trade_journal_schema.md, docs/review_scorecard_schema.md, docs/engine_doctor.md, docs/knowledge_systems.md (:3-6 declares itself non-authoritative over runtime) | OUT (not instruction; architecture.md:287 inbound cite frozen in A14) |
-| Human ops / deployment records | docs/runbook.md, workers/cuttingboard-clock/README.md, pinescripts/README.md, README.md (:137-143 human summary; its CLAUDE.md / AGENTS.md / docs/contract/ path refs frozen in A3) | OUT |
-| Ratified owner product program (R3-analogous: owner-ratified text, never reworded by compaction) | docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md and docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md (both :4 "RATIFIED", owner Dustin; the program's s10 stop conditions bind their own governed lane, not the payload) | OUT (ratified; untouched) |
-| Product / historical records | docs/product/ASTROLOGY_MODE_CONCEPT_RECORD_v0.1.md (:4 "not implementation authority"), docs/milestones/ENGINE_MILESTONE_2026-05-12.md, docs/audit/gate_recon_2026-06-12.md (2026-06-12 recon; its Codex/Claude role text is dated history), docs/session_resume/2026-07-23.md, docs/superpowers/plans/2026-08-27-*.md | OUT (history; untouched) |
-| CI-bound Markdown prompt | .github/campaign/charge_prompt.md (Markdown; wired by campaign_control.yml, s2B X7; phrase-locked by tests/test_campaign_control.py) | OUT (s3) |
-Newly IN as a result of the refresh: none. The Markdown inventory is complete at 59.
+Method (re-runnable at 2f70cbaf, NO pre-filter): `git ls-files '*.md' | wc -l` = 894.
+Group membership: `git ls-files '*.md' | awk -F/ '{ if ($0 ~ /^docs\/prd_history\//)
+g="docs/prd_history/"; else if ($0 ~ /^audits\//) g="audits/"; else if ($0 ~ /^reports\//)
+g="reports/"; else if ($0 ~ /^logs\//) g="logs/"; else if ($0 ~ /^docs\/session_resume\//)
+g="docs/session_resume/"; else if ($0 ~ /^docs\/superpowers\//) g="docs/superpowers/"; else
+g="REST"; c[g]++ } END { for (k in c) print c[k], k }'`.
+Arithmetic: 59 (G1 all other paths) + 627 (G2 docs/prd_history/) + 206 (G3 audits/) + 1 (G4
+docs/session_resume/) + 1 (G5 docs/superpowers/) + 0 (G6 reports/) + 0 (G7 logs/) = 894.
+
+| Group | Members and reproducible reason | LIVE test verdict | Decision |
+|---|---|---|---|
+| G1a payload | the 7 IN files of section 2 | LIVE: CLAUDE.md (a); 4 skills (a); CLAUDE_HOOKS.md (b: CLAUDE.md:141); PRD_REVIEW_TEMPLATE.md (b: prd-review-claude :54, :106, :124) | IN (7) |
+| G1b decided OUT candidates (14) | AGENTS.md (a, Codex); CODEX.md (not loaded by any harness; retired pointer, :3-4); docs/contract/MODE_*.md x5 + CHARGE_TEMPLATE.md (b: CLAUDE.md:71-72); docs/AGENT_WORKFLOW.md (b: CLAUDE.md:141-142; scope-lock :146); .claude/skills/session-handoff/SKILL.md (a); docs/PRD_TEMPLATE.md, docs/PRD_MICRO_TEMPLATE.md (b: prd-authoring :88, :91; scope-lock :80, :84); docs/tools/GITNEXUS.md (b: AGENTS.md:83, opt-in); docs/dev_workflow.md (fails: no loaded file directs agents to it; human runbook) | LIVE except CODEX.md and dev_workflow.md | OUT (reasons in s2) |
+| G1c R3 ratified / owner / binding plans (9) | docs/PRD_PROCESS.md, docs/governance/*.md x3, docs/DECISIONS.md, VISION.md, docs/plans/*-v0.1.md x3 | LIVE (b: CLAUDE.md:124-144 named triggers) | OUT (R3) |
+| G1d seating (1) | docs/AGENT_SEATING.md | LIVE (b: CLAUDE.md:110, :122) | OUT (charge) |
+| G1e state / data (2) | docs/PROJECT_STATE.md, docs/PRD_REGISTRY.md (docs/prd_index.json is not Markdown) | LIVE (b: CLAUDE.md:128-129) | OUT (s3; parser-bound) |
+| G1f recon cache + structural references named by CLAUDE.md (4) | docs/SCHEMA_MAP.md, docs/CALL_SITE_MAP.md (CLAUDE.md:139-140), docs/architecture.md, docs/sidecar_doctrine.md (CLAUDE.md:138) | LIVE (b) but reference data / structure, not instruction | OUT (s3) |
+| G1g engineering reference, not directed (12) | docs/audit_doctrine.md, docs/artifact_flow_map.md, docs/decision_quality_map.md, docs/system_logic_map.md, docs/renderer_decomposition_map.md, docs/regime_model.md, docs/trade_qualification.md, docs/universe_taxonomy.md, docs/manual_trade_journal_schema.md, docs/review_scorecard_schema.md, docs/engine_doctor.md, docs/knowledge_systems.md (:3-6 self-declares non-authoritative) | fails (a)(b)(c) | OUT |
+| G1h human ops / deployment records (4) | docs/runbook.md, workers/cuttingboard-clock/README.md, pinescripts/README.md, README.md (:137-143 human summary; its CLAUDE.md / AGENTS.md / docs/contract/ path refs frozen in A3) | fails | OUT |
+| G1i ratified owner product program (2) | docs/product/CUTTINGBOARD_NORTH_STAR_MASTER_LEDGER_v0.1.md, docs/product/NORTH_STAR_IMPLEMENTATION_PROGRAM_v0.1.md (both :4 "RATIFIED"; own governed lane) | fails (not directed by a loaded file) | OUT (ratified; untouched) |
+| G1j product / historical records (3) | docs/product/ASTROLOGY_MODE_CONCEPT_RECORD_v0.1.md (:4 "not implementation authority"), docs/milestones/ENGINE_MILESTONE_2026-05-12.md, docs/audit/gate_recon_2026-06-12.md (dated 2026-06-12 recon; note docs/audit/ is a docs subdirectory, distinct from audits/) | fails | OUT (history) |
+| G1k CI-bound Markdown prompt (1) | .github/campaign/charge_prompt.md (wired by campaign_control.yml :55, :75, :143, :162, s2B X7; phrase-locked by tests/test_campaign_control.py) | LIVE (c), every campaign run | OUT (s3; CI-bound; protected .github/ policy set) |
+| G1 subtotal | 7 + 14 + 9 + 1 + 2 + 4 + 12 + 4 + 2 + 3 + 1 = 59 | | |
+| G2 docs/prd_history/ (627) | breakdown by filename: 335 `PRD-NNN.md` docs; 246 `.review.` sidecars; 4 `.proposal.md`; 2 `.codex_prompt.md`; 1 `.impl_notes.`; 1 `.adjudication.md`; 38 other (PATCH docs PRD-053/073/089/122-PATCH.md, PRD-003.2/.3/.4, PRD-012A, PRD-012-cleanup; 20 `.confirmation*`/`.impl-review.*`/`.ratified.*`/`.gate-fix.*`/`.amendment.*` records; 3 `measurements.md`; 8 support docs: options_framework, INTERFACE_LOCK, INTEGRATION_BRIEF, data_sources, CONSUMERS, CHECKPOINT, BROWSER_ACCEPTANCE_2026-09-05, AUDIT_PRD016). 335+246+4+2+1+1+38 = 627. Command: `git ls-files 'docs/prd_history/*.md' \| awk` on the basename patterns above | A `PRD-NNN.md` is LIVE (b) ONLY for its own lifecycle while its registry row is IN PROGRESS (CLAUDE.md:80 "a PRD opens its own file"): per-PRD authority owned by that lane, never the standing instruction surface. Sidecars, records, `.codex_prompt.md` (LIVE (c) for their single past event): evidence. PRD docs on unmerged branches (e.g. PRD-346 on claude/prd-346-clean-generated-artifacts) are not on this tree | OUT (R3 historical PRDs, reviews, evidence; an in-flight PRD is its own lane's authority, and editing it here would be a scope crossing) |
+| G3 audits/ (206 files in 53 directories) | Sweep 1 (name): `git ls-files 'audits/*.md' \| grep -i -E 'prompt\|charge\|brief'` = 28. Sweep 2 (content): `rg -l -i -e '^AUTHORITY:\|^You are \|^CHARGE ' --glob 'audits/**/*.md' .` = 26. Union = 37 prompt / charge / brief / review-record files; the remaining 169 match neither sweep. This packet directory holds 7 of the 37: CODEX_REVIEW_PROMPT_2026-09-22.md (fed to cbagent job codex-20260922T230651Z-7312 at bcb859bd), CODEX_CONFIRMATION_PROMPT_2026-09-22.md (job codex-20260922T233247Z-8b16 at 3224360a), CODEX_C2_REVIEW_PROMPT_2026-09-22.md (job codex-20260922T235844Z-847d at 394006f0), the three committed event records, and this packet. Special case: audits/EXECUTION_DOCTRINE.md (501 lines, Status CANONICAL) is cited by path from the loaded prd-review-claude skill at :154 and :189 | The three cycle prompts were LIVE under (c) each for exactly one SHA-pinned event; all three events have completed and their records are committed, so at HEAD they are evidence. The cycle-2 EVENT 2 prompt does not yet exist on this tree; when written it is LIVE for its single event, then evidence. audits/EXECUTION_DOCTRINE.md is LIVE (b) via prd-review-claude :154, :189. Every other audits file: fails (a)(b)(c) (historical audits, packets, prior-cycle prompts and records) | OUT, all 206: R3 "audits, reviews, evidence untouched"; editing any prompt or record would falsify a review record. EXECUTION_DOCTRINE.md is OUT of payload (audits/ under R3; not a candidate; owner: do not broaden) and its path string in prd-review-claude is frozen (B7) |
+| G4 docs/session_resume/ (1) | docs/session_resume/2026-07-23.md; session-handoff SKILL.md:36 names the directory as a WRITE target for new notes, no loaded file directs reading this file | fails | OUT (history) |
+| G5 docs/superpowers/ (1) | docs/superpowers/plans/2026-08-27-answer-first-operator-dashboard.md (plan artifact of a plugin skill) | fails | OUT (history) |
+| G6 reports/ (0), G7 logs/ (0) | no tracked Markdown (reports/ holds only .gitkeep) | n/a | n/a |
+| TOTAL | 59 + 627 + 206 + 1 + 1 + 0 + 0 = 894 = `git ls-files '*.md' \| wc -l` | | |
+
+Untracked and user-level Markdown an agent in this repo actually loads or is told to read
+(each verified to exist or not at authoring time; each OUT: outside the tracked
+working-checkout surface or not Cuttingboard-owned; the R7 claim is the tracked surface):
+- Root `ASTRA_EXECUTION_PLAN.md` (20611 bytes) and `OWNER_INTENT_NEXT.md` (6547 bytes): exist,
+  untracked (`git ls-files` returns nothing), not reported by `git status` (so ignored or
+  excluded); no loaded file directs agents to them (fails (b)); shadow instruction surface.
+  OUT; follow-up s8.
+- `.claude/worktrees/{ns4a-universe-recon,pr-a-completion,prd-324-a1c-impl,prd-337-ns4c-leadership-v0}/CLAUDE.md`:
+  4 untracked stale copies, each loaded (a) only by a session opened inside that worktree.
+  OUT (not the working checkout); follow-up s8.
+- `~/.codex/AGENTS.md`: exists, 0 bytes (empty); user-level Codex instructions loaded (a) by
+  Codex; not Cuttingboard-owned. OUT.
+- `~/.claude/projects/-home-dustin-Projects-cuttingboard/memory/*.md`: 72 files; `MEMORY.md`
+  is auto-loaded (a) by Claude Code (canonical_read_guard.sh:36-43 guards it); user-level
+  auto-memory, not repo-owned. OUT.
+- `~/.claude/CLAUDE.md`: does NOT exist (verified).
+- `~/cuttingboard-agent-jobs/jobs/<job-id>/prompt.md`: per-job copies of the packet-directory
+  prompts consumed by cbagent (c); outside the repo; evidence. `~/cuttingboard-agent-jobs/
+  PARKED_FINDING_cbagent_effort_flag_2026-09-22.md`: owner note (s8). OUT.
+Non-Markdown surfaces remain NOT claimed complete (R7); the discovered ones are s2B.
+Newly IN as a result of this refresh: none. Newly LIVE-classified: audits/EXECUTION_DOCTRINE.md
+(OUT, B7). The Markdown inventory is complete at 894 tracked files plus the untracked /
+user-level items listed above.
 
 ## 2B. External non-Markdown frozen dependencies (R7; outside payload; NOT claimed complete)
 
@@ -167,7 +219,7 @@ other non-Markdown controls do not exist.
 | X4 | `.claude/hooks/prd_eval.sh`: :33 `docs/PRD_REGISTRY.md`; :53-62 sidecar-suffix exclusion list (`.review.`, `.adjudication.md`, `.codex_prompt.md`, `.impl_notes.`, `.proposal.md`) = declared single source of truth; :102-107 emits model-read `additionalContext` (registry gap only) | CLAUDE_HOOKS.md:12, :55-61; PRD_REVIEW_TEMPLATE.md:12-16 (points at prd_eval.sh for the sidecar-suffix set instead of restating it); prd-review-claude :106-110 (keyword detector retired; slot-lock is skill-side); A5 | The "points here rather than restating" relation (never copy the suffix list into Markdown); the registry-gap-only description |
 | X5 | `.claude/hooks/protect_files.sh`: :22-33 `is_protected` blocked set (`.env`, `.env.*`, `.git/*`, `*/.git/*`, `*.lock`, `.github/workflows/*`, `secrets*`); :38-39 model-read `[protect_files] BLOCKED: ...` message on stderr + `exit 1`; header :3-7 points to CLAUDE_HOOKS.md for the Bash decision | CLAUDE_HOOKS.md:11 (table row), :19-38 (unconditional block; non-protected paths pass; NARROWER than AGENT_WORKFLOW by design, PRD-230), :48-53 (matcher deliberately not extended to Bash, PRD-254); AGENT_WORKFLOW.md:9-13 (external) | The blocked-set description, "unconditional", the two-scopes rule, and the Bash decision stay exact |
 | X6 | `scripts/dev_bootstrap.sh` (311 lines; SessionStart via X1): idempotent venv bootstrap; writes activation lines into `CLAUDE_ENV_FILE` (:142-161); `dev_bootstrap: FAIL [...]` messages on stderr | none: no payload Markdown describes it (CLAUDE_HOOKS.md:9-13 omits it; s8, Q3) | Nothing in payload; recorded so the rewrite does not add an undescribed claim about it (adding the row is Q3) |
-| X7 | `.github/workflows/campaign_control.yml` :55, :75, :143, :162 wire `.github/campaign/charge_prompt.md` (Markdown, OUT) into the campaign Codex run; :56, :76, :144, :163 wire `charge.schema.json`; phrase/schema locks in tests/test_campaign_control.py:24-25, :822-848 | none in payload (CLAUDE.md does not mention the campaign) | Nothing in payload; recorded because charge_prompt.md is on the Markdown inventory and this binding is why it is OUT |
+| X7 | `.github/workflows/campaign_control.yml` :55, :75, :143, :162 wire `.github/campaign/charge_prompt.md` (Markdown, OUT, G1k) into the campaign Codex run; :56, :76, :144, :163 wire `charge.schema.json`; phrase/schema locks in tests/test_campaign_control.py:24-25, :822-848 | none in payload (CLAUDE.md does not mention the campaign) | Nothing in payload; recorded because charge_prompt.md is on the Markdown inventory and this binding is why it is OUT |
 | X8 | `.github/campaign/charge.schema.json` (50 lines; `$id` cuttingboard-owner-charge/v1; kept in lockstep with tools/campaign_control.py by drift-guard tests) | none in payload | Nothing in payload |
 | X9 | `.github/workflows/cuttingboard.yml` (workflow_dispatch only; input `mode`, default `live`, :24-32) | CLAUDE.md:99-102 ("Regenerate the dashboard" = dispatch `cuttingboard.yml`, `mode: live`; never hand-overwrite the snapshot); MODE_STEWARD.md:19-21 (external, cites CLAUDE.md publish safety) | The workflow name, the `mode: live` literal, and the never-hand-overwrite rule unit |
 
@@ -179,10 +231,11 @@ other non-Markdown controls do not exist.
   ui/dashboard.html dirty set: never staged).
 - .github/campaign/charge_prompt.md: CI-bound Codex prompt with test-locked phrases
   (tests/test_campaign_control.py); under the protected `.github/` policy set; wiring in s2B X7.
+- audits/ (all 206 tracked Markdown files, incl. this packet's prompts and records and
+  audits/EXECUTION_DOCTRINE.md): R3 evidence; editing would falsify review records (s2A G3).
+- docs/prd_history/ (627): per-PRD authority or evidence (s2A G2).
 - Non-Markdown control surfaces: outside the R7 claim; the discovered ones are frozen in s2B,
-  never edited. .codex/ (gitignored local hook mirror), untracked root ASTRA_EXECUTION_PLAN.md /
-  OWNER_INTENT_NEXT.md (outside git), .claude/worktrees/*/CLAUDE.md (4 stale copies): not the
-  working checkout's loaded surface.
+  never edited. Untracked and user-level Markdown: s2A list (each OUT with reason).
 - docs/PROJECT_STATE.md, docs/PRD_REGISTRY.md, docs/prd_index.json: state/data, parser-bound
   (scripts/prd_close.sh:208,230,253,267; pre_commit_sanity.sh:29; validator :98-99); PRD-347
   Stage-0 touches them only as annotated bookkeeping `(PRD-NNN row)` / `(active PRD pointer)`.
@@ -193,10 +246,21 @@ other non-Markdown controls do not exist.
 
 Rule: any proposed edit that changes an item below is a STOP and a report, never a consumer
 patch. Two freeze classes, marked per row: H = extracted literal, heading line, table row,
-frontmatter, path, or quoted phrase that a consumer binds to - verified byte-identical by
-sha256 of the EXTRACTED unit (s9.3), never of a surrounding prose range. L = rule unit(s)
-inside prose that s2 may otherwise compact - verified by the s5 ledger at equal force and
-equal scope, not by hash. No row freezes a whole line range. SILENT = no red signal.
+frontmatter, path, or quoted phrase that a consumer binds to. L = rule unit(s) inside prose
+that s2 may otherwise compact - verified by the s5 ledger at equal force and equal scope, not
+by hash. No row freezes a whole line range. SILENT = no red signal.
+Class-H occurrence identity (C2-F2): every class-H OCCURRENCE (not merely every distinct
+literal) carries a stable ID `H-<row>-<file>-<nn>` where <row> is the 4A/4B row (A7, B3, ...),
+<file> is CM (CLAUDE.md), CH (CLAUDE_HOOKS.md), PA (prd-authoring-verified), PC
+(prd-closeout-verified), PR (prd-review-claude), SL (scope-lock-precommit), RT
+(PRD_REVIEW_TEMPLATE.md), and <nn> is the occurrence index in pre-edit file order. Each ID
+records: the exact bytes; the file; the structural context = nearest enclosing heading path
+(all `#` levels above it) plus, for a table row, the table's heading and row key (e.g. `V7`),
+for a list item its list and position, for a fenced block its fence and position; the
+pre-edit line; and the per-file cardinality of that literal at pre-edit. The 4C seed table
+gives the per-file cardinalities at HEAD; the full ID manifest is generated mechanically
+before the first edit (s9.3). Verification is one-to-one: same ID set pre and post, identical
+bytes, same structural role, same per-file cardinality. There is no "at least once".
 4A = present in payload. 4B = external canonical literal that payload only references.
 
 ### 4A. Present in payload
@@ -230,10 +294,52 @@ equal scope, not by hash. No row freezes a whole line range. SILENT = no red sig
 |---|---|---|---|
 | B1 | `SECOND-MODEL: instrument not commissioned, merging on Claude-review + human judgment.` (PRD_PROCESS.md:285-286; validator :23-25, :601 matches the text after the prefix) - NOT present in any payload file | closeout :20-22 and prd-review :25 refer by name ("second-model disposition per PRD-242", "Second-Model Disposition"); never copy or paraphrase the sentence into payload | A paraphrase later copied into a PRD fails CI: delayed-loud |
 | B2 | `## Auto-Approval Policy` heading (AGENT_WORKFLOW.md:15) and "Never auto-approve" table (:33-48) | A11 references; AGENT_WORKFLOW.md itself byte-identical to main (s9) | see A11 |
-| B3 | PRD_PROCESS.md section names: "Second-Model Disposition" (prd-authoring :18; prd-review :25), "Registry Maintenance" (prd-authoring :46; prd-review :273; REVIEW_TEMPLATE :20), "LANE Axis" (prd-authoring :89, :112), "Cosmetic Carve-Out" (prd-authoring :83; scope-lock :169), "Same-PR Closeout" (closeout :26-27; CLAUDE.md:132), "Lane Downgrade Prohibition" (scope-lock :133), "CLASS/LANE matrices" and "Review Dispatch" (CLAUDE.md:131-132); GOV-2 topic names (CLAUDE.md:133-134). No payload file cites OWNER_MERGE s2/s3 | the cited strings, exactly as written | Citation stops resolving: SILENT |
+| B3 | PRD_PROCESS.md section names: "Second-Model Disposition" (prd-authoring :18; prd-review :25), "Registry Maintenance" (prd-authoring :46; prd-review :273; REVIEW_TEMPLATE :20), "LANE Axis" (prd-authoring :89, :112), "Cosmetic Carve-Out" (prd-authoring :83; scope-lock :169), "Same-PR Closeout" (closeout :26-27, wrapped across two lines; CLAUDE.md:132), "Lane Downgrade Prohibition" (scope-lock :133), "CLASS/LANE matrices" and "Review Dispatch" (CLAUDE.md:131-132); GOV-2 topic names (CLAUDE.md:133-134). No payload file cites OWNER_MERGE s2/s3 | the cited strings, exactly as written | Citation stops resolving: SILENT |
 | B4 | PROJECT_STATE line forms owned by scripts/prd_close.sh:208-272 and pre_commit_sanity.sh:29 | A10 quotations | see A10 |
 | B5 | Mode filenames `docs/contract/MODE_{RECON,DESIGN,IMPLEMENT,REVIEW,STEWARD}.md`; `AUTHORITY:` line form (CHARGE_TEMPLATE.md:13) | A12 | see A12 |
 | B6 | Non-Markdown surfaces of s2B (X1-X9): hook script names, `.claude/settings.json`, `.claude/settings.local.json`, `cuttingboard.yml`, `mode: live` | the path/name strings quoted in CLAUDE.md:95-102 and CLAUDE_HOOKS.md (A18) | Description diverges from the live control: SILENT |
+| B7 | `audits/EXECUTION_DOCTRINE.md` (501 lines, Status CANONICAL; OUT under R3, s2A G3) | path string at prd-review-claude :154 and :189 (cardinality 2) with its qualifier "sec 1" | Implementation-verdict basis unresolvable: SILENT |
+
+### 4C. Class-H manifest seed: per-file occurrence cardinality at HEAD (C2-F2)
+
+Counted as OCCURRENCES (not matching lines) per exact byte string per payload file at 2f70cbaf,
+i.e. Python `str.count(literal)` over the file text, equivalently `grep -o -F -- '<literal>'
+<file> | wc -l` (file codes as in s4). Line-based `grep -F -c` undercounts where one line holds
+two occurrences (at 2f70cbaf: `Auto-Approval Policy` SL 3 lines / 4 occurrences;
+`.review.claude.md` PR 5 lines / 6 occurrences), so it is not the seed method. The mechanical manifest (s9.3) must reproduce these counts pre-edit and require them
+post-edit; any literal present in payload but missing here is added to the manifest by the
+generator, never silently. A reference wrapped across two source lines (closeout :26-27
+"Same-PR" / "Closeout") counts 0 for the single-line string and is carried as its own ID with
+the two-line bytes.
+- `LANE: HIGH-RISK`: PA 1, SL 2, RT 1. `LANE: MICRO`: PA 1, SL 1, RT 1. `LANE: STANDARD`: RT 1.
+  `LANE: MICRO \| STANDARD \| HIGH-RISK`: PA 1. `LANE: [MICRO \| STANDARD \| HIGH-RISK]`: PA 1, SL 1.
+- `docs/AGENT_WORKFLOW.md`: CM 1, CH 1, PA 1, SL 8. `## Auto-Approval Policy`: SL 1.
+  `Auto-Approval Policy`: PA 1, SL 4.
+- `- **Active PRD:**`: PC 3. `none in progress`: PC 4. `**Next step`: PC 3. `Test baseline`: PC 4.
+- `(PRD-NNN row)`: SL 2. `(active PRD pointer)`: SL 1.
+- `.review.claude.md`: PR 6, RT 1. `.review.codex.md`: PR 4, RT 1. `.review.<model>.md`: RT 1.
+  `docs/contract/MODE_REVIEW.md`: PR 1. `audits/EXECUTION_DOCTRINE.md`: PR 2.
+- `CI is running`, `Held for your merge`, `Held for your decision`: CM 1 each.
+  `Recon goes to subagents`: CM 1, PA 1.
+- `STATUS: COMPLETE @`: PC 2. `Status: COMPLETE`: PC 2. `#NNN`: PC 6.
+- `docs/plans/*-v0.1.md`: CM 1. `GOV-2_MATERIAL_REVIEW_ORDER_2026-07-31.md`: CM 1.
+  `PRODUCT_DELIVERY_OPERATING_RULE_2026-08-06.md`: CM 2.
+  `OWNER_MERGE_AGENT_CLOSEOUT_CONVENTION_2026-08-06.md`: CM 1.
+- `.claude/settings.json`: CM 1, CH 3. `.claude/settings.local.json`: CM 1.
+  `scripts/pre_commit_sanity.sh`: CH 1, PA 1. `.claude/hooks/protect_files.sh`: CH 1.
+  `scripts/install_hooks.sh`: CH 1. `tools/validate_prd_registry.py`: CH 1.
+  `cuttingboard.yml`: CM 1. `mode: live`: CM 1.
+- `prd-authoring-verified`: PA 1, PR 2. `prd-closeout-verified`: PC 1, SL 1.
+  `prd-review-claude`: PR 1, RT 2. `scope-lock-precommit`: SL 1.
+- `AUTHORITY: <MODE>`: CM 1. `docs/contract/MODE_<name>.md`: CM 1.
+- `## Verification Report`: PA 3, PC 3, PR 2, SL 2 (heading plus in-template mentions; each
+  occurrence is its own ID with its structural context).
+- `Second-Model Disposition`: PA 1, PR 1. `Registry Maintenance`: PA 1, PR 1, RT 1.
+  `LANE Axis`: PA 2. `Cosmetic Carve-Out`: CM 1, PA 1, SL 1. `Same-PR Closeout`: CM 1 (+ PC
+  two-line occurrence :26-27). `Lane Downgrade Prohibition`: SL 1. `Review Dispatch`: CM 1.
+- Heading lines (A14, A16), table rows (A17, A18), frontmatter lines (A4), and the remaining
+  A5/A6/A9/A12/A15 literals: enumerated by the generator from the row definitions; each
+  occurrence gets its own ID.
 
 Codex is asked to falsify: (a) no code/test/CI reference to any payload path or phrase exists
 beyond A1-A11 and s2B (author's `rg` for instruction-doc paths, skill names, and
@@ -250,16 +356,18 @@ none found); (c) the inbound-citation sweep (`rg` by payload path and by `CLAUDE
 name over PRD_PROCESS, governance/*, plans/*, contract/*, AGENTS.md, dev_workflow, README,
 VISION, architecture, AGENT_SEATING, AGENT_WORKFLOW, templates, DECISIONS, PROJECT_STATE) found
 no dependency beyond A2, A3, A12-A18, B3; (d) the payload `rg` for non-Markdown control names
-found no dependency beyond s2B X1-X9.
+found no dependency beyond s2B X1-X9; (e) the payload `rg 'audits/'` found only CLAUDE.md:181
+(generic anti-pattern) and prd-review-claude :154, :189 (B7); (f) the s2A arithmetic and the
+two audits sweeps reproduce at the reviewed SHA.
 
 ## 5. Preservation contract
 
 Preserved classes: authority (wall, owner holds, precedence, modes, commission); scope (FILES
 hard boundary, STOP/renewal); review (gates, slots, independence, one-cycle rule, DRIFT CHECK);
 security; every fail-closed/refusal condition ("refuse", "STOP", "fail closed", "exit
-non-zero"); parser/interface literals (section 4, class H); owner-held decisions; retained
-invariants; every "Does NOT do" / "Failure modes to refuse" list; every operative procedure
-(A20); every Markdown description of an s2B surface (A18, B6).
+non-zero"); parser/interface literals (section 4, class H, occurrence-for-occurrence);
+owner-held decisions; retained invariants; every "Does NOT do" / "Failure modes to refuse"
+list; every operative procedure (A20); every Markdown description of an s2B surface (A18, B6).
 
 Rule unit (what the ledger enumerates): (i) every sentence carrying MUST / NEVER / must not /
 may not / only / requires / refuse / STOP / fail closed / "is a STOP"; (ii) every structural
@@ -280,16 +388,20 @@ file:line AND is proven loaded on the same trigger, naming the load path (system
 injection for CLAUDE.md; charge `AUTHORITY:` for a mode file; the named trigger in
 CLAUDE.md:78-81 for PRD_PROCESS / GOV-2 / the maps; the skill's own `Read` step for a file the
 skill already opens); AND no rule unit is added, no ordering, default, exception, or scope
-qualifier changes, every section-4 class-H unit is byte-identical (s9.3), and every class-L
-unit is ledger-resolved. Anything else is not a no-op.
+qualifier changes, every section-4 class-H occurrence survives one-to-one (s9.3 manifest),
+and every class-L unit is ledger-resolved. Anything else is not a no-op.
 
-Proof: a per-file pre/post NORMATIVE RULE LEDGER, produced during implementation and committed
-with the PRD in this packet directory as RULE_LEDGER_PRD-347.md. Pre-edit: enumerate every rule
-unit (id = file:line[:unit]) per the definition above. Post-edit: map each id to its new line,
-to "CITED -> <canonical file:line> via <load path>", or to "REMOVED (class Pn, s6)" with the
-reason; class-H units map to the sha256 of the extracted unit, equal pre and post (s9.3).
-Precedent shape: PRD-244.review.claude.md ("67/67 rules survive"). Who reviews the ledger is an
-owner decision (Q7); this packet commissions no one for it.
+Proof carrier (C2-F3): ONE Markdown evidence artifact,
+`audits/prompt-surface-compaction-material-packet-2026-09/RULE_LEDGER_PRD-347.md`, committed
+on the PRD-347 implementation branch with the PRD. It is evidence, NOT payload, and NOT a
+code/tool file: it holds (1) the class-L NORMATIVE RULE LEDGER (pre-edit enumeration of every
+rule unit, id = file:line[:unit], mapped post-edit to its new line, to "CITED -> <canonical
+file:line> via <load path>", or to "REMOVED (class Pn, s6)" with reason); (2) the class-H
+PRE manifest and POST manifest (s9.3 format); (3) the checker code embedded VERBATIM in one
+fenced block tagged ```python h_manifest``` and run only by extracting that block to a
+temporary file (s9.3); no separate checker file is committed anywhere. Precedent shape:
+PRD-244.review.claude.md ("67/67 rules survive"). Who reviews the ledger is an owner decision
+(Q7); this packet commissions no one for it.
 
 ## 6. Permitted removal classes and forbidden transforms
 
@@ -313,14 +425,15 @@ Permitted (each logged in the ledger; an example is illustrative, not pre-approv
 FORBIDDEN transforms (any one is a STOP, not a judgment call): merging two rule units into one
 weaker or wider rule; MUST/NEVER -> should/prefer, or the reverse; dropping or softening any
 stop, refuse, or fail-closed condition; changing a default, exception, quantifier, or closed
-list; replacing a section-4 class-H unit with a paraphrase; moving a rule into an excluded doc
-or one the reading agent does not load on the same trigger (CLAUDE.md rule -> AGENTS.md; skill
-rule -> PRD_PROCESS without a cite and load path); changing precedence, owner holds, the merge
-wall, mode list, or commission text; deleting a retired V-row instead of keeping its one-line
+list; replacing a section-4 class-H unit with a paraphrase, or deleting one occurrence of a
+class-H literal because another occurrence survives; moving a rule into an excluded doc or one
+the reading agent does not load on the same trigger (CLAUDE.md rule -> AGENTS.md; skill rule
+-> PRD_PROCESS without a cite and load path); changing precedence, owner holds, the merge wall,
+mode list, or commission text; deleting a retired V-row instead of keeping its one-line
 RETIRED marker (A17); adding or removing a row in the CLAUDE_HOOKS wired-hooks table (A18);
 changing any Markdown description of an s2B surface unless the ledger proves it stays exact;
-editing any file outside the payload (no "while I am here" consumer or s2B patches); adding
-new rule units, pointers to non-canonical docs, or defaults.
+editing any file outside the payload (no "while I am here" consumer, s2B, audits/, or
+prd_history/ patches); adding new rule units, pointers to non-canonical docs, or defaults.
 
 ## 7. Pre-existing defects inside the candidate surface (owner question Q2)
 
@@ -355,7 +468,7 @@ D-d target to be confirmed by the fresh-context PRD reviewer.
   gates" (cycle-1 F2.9); PROJECT_STATE.md:242 "CLAUDE.md s GitNexus" sits in a historical
   PRD-243 entry. Out-of-slice debt.
 - CLAUDE_HOOKS.md:9-13 omits the SessionStart `scripts/dev_bootstrap.sh` hook wired at
-  .claude/settings.json:201-211 (R6; s2B X6; a row addition is outside this contract, A18; Q3).
+  .claude/settings.json:201-212 (R6; s2B X6; a row addition is outside this contract, A18; Q3).
 - Dual review format: PRD_REVIEW_TEMPLATE sections 1-4 vs prd-review-claude VERDICT structure,
   the skill claiming (:124) to BE the template's Review Independence attestation (R6).
 - AGENTS.md:80-82 says CI literal-matches the `SECOND-MODEL:` sentence; validator :601 matches
@@ -369,6 +482,9 @@ D-d target to be confirmed by the fresh-context PRD reviewer.
   constructed paths only; neither binds payload prose to hook behavior (A3, A5).
 - scripts/prd_close.sh:337 hard-codes the `.review.codex.md` slot; a non-codex second-model
   artifact (e.g. `.review.astra.md`, precedent PRD-337) is never auto-staged.
+- A loaded skill (prd-review-claude :154, :189) cites a CANONICAL doctrine that lives under
+  audits/ (audits/EXECUTION_DOCTRINE.md) while CLAUDE.md:181-182 treats audits/ as a
+  non-durable location (PRD-230). Location/status question for the owner; not this slice.
 - GITNEXUS.md "opt-in" vs prd-authoring :115/:143 "GitNexus removed (PRD-243)" vs
   settings.local.json:443 enabling the MCP: three-way inconsistency. CODEX.md deletion candidate.
 - session-handoff/SKILL.md:35-36 names `audits/recon-<date>/SESSION_RESUME.md` as a convention
@@ -376,8 +492,8 @@ D-d target to be confirmed by the fresh-context PRD reviewer.
 - GOVERNANCE HIGH-RISK FILES set excludes AGENTS.md, docs/contract/*, AGENT_WORKFLOW.md and
   four skills: an equivalent Codex-side edit rides a lighter lane (governance question, R3).
 - .codex/ hook mirror drifts silently; settings.local.json carries ~60 stale allow rules naming
-  retired CLAUDE.md sections (:147, :150, :309); untracked root shadow-instruction files; stale
-  worktree copies.
+  retired CLAUDE.md sections (:147, :150, :309); untracked root shadow-instruction files
+  (ASTRA_EXECUTION_PLAN.md, OWNER_INTENT_NEXT.md); 4 stale .claude/worktrees/*/CLAUDE.md copies.
 - Non-Markdown control surfaces beyond s2B X1-X9 are not inventoried (R7); a separate slice
   would own that inventory if the owner wants one.
 - cbagent --effort pass-through: parked owner finding
@@ -390,24 +506,35 @@ D-d target to be confirmed by the fresh-context PRD reviewer.
 1. `python tools/validate_prd_registry.py` and the full pytest suite green at CI (CI parity;
    local green is unverified); report with GOV-2 s8 docs-only language. Note: no test binds
    payload prose (A3, A5), so green CI proves baseline preservation only.
-2. No-code-diff: `git diff --name-only main` lists only payload paths (+ Stage-0 bookkeeping
-   and the ledger); `git diff --name-only main | grep -v '\.md$'` is empty; every s2B file is
-   byte-identical to main (`git diff --quiet main -- <path>` for X1, X3-X9; X2 is untracked and
-   is not touched).
-3. Class-H check by sha256 of EXTRACTED units only (script committed with the ledger, run pre
-   and post): for each 4A/4B row marked H, the script extracts the named unit by its content
-   anchor (the literal string, the exact heading line, the whole table row, the frontmatter
-   lines 1-4, the path string) from the pre-edit and post-edit file and compares sha256; all
-   equal, and each unit still present at least once. Removable prose around a unit is NOT
-   hashed; it is governed by the ledger (class L). Additionally: `grep '^#'` heading lists
-   identical pre/post; AGENT_WORKFLOW.md, PRD_TEMPLATE.md, mode files, AGENTS.md byte-identical
-   to main.
-4. Rule ledger (s5) committed; every pre-edit rule unit resolved (class L at equal force and
-   scope; class H by hash); zero lost rows; every "CITED" row names the canonical file:line and
-   load path; every s2B-describing rule unit (A18, B6) shows its facts unchanged.
+2. Markdown-only diff: `git diff --name-only main` lists only the 7 payload paths, the Stage-0
+   bookkeeping files (docs/prd_history/PRD-347.md, docs/PRD_REGISTRY.md, docs/PROJECT_STATE.md,
+   docs/prd_index.json), and the ledger RULE_LEDGER_PRD-347.md; `git diff --name-only main |
+   grep -v '\.md$'` prints exactly `docs/prd_index.json` (the one non-Markdown bookkeeping file
+   PRD_PROCESS makes implicit) and nothing else. No checker script, tool, or test file is
+   added. Every s2B file is byte-identical to main (`git diff --quiet main -- <path>` for X1,
+   X3-X9; X2 is untracked and is not touched). No audits/ or prd_history/ file other than the
+   PRD-347 doc and the ledger changes.
+3. Class-H one-to-one manifest (C2-F2, C2-F3). Carrier: the ```python h_manifest``` fenced
+   block embedded verbatim in RULE_LEDGER_PRD-347.md. Run: `awk '/^```python h_manifest/{f=1;
+   next} /^```/{f=0} f' RULE_LEDGER_PRD-347.md > /tmp/h_manifest.py && python3
+   /tmp/h_manifest.py --ref main --work . --out-pre PRE.tsv --out-post POST.tsv --check`. For
+   each of the 7 payload paths the checker reads the PRE text from `git show main:<path>` and
+   the POST text from the working file, enumerates every class-H occurrence from the row
+   definitions and the 4C seed (exact byte string; heading lines; whole table rows; frontmatter
+   lines 1-4; path strings), assigns IDs `H-<row>-<file>-<nn>` in file order, and emits one
+   manifest line per occurrence: `ID<TAB>file<TAB>sha256(bytes)<TAB>heading-path<TAB>
+   row-or-list-key<TAB>line<TAB>per-file-cardinality`. `--check` fails non-zero unless: the
+   PRE and POST ID sets are identical; every ID's sha256 and heading-path and row/list key are
+   identical (line numbers may differ); every per-file cardinality is identical; and the 4C
+   seed counts equal the PRE counts. The PRE manifest is generated and pasted into the ledger
+   BEFORE the first payload edit; the POST manifest after the last. `grep '^#'` heading lists
+   identical pre/post. Removable prose is never hashed; it is governed by the ledger (class L).
+4. Class-L ledger (s5) committed in the same file; every pre-edit rule unit resolved at equal
+   force and scope; zero lost rows; every "CITED" row names the canonical file:line and load
+   path; every s2B-describing rule unit (A18, B6) shows its facts unchanged.
 5. Per-file line counts vs the Gate A ceiling; no payload file grows.
 6. Fresh-context PRD review (Astra, R4 seat, before Gate A) focus: semantic weakening or
-   widening, authority drift, parser/interface loss (A1-A20, B1-B6), s2B description drift,
+   widening, authority drift, parser/interface loss (A1-A20, B1-B7), s2B description drift,
    fail-closed regressions, rule moved out of a load set, unnecessary retained ritual, D-d
    repoint target.
 7. GOV-2-required implementation review after build, pinned to the exact head, by a
@@ -444,14 +571,47 @@ Cycle 1 (history; exhausted):
   omitted class; new defects 1-4). Record: CODEX_EVENT_2_CONFIRMATION_2026-09-22.md. Not an
   exact-head confirmation of the R7-narrowed claim.
 Cycle 2 (new bounded cycle on the narrowed claim, per R7):
-- INITIAL PACKET REVIEW (Codex, AUTHORITY: REVIEW): PENDING. Record to be committed as
-  CODEX_C2_EVENT_1_REVIEW_2026-09-22.md (reviewer identity/role, exact SHA, date, verdict,
-  findings + dispositions, fresh-context/memory-provenance evidence).
-- Consolidated author correction (at most one): PENDING.
+- INITIAL PACKET REVIEW (Codex gpt-5.6-sol, effort low, AUTHORITY: REVIEW) @ 394006f0:
+  CHANGES REQUIRED, C2-F1..F3. Record: CODEX_C2_EVENT_1_REVIEW_2026-09-22.md, committed
+  2f70cbaf (dispositions appended at its end with this correction).
+- Consolidated author correction (the ONE allowed): THIS rev 4. Dispositions: C2-F1 ACTIONED
+  (s2A complete refresh, no pre-filter; s3; B7; s8); C2-F2 ACTIONED (s4 preamble ID scheme, 4C
+  seed, s5, s6, s9.3 one-to-one manifest, "at least once" removed); C2-F3 ACTIONED (s5 proof
+  carrier = checker embedded verbatim in RULE_LEDGER_PRD-347.md; s9.2 wording consistent; s9.3
+  extraction + inputs + manifest format; ledger location and evidence status stated).
 - EXACT-CORRECTED-HEAD CONFIRMATION (Codex): PENDING. Record as
   CODEX_C2_EVENT_2_CONFIRMATION_2026-09-22.md naming the corrected SHA and every prior finding
-  id + disposition. Another omitted class returns the packet to DESIGN INCOMPLETE (GOV-2 s6/s7).
+  id + disposition. Another omitted class returns the packet to DESIGN INCOMPLETE (GOV-2
+  s6/s7) and stops the slice.
 - Design-direction ruling (Dustin): PENDING; then Stage-0 PRD-347, Astra PRD review, Gate A.
+
+## Rev 4 change log (cycle-2 EVENT 1 findings -> section)
+
+- C2-F1 BOUNDARY-RESET -> s2A rebuilt with no pre-filter: operational LIVE test (a)(b)(c)
+  stated up front and applied to every group; `git ls-files '*.md' | wc -l` = 894 with the
+  group arithmetic 59 + 627 + 206 + 1 + 1 + 0 + 0 shown; G2 prd_history breakdown by
+  filename pattern (335 + 246 + 4 + 2 + 1 + 1 + 38 = 627); G3 audits/ classified by two
+  reproducible sweeps (name 28, content 26, union 37), the three cycle prompts and three
+  records of this packet directory named and classified LIVE-for-one-event-then-evidence, all
+  206 OUT under R3 (editing would falsify review records); audits/EXECUTION_DOCTRINE.md found
+  LIVE (b) via prd-review-claude :154, :189, classified OUT, path frozen as new B7 and added
+  to the s2 prd-review-claude intent, 4C seed, and s8; untracked and user-level Markdown
+  classified individually (root shadow files, worktree copies, ~/.codex/AGENTS.md empty,
+  auto-memory 72 files, ~/.claude/CLAUDE.md absent, cbagent job prompt copies); s3 updated;
+  s1 non-goals extended; header s6 warning restated; packet history items 7-9.
+- C2-F2 CONTRACT -> s4 preamble: stable per-occurrence IDs `H-<row>-<file>-<nn>` with file,
+  heading path, row/list key, line, per-file cardinality; new 4C seed table of per-file
+  cardinalities at HEAD (occurrence counts, not line counts; orchestrator author-verification
+  corrected two line-based undercounts before commit); s5 and s9.3 require a one-to-one PRE/POST manifest
+  (same ID set, identical bytes, same structural role, same cardinality); "at least once"
+  removed; s6 forbids deleting one occurrence because another survives.
+- C2-F3 CONTRACT -> s5 "Proof carrier": checker code embedded verbatim in a ```python
+  h_manifest``` block inside RULE_LEDGER_PRD-347.md (location: this packet directory on the
+  implementation branch; evidence artifact, not payload), run by awk extraction to /tmp;
+  s9.2 wording made consistent (Markdown-only diff plus exactly docs/prd_index.json as the
+  one implicit non-Markdown bookkeeping file; no committed checker script); s9.3 states the
+  exact PRE input (`git show main:<path>`) and POST input (working file), the manifest line
+  format, and the fail-non-zero conditions.
 
 ## Rev 3 change log (R7 + cycle-1 EVENT 2 defects -> section)
 

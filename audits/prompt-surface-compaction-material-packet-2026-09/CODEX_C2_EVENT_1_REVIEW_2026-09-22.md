@@ -60,3 +60,37 @@ NON-FINDINGS:
 5. AUTHORITY / GOVERNANCE CONSISTENCY: Checked GOV-2 s1-s7, MODE_REVIEW, PRD_PROCESS HIGH-RISK rules, PRD-255 allocated-number ordering, PRD-346 absence, commissions, and packet history. MATERIAL / CLASS GOVERNANCE / LANE HIGH-RISK, the lack of downstream authority, cycle-1 DESIGN INCOMPLETE history, R7 narrowing, and the new-cycle sequence are stated truthfully. No unauthorized ruling, Gate A, implementation, or merge authority is claimed.
 
 6. FACTUAL DEFECTS: Resolved the packet's named payload counts, LANE sweep, PRD-255 citation, PRD-346 absence, external dependency line ranges, workflow/schema facts, and current branch history at the reviewed SHA. The seven payload counts total 1497 and the filtered inventory totals 59. No separate factual citation defect was established beyond the contract and boundary defects above.
+
+## Dispositions
+
+Recorded with the one consolidated cycle-2 author correction (packet rev 4, GOV-2 s7;
+author seat AUTHORITY: DESIGN / Navigator, no certification). Every cited line was
+re-verified at HEAD 2f70cbaf before disposition. Payload unchanged (exactly 7 files).
+
+- C2-F1 (BOUNDARY-RESET): ACTIONED -> packet s2A rebuilt with NO pre-filter: an operational
+  LIVE test (harness-loaded / directed-on-trigger / fed-as-prompt) stated first and applied to
+  every group; `git ls-files '*.md' | wc -l` = 894 with the group arithmetic shown (59 + 627 +
+  206 + 1 + 1 + 0 + 0); docs/prd_history/ broken down by filename pattern (335 + 246 + 4 + 2 +
+  1 + 1 + 38 = 627); audits/ classified by two reproducible sweeps (name 28, content 26, union
+  37) with this packet directory's three prompts (incl. CODEX_C2_REVIEW_PROMPT_2026-09-22.md)
+  and three records named and classified LIVE for their single SHA-pinned event, then
+  evidence; all 206 OUT under R3 (editing would falsify a review record). The sweep also found
+  audits/EXECUTION_DOCTRINE.md LIVE via prd-review-claude :154, :189; it is classified OUT and
+  its path string is frozen as new B7. Untracked and user-level Markdown classified
+  individually (root shadow files, worktree copies, ~/.codex/AGENTS.md, auto-memory,
+  ~/.claude/CLAUDE.md absent, cbagent job prompt copies). s3, s1, s8 updated.
+- C2-F2 (CONTRACT): ACTIONED -> s4 preamble defines stable per-occurrence IDs
+  `H-<row>-<file>-<nn>` with file, heading path, row/list key, line, and per-file cardinality;
+  new s4C seed table of per-file cardinalities at HEAD; s5 and s9.3 require a one-to-one
+  PRE/POST manifest (same ID set, identical bytes, same structural role, same cardinality);
+  "at least once" removed; s6 forbids deleting one occurrence because another survives.
+- C2-F3 (CONTRACT): ACTIONED -> s5 "Proof carrier": the checker is embedded verbatim in a
+  ```python h_manifest``` fenced block inside RULE_LEDGER_PRD-347.md (this packet directory on
+  the implementation branch; evidence artifact, not payload), run by awk extraction to /tmp;
+  no separate checker file is committed; s9.2 reworded so the Markdown-only diff claim is
+  true (exactly docs/prd_index.json as the one implicit non-Markdown bookkeeping file); s9.3
+  states the exact PRE input (`git show main:<path>`), POST input (working file), manifest
+  line format, and fail-non-zero conditions.
+
+No finding is PARTIALLY ACTIONED or DISPUTED. Confirmation at the exact corrected head is
+the reviewer's (cycle-2 EVENT 2, pending), not the author's.
