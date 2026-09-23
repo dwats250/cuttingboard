@@ -363,6 +363,7 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-343 | — | Hourly admission / notification truth: read-only pre-flight admission before the ordinary hourly Telegram send | IN PROGRESS | [PRD-343](prd_history/PRD-343.md) |
 | PRD-344 | — | FRED DGS2/DGS5 fail-fast: one network attempt, truthful timeout diagnostic (PATCH on PRD-336 R3) | IN PROGRESS | [PRD-344](prd_history/PRD-344.md) |
 | PRD-345 | #342 | prd_close.sh --next matches the canonical bulleted Next-step line | COMPLETE | [PRD-345](prd_history/PRD-345.md) |
+| PRD-347 | — | Prompt-surface compaction (live agent-facing Markdown, semantic no-op) | IN PROGRESS | [PRD-347](prd_history/PRD-347.md) |
 
 > **PRD-035 note:** Signal Forge dashboard strip is fully wired. Rendering requires HTTP serving, file picker, or valid raw JSON paste path. Direct filesystem access may block fetch().
 
@@ -393,3 +394,5 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-339 | [docs/prd_history/PRD-339.impl-review.codex.md](prd_history/PRD-339.impl-review.codex.md) |
 | PRD-340 | [docs/prd_history/PRD-340.review.codex.md](prd_history/PRD-340.review.codex.md) |
 | PRD-340 | [docs/prd_history/PRD-340.impl-review.codex.md](prd_history/PRD-340.impl-review.codex.md) |
+| PRD-347 | [docs/prd_history/PRD-347.confirmation1.astra.md](prd_history/PRD-347.confirmation1.astra.md) |
+| PRD-347 | [docs/prd_history/PRD-347.confirmation2.astra.md](prd_history/PRD-347.confirmation2.astra.md) |
