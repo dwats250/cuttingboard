@@ -130,7 +130,8 @@ Candidates decided deliberately. IN = payload. OUT = excluded (reason in section
 
 Payload total: 7 files, 1497 lines; estimated post ~1265 (about -230 lines, -15%). ESTIMATED
 SURFACE - NOT YET APPROVED. Proposed ceiling form (Q4): no payload file grows; each file's
-post-edit count <= its estimate + 10%; zero non-payload diff. NO code, test, tool, hook,
+post-edit count <= its estimate + 10%; zero non-payload diff except RULE_LEDGER_PRD-347.md
+(the only authorized new non-payload evidence file) and Stage-0 bookkeeping. NO code, test, tool, hook,
 settings, or workflow file is in the payload. The GOVERNANCE HIGH-RISK FILES set
 (PRD_PROCESS.md:458; validator :38-45) intersects the payload at CLAUDE.md, the prd-review-claude
 skill, and docs/PRD_REVIEW_TEMPLATE.md, so LANE: HIGH-RISK is forced and CI-enforced (PRD >= 276).
@@ -435,9 +436,11 @@ mode list, or commission text; deleting a retired V-row instead of keeping its o
 RETIRED marker (A17); adding or removing a row in the CLAUDE_HOOKS wired-hooks table (A18);
 changing any Markdown description of an s2B surface unless the ledger proves it stays exact;
 editing any file outside the payload (no "while I am here" consumer, s2B, or prd_history/
-patches); any modification, deletion, relocation, or rewriting of any pre-existing audit,
-review, prompt, or evidence file (the only authorized new non-payload evidence file is
-RULE_LEDGER_PRD-347.md in this packet directory); adding new rule units, pointers to non-canonical docs, or defaults.
+patches), with exactly two exceptions: (i) RULE_LEDGER_PRD-347.md in this packet directory is
+the only authorized new non-payload evidence file; (ii) normal Stage-0 bookkeeping (the files
+listed in s9.2) remains permitted; beyond those two exceptions, no pre-existing audit, review,
+prompt, evidence, or other non-payload file may be modified, deleted, relocated, or rewritten;
+adding new rule units, pointers to non-canonical docs, or defaults.
 
 ## 7. Pre-existing defects inside the candidate surface (owner question Q2)
 
