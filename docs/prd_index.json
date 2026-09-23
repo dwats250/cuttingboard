@@ -1742,6 +1742,12 @@
       "title": "prd_close.sh --next matches the canonical bulleted Next-step line",
       "status": "COMPLETE",
       "commit": "#342"
+    },
+    {
+      "number": 347,
+      "title": "Prompt-surface compaction (live agent-facing Markdown, semantic no-op)",
+      "status": "IN PROGRESS",
+      "commit": null
     }
   ]
 }
