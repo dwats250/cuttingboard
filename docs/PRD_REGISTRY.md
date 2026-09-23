@@ -395,3 +395,4 @@ All product requirement documents for the cuttingboard decision engine, in order
 | PRD-340 | [docs/prd_history/PRD-340.review.codex.md](prd_history/PRD-340.review.codex.md) |
 | PRD-340 | [docs/prd_history/PRD-340.impl-review.codex.md](prd_history/PRD-340.impl-review.codex.md) |
 | PRD-347 | [docs/prd_history/PRD-347.confirmation1.astra.md](prd_history/PRD-347.confirmation1.astra.md) |
+| PRD-347 | [docs/prd_history/PRD-347.confirmation2.astra.md](prd_history/PRD-347.confirmation2.astra.md) |
