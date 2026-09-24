@@ -1744,6 +1744,12 @@
       "commit": "#342"
     },
     {
+      "number": 346,
+      "title": "clean_generated_artifacts.sh restores the full tracked generated set (PATCH; HIGH-RISK by INFRA file)",
+      "status": "IN PROGRESS",
+      "commit": null
+    },
+    {
       "number": 347,
       "title": "Prompt-surface compaction (live agent-facing Markdown, semantic no-op)",
       "status": "COMPLETE",
