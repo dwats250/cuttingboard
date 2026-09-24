@@ -2,22 +2,27 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.021971285560550013,
-      "price": 151.375,
+      "pct_change_decimal": 0.03199690394416149,
+      "price": 152.86000061035156,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
   },
   "data_quality": {
     "fib_deferred_symbols": [
-      "GLD"
+      "SPY",
+      "QQQ",
+      "GDX",
+      "GLD",
+      "SLV",
+      "XLE"
     ],
     "unavailable_symbols": [
       "GLD"
     ]
   },
-  "generated_at": "2026-09-24T17:01:44Z",
-  "generation_id": "hourly-20260924T170144Z",
+  "generated_at": "2026-09-24T18:01:32Z",
+  "generation_id": "hourly-20260924T180132Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,24 +36,15 @@
   "session_date": "2026-09-24",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-24T17:01:44Z"
+    "run_at_utc": "2026-09-24T18:01:32Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 91.95999908447266,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 99.5886,
-          "0.5": 97.985,
-          "0.618": 96.3814
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 104.78,
-        "swing_low": 91.19
-      },
+      "current_price": 91.44499969482422,
+      "fib_levels": null,
       "grade": "C",
       "invalidation": [
         "loses EMA50 with weak recovery",
@@ -65,7 +61,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "C: bullish range, regime aligned, near key level",
+      "reason_for_grade": "C: bullish range, regime mixed, near key level",
       "setup_state": "LOW_QUALITY",
       "structure": "RANGE",
       "symbol": "GDX",
@@ -104,7 +100,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 391.5,
+      "current_price": 390.58050537109375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -160,17 +156,8 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 741.5250244140625,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 729.6019,
-          "0.5": 723.8107,
-          "0.618": 718.0194
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 748.35,
-        "swing_low": 699.2713
-      },
+      "current_price": 738.6199951171875,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "loses EMA9 with weak recovery",
@@ -226,17 +213,8 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 57.5,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 61.2425,
-          "0.5": 60.295,
-          "0.618": 59.3475
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 64.31,
-        "swing_low": 56.28
-      },
+      "current_price": 57.35210037231445,
+      "fib_levels": null,
       "grade": "C",
       "invalidation": [
         "loses EMA50 with weak recovery",
@@ -253,7 +231,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "C: bullish range, regime aligned, away from key level",
+      "reason_for_grade": "C: bullish range, regime mixed, away from key level",
       "setup_state": "LOW_QUALITY",
       "structure": "RANGE",
       "symbol": "SLV",
@@ -291,43 +269,34 @@
     "SPY": {
       "asset_group": "INDEX",
       "bias": "BULLISH",
-      "confidence": "LOW",
-      "current_price": 767.9600219726562,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 764.6744,
-          "0.5": 761.4416,
-          "0.618": 758.2088
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 775.14,
-        "swing_low": 747.7432
-      },
-      "grade": "A+",
+      "confidence": "MEDIUM",
+      "current_price": 766.2999877929688,
+      "fib_levels": null,
+      "grade": "B",
       "invalidation": [
         "loses EMA9 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
-        "current_grade": "A+",
-        "current_setup_state": "ACTIONABLE",
-        "grade_transition": "UPGRADED",
+        "current_grade": "B",
+        "current_setup_state": "DEVELOPING",
+        "grade_transition": "DOWNGRADED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "B",
-        "previous_setup_state": "DEVELOPING",
+        "previous_grade": "A+",
+        "previous_setup_state": "ACTIONABLE",
         "setup_state_transition": "CHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "A+: bullish breakout, regime aligned, near key level",
-      "setup_state": "ACTIONABLE",
+      "reason_for_grade": "B: bullish breakout, regime mixed, near key level",
+      "setup_state": "DEVELOPING",
       "structure": "BREAKOUT",
       "symbol": "SPY",
       "trade_framing": {
         "direction": "LONG",
         "downgrade": "wait if price loses EMA9 or structure turns choppy",
         "entry": "hold above EMA9 with constructive follow-through",
-        "if_now": "TAKE",
+        "if_now": "WAIT",
         "setup": "index bullish breakout",
         "trade_type": "call_spread",
         "upgrade": "improves on clean hold near key level with expanding participation"
@@ -358,17 +327,8 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 62.7400016784668,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 63.9335,
-          "0.5": 63.3634,
-          "0.618": 62.7933
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 65.779,
-        "swing_low": 60.9477
-      },
+      "current_price": 62.935001373291016,
+      "fib_levels": null,
       "grade": "C",
       "invalidation": [
         "loses EMA21 with weak recovery",
@@ -385,7 +345,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "C: bullish range, regime aligned, near key level",
+      "reason_for_grade": "C: bullish range, regime mixed, near key level",
       "setup_state": "LOW_QUALITY",
       "structure": "RANGE",
       "symbol": "XLE",
