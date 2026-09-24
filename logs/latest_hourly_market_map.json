@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.021262432588451178,
-      "price": 151.27000427246094,
+      "pct_change_decimal": 0.02308519737384818,
+      "price": 151.5399932861328,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -16,8 +16,8 @@
       "GLD"
     ]
   },
-  "generated_at": "2026-09-24T13:31:41Z",
-  "generation_id": "hourly-20260924T133141Z",
+  "generated_at": "2026-09-24T13:46:26Z",
+  "generation_id": "hourly-20260924T134626Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +31,14 @@
   "session_date": "2026-09-24",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-24T13:31:41Z"
+    "run_at_utc": "2026-09-24T13:46:26Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 92.16500091552734,
+      "current_price": 91.77999877929688,
       "fib_levels": {
         "retracements": {
           "0.382": 99.5886,
@@ -57,12 +57,12 @@
       "lifecycle": {
         "current_grade": "C",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "C",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "C: bullish range, regime mixed, near key level",
@@ -104,7 +104,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 391.989990234375,
+      "current_price": 391.6700134277344,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -160,7 +160,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 734.97998046875,
+      "current_price": 737.0800170898438,
       "fib_levels": {
         "retracements": {
           "0.382": 729.6019,
@@ -178,25 +178,25 @@
       ],
       "lifecycle": {
         "current_grade": "D",
-        "current_setup_state": "LOW_QUALITY",
+        "current_setup_state": "EXTENDED",
         "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "D",
-        "previous_setup_state": "EXTENDED",
+        "previous_setup_state": "LOW_QUALITY",
         "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "D: bullish trending_up, regime mixed, near key level",
-      "setup_state": "LOW_QUALITY",
+      "preferred_trade_structure": "pullback reset watch",
+      "reason_for_grade": "D: bullish structure is extended from trend reference",
+      "setup_state": "EXTENDED",
       "structure": "TRENDING_UP",
       "symbol": "QQQ",
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for clearer reaction around EMA9",
+        "entry": "wait for reset toward EMA9 before defining risk",
         "if_now": "WAIT",
-        "setup": "index low-quality trending_up",
+        "setup": "index extended bullish structure",
         "trade_type": "none",
         "upgrade": "improves with cleaner directional structure near a key level"
       },
@@ -218,15 +218,15 @@
         }
       ],
       "what_to_look_for": [
-        "watch hold above EMA9",
-        "look for higher low with expanding volume"
+        "look for reset toward EMA9",
+        "watch for cleaner compression"
       ]
     },
     "SLV": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 57.23500061035156,
+      "current_price": 57.28499984741211,
       "fib_levels": {
         "retracements": {
           "0.382": 61.2425,
@@ -245,12 +245,12 @@
       "lifecycle": {
         "current_grade": "C",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "C",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "C: bullish range, regime mixed, away from key level",
@@ -292,7 +292,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 764.0599975585938,
+      "current_price": 764.8599853515625,
       "fib_levels": {
         "retracements": {
           "0.382": 764.6744,
@@ -305,18 +305,18 @@
       },
       "grade": "B",
       "invalidation": [
-        "loses EMA21 with weak recovery",
+        "loses EMA9 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
         "current_grade": "B",
         "current_setup_state": "DEVELOPING",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "B",
+        "previous_setup_state": "DEVELOPING",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "B: bullish pullback, regime mixed, near key level",
@@ -325,8 +325,8 @@
       "symbol": "SPY",
       "trade_framing": {
         "direction": "LONG",
-        "downgrade": "wait if price loses EMA21 or structure turns choppy",
-        "entry": "hold above EMA21 with constructive follow-through",
+        "downgrade": "wait if price loses EMA9 or structure turns choppy",
+        "entry": "hold above EMA9 with constructive follow-through",
         "if_now": "WAIT",
         "setup": "index bullish pullback",
         "trade_type": "call_spread",
@@ -334,14 +334,14 @@
       },
       "watch_zones": [
         {
-          "context": "primary trend reference",
-          "level": 763.67,
-          "type": "EMA21"
-        },
-        {
           "context": "fast trend reference",
           "level": 765.3538,
           "type": "EMA9"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 763.67,
+          "type": "EMA21"
         },
         {
           "context": "trend base reference",
@@ -350,7 +350,7 @@
         }
       ],
       "what_to_look_for": [
-        "watch hold above EMA21",
+        "watch hold above EMA9",
         "look for higher low with expanding volume"
       ]
     },
@@ -358,7 +358,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 62.654998779296875,
+      "current_price": 62.939998626708984,
       "fib_levels": {
         "retracements": {
           "0.382": 63.9335,
@@ -377,12 +377,12 @@
       "lifecycle": {
         "current_grade": "C",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "F",
-        "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "C",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "C: bullish range, regime mixed, near key level",
