@@ -29,27 +29,27 @@
     "valid_until": "2026-09-25T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-09-24T15:01:51Z",
-  "generation_id": "hourly-20260924T150151Z",
+  "generated_at": "2026-09-24T16:01:41Z",
+  "generation_id": "hourly-20260924T160141Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -0.8933723342713211,
-      "level": 83624.5,
+      "change_pct": -0.12811534065699642,
+      "level": 84270.2109375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.13841865101934966,
-      "level": 101.28199768066406,
+      "change_pct": 0.1759915829390979,
+      "level": 101.31999969482422,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -0.8920057152260451,
-      "level": 2659.919921875,
+      "change_pct": -0.21164202133867535,
+      "level": 2678.179931640625,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.09101724198391418,
-      "level": 1.1377859115600586,
+      "change_pct": -0.12511076206920554,
+      "level": 1.1373976469039917,
       "symbol": "EURUSD=X"
     },
     "gold": {
@@ -58,44 +58,44 @@
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": 0.8147923225481364,
-      "level": 3.2170000076293945,
+      "change_pct": 4.51269364131445,
+      "level": 3.3350000381469727,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 4.238767785137538,
-      "level": 95.16999816894531,
+      "change_pct": 5.454540592639314,
+      "level": 96.27999877929688,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 1.7056711221759353,
-      "change_pct": 0.3324246946456519,
-      "level": 5.13100004196167,
+      "change_bps": 4.234523403820055,
+      "change_pct": 0.8212807003557631,
+      "level": 5.156000137329102,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": 0.42585151320974,
-      "level": 5.424000263214111,
+      "change_pct": 0.8516941977367142,
+      "level": 5.447000026702881,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -1.2692569722364688,
-      "level": 63.78499984741211,
+      "change_pct": -1.2615159802770626,
+      "level": 63.790000915527344,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": 0.2673640592196385,
-      "level": 1.413830041885376,
+      "change_pct": 0.2652336009453824,
+      "level": 1.4138000011444092,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.39174244110727213,
-      "level": 158.88600158691406,
+      "change_pct": 0.41385942180967616,
+      "level": 158.92100524902344,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 4.350691127836489,
-      "level": 15.829999923706055,
+      "change_pct": 6.262364918666104,
+      "level": 16.1200008392334,
       "symbol": "^VIX"
     }
   },
@@ -110,24 +110,24 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_OFF",
-    "confidence": 0.25,
-    "net_score": -2,
-    "neutral_votes": 4,
+    "confidence": 0.5,
+    "net_score": -4,
+    "neutral_votes": 2,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 3,
+    "risk_off_votes": 5,
     "risk_on_votes": 1,
     "total_votes": 8,
-    "vix_level": 15.829999923706055,
-    "vix_pct_change": 0.043506911278364896,
+    "vix_level": 16.1200008392334,
+    "vix_pct_change": 0.06262364918666104,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
       "IWM pct_change": "RISK_OFF",
       "QQQ pct_change": "RISK_OFF",
       "SPY pct_change": "RISK_OFF",
-      "TNX pct_change": "NEUTRAL",
+      "TNX pct_change": "RISK_OFF",
       "VIX level": "RISK_ON",
-      "VIX pct_change": "NEUTRAL"
+      "VIX pct_change": "RISK_OFF"
     }
   },
   "rejections": [],
@@ -135,7 +135,7 @@
   "session_date": "2026-09-24",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.25,
+    "confidence": 0.5,
     "intraday_state": null,
     "market_regime": "RISK_OFF",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
