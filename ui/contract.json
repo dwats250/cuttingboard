@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "log_path": "logs/latest_hourly_run.json",
+    "log_path": "logs/latest_run.json",
     "notification_sent": true,
-    "report_path": "reports/output/hourly_report.html"
+    "report_path": "reports/2026-09-24.md"
   },
   "audit_summary": {
     "continuation_accepted_count": null,
@@ -10,92 +10,98 @@
     "continuation_rejected_count": null,
     "error_count": 0,
     "qualified_count": 0,
-    "rejected_count": 26
+    "rejected_count": 0
   },
-  "correlation": null,
+  "correlation": {
+    "dollar_symbol": "DX-Y.NYB",
+    "gold_symbol": "GLD",
+    "risk_modifier": 1.0,
+    "score": 1,
+    "state": "ALIGNED"
+  },
   "effective_permission": {
     "authority_version": [
-      "2026-09-23",
+      "2026-09-24",
       1,
       1
     ],
     "decision_seq": 1,
-    "decision_uid": "a9d08f4620b74c5287e264bef8fe727f",
+    "decision_uid": "5066723f09b74615b0bc2c9f1dbf6cd7",
     "permission_line": "No new trades permitted \u2014 operator cannot monitor.",
     "recovery_basis": null,
     "restriction_rank": 1,
-    "run_uid": "a9d08f4620b74c5287e264bef8fe727f",
-    "session_date": "2026-09-23",
-    "valid_until": "2026-09-24T08:00:00+00:00",
+    "run_uid": "5066723f09b74615b0bc2c9f1dbf6cd7",
+    "session_date": "2026-09-24",
+    "valid_until": "2026-09-25T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-09-23T20:01:31Z",
-  "generation_id": "hourly-20260923T200131Z",
+  "generated_at": "2026-09-24T13:01:25Z",
+  "generation_id": "live-20260924T130125Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.9287433100554228,
-      "level": 84535.5078125,
+      "change_pct": -0.8602254874438263,
+      "level": 83652.46875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.37628478689453926,
-      "level": 101.0999984741211,
+      "change_pct": 0.13545415347980716,
+      "level": 101.27899932861328,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -2.7802122462413914,
-      "level": 2676.830078125,
+      "change_pct": -1.2351667060702036,
+      "level": 2650.7099609375,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.5352467056475254,
-      "level": 1.1388224363327026,
+      "change_pct": -0.0796492460328468,
+      "level": 1.1379153728485107,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -1.3059405322488584,
-      "level": 4322.7998046875,
+      "change_pct": -0.2083863993957337,
+      "level": 4309.89990234375,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -0.34689113752052797,
-      "level": 3.1600000858306885,
+      "change_pct": -1.817614792083457,
+      "level": 3.132999897003174,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 3.5366577684101737,
-      "level": 92.51000213623047,
+      "change_pct": 2.7053598124288767,
+      "level": 93.7699966430664,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 15.029056334759941,
-      "change_pct": 2.938806569103812,
+      "change_bps": 0.0,
+      "change_pct": 0.0,
       "level": 5.113999843597412,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": 1.8480115045170047,
-      "level": 5.401000022888184,
+      "change_pct": 0.24069637824478374,
+      "level": 5.414000034332275,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -3.3025143103758743,
-      "level": 64.8550033569336,
+      "change_pct": -0.9364651737436417,
+      "level": 64.0,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": 0.24673373828101625,
-      "level": 1.4098700284957886,
+      "change_pct": 0.16452717648927698,
+      "level": 1.4123799800872803,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.5569307770170294,
-      "level": 158.3470001220703,
+      "change_pct": 0.21545255787123965,
+      "level": 158.60699462890625,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 7.1780401221052115,
-      "level": 15.229999542236328,
+      "change_pct": 5.207646393407439,
+      "level": 15.960000038146973,
       "symbol": "^VIX"
     }
   },
@@ -109,23 +115,23 @@
   "mode": "live",
   "outcome": "NO_TRADE",
   "regime": {
-    "classification": "RISK_OFF",
-    "confidence": 0.625,
-    "net_score": -5,
-    "neutral_votes": 1,
-    "posture": "DEFENSIVE_SHORT",
-    "risk_off_votes": 6,
+    "classification": "NEUTRAL",
+    "confidence": 0.0,
+    "net_score": 0,
+    "neutral_votes": 6,
+    "posture": "STAY_FLAT",
+    "risk_off_votes": 1,
     "risk_on_votes": 1,
     "total_votes": 8,
-    "vix_level": 15.229999542236328,
-    "vix_pct_change": 0.07178040122105211,
+    "vix_level": 15.960000038146973,
+    "vix_pct_change": 0.052076463934074384,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
-      "DXY pct_change": "RISK_OFF",
-      "IWM pct_change": "RISK_OFF",
-      "QQQ pct_change": "RISK_OFF",
-      "SPY pct_change": "RISK_OFF",
-      "TNX pct_change": "RISK_OFF",
+      "DXY pct_change": "NEUTRAL",
+      "IWM pct_change": "NEUTRAL",
+      "QQQ pct_change": "NEUTRAL",
+      "SPY pct_change": "NEUTRAL",
+      "TNX pct_change": "NEUTRAL",
       "VIX level": "RISK_ON",
       "VIX pct_change": "RISK_OFF"
     }
@@ -133,191 +139,25 @@
   "rejections": [
     {
       "detail": null,
-      "reason": "2 soft gates failed: price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "AAPL"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "AMZN"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: stop distance 2415.46 below 1\u00d7 ATR14 (2415.46); price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "BTC-USD"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "CL=F"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "COIN"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "DX-Y.NYB"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 99.94 below 1\u00d7 ATR14 (99.94); entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "ETH-USD"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "EURUSD=X"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "GC=F"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "GDX"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "GLD"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "IWM"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "JPY=X"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: price 4.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "META"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: R:R 2.00 below 2.0 minimum; price 3.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "MSTR"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "NG=F"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "PAAS"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: stop distance 10.22 below 1\u00d7 ATR14 (10.22); price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "QQQ"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "SLV"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 0.9% below 1.0% minimum; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "SPY"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "TSLA"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "USDCAD=X"
-    },
-    {
-      "detail": null,
-      "reason": "CHOP",
-      "stage": "QUALIFICATION",
-      "symbol": "XLE"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: R:R 2.00 below 2.0 minimum; price 4.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "^TNX"
-    },
-    {
-      "detail": null,
-      "reason": "3 soft gates failed: stop distance 0.06 below 1\u00d7 ATR14 (0.06); price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended; entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "^TYX"
-    },
-    {
-      "detail": null,
-      "reason": "2 soft gates failed: stop distance 1.39 below 1\u00d7 ATR14 (1.39); entry blocked after 3:30 PM ET",
-      "stage": "QUALIFICATION",
-      "symbol": "^VIX"
-    },
-    {
-      "detail": null,
-      "reason": "entry blocked after 3:30 PM ET",
-      "stage": "WATCHLIST",
-      "symbol": "SI=F"
-    },
-    {
-      "detail": null,
-      "reason": "entry blocked after 3:30 PM ET",
-      "stage": "WATCHLIST",
-      "symbol": "USO"
-    },
-    {
-      "detail": null,
-      "reason": "entry blocked after 3:30 PM ET",
-      "stage": "WATCHLIST",
-      "symbol": "NVDA"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+      "stage": "REGIME",
+      "symbol": "REGIME"
     }
   ],
   "schema_version": "v2",
-  "session_date": "2026-09-23",
-  "status": "OK",
+  "session_date": "2026-09-24",
+  "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.625,
+    "confidence": 0.0,
     "intraday_state": null,
-    "market_regime": "RISK_OFF",
+    "market_regime": "NEUTRAL",
+    "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
+    "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
     "router_mode": "MIXED",
-    "stay_flat_reason": null,
-    "time_gate_open": false,
-    "tradable": true
+    "stay_flat_reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.00)",
+    "time_gate_open": true,
+    "tradable": false
   },
   "timezone": "America/New_York",
   "trade_candidates": []
