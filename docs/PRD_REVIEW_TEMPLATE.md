@@ -20,8 +20,6 @@ unresolved disagreement requires explicit adjudication.
 Per `docs/PRD_PROCESS.md` § Registry Maintenance, review files are NOT
 PRDs and do NOT get rows in `PRD_REGISTRY.md`.
 
----
-
 ## Required sections (in order)
 
 ### 1. Strengths
@@ -78,8 +76,6 @@ When mapping tables are involved, state precedence explicitly:
 "each block evaluates the rows below in order; the first matching row
 wins" (or equivalent).
 
----
-
 ## Pre-publish checklist (reviewer must answer "yes" to each)
 
 Before saving the review file:
@@ -93,10 +89,10 @@ Before saving the review file:
       (no row shadowed by an earlier row that always fires first).
 - [ ] Every FAIL condition is observable, deterministic, and binary.
 - [ ] Every user-visible string the PRD changes was greped across
-      `tests/` to identify regression assertions — per CLAUDE.md
-      `Visible-String Pre-Edit Audit`. Surprises become amendments to
-      the FILES list before implementation, not scope-lock violations
-      mid-implementation.
+      `tests/` to identify regression assertions — per
+      `docs/contract/MODE_IMPLEMENT.md` Pre-implementation grep sweep.
+      Surprises become amendments to the FILES list before
+      implementation, not scope-lock violations mid-implementation.
 - [ ] The OUT OF SCOPE list explicitly names every protected symbol
       that prior PRDs introduced and that this PRD relies on as
       read-only intermediates (e.g., `validate_coherent_publish`).
@@ -105,8 +101,6 @@ Before saving the review file:
 - [ ] ASCII-only constraint is enforced both in REQUIREMENTS and in a
       VALIDATION step that scans the FILES set.
 
----
-
 ## Token discipline
 
 - Read only the minimum files needed. Use `offset+limit` Read calls
@@ -114,15 +108,11 @@ Before saving the review file:
 - A single targeted grep against `cuttingboard/` for each PRD-cited
   symbol is sufficient verification; do not list grep output in the
   review, just confirm the symbol exists.
-- Review artifact length budget: ~400 lines. Anything longer means the
-  review is duplicating PRD content or producing prose where a bullet
-  would suffice.
+- Review artifact length budget: ~400 lines.
 - Do not re-review previously-accepted findings in a revision pass.
   Mechanical incorporation of accepted findings does not require a new
   full review unless something materially changed (see CLAUDE.md
   § Working practices, "Codex mechanics").
-
----
 
 ## When to skip the Revised PRD section
 
@@ -138,8 +128,6 @@ OUT OF SCOPE.
 ```
 
 Use this only when the original PRD is genuinely ready as-is.
-
----
 
 ## Review Independence (required, PRD-121 R4)
 
@@ -187,8 +175,6 @@ Rules:
 The Independence attestation is the load-bearing artifact for review
 honesty. Reviews that omit it are treated as if no review occurred.
 
----
-
 ## Mapping-Table Reachability Checklist (required when PRD contains mapping tables, PRD-121 R5)
 
 A mapping table is any tabular precedence structure inside the PRD
@@ -233,16 +219,6 @@ Sub-check guarantees:
 4. **(4) reachable fixture**: at least one named test in the PRD's
    test list (e.g., R14 in PRD-120) constructs inputs that drive
    this row to be the matching row. The test name is cited.
-
-Why this exists: PRD-120's Trend Structure mapping originally listed
-`_ts_records is None → MISSING` at precedence position 4 and
-`usable_count == 0 → FALLBACK` at position 7. Because
-`_trend_structure_records` is all-or-nothing, the row-4 condition
-shadowed row 7 — any input that would have produced FALLBACK
-produced MISSING instead. The PRD-120 implementation surfaced this
-as test failure mid-implementation. The reachability checklist would
-have caught it during review at sub-check (1) — the row-4 condition
-referenced a derived all-or-nothing variable, not a raw input.
 
 If the PRD contains no mapping tables, the reviewer may state:
 

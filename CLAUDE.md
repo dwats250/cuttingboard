@@ -46,8 +46,7 @@ universal-manual-merge rule stated in The wall.
 
 - design-direction rulings; Gate A; amended Gate A; Gate B
 - semantic and product rulings; ratification decisions
-- every merge and every lane, without exception (auto-merge is not a landing
-  path)
+- every merge and every lane, without exception (auto-merge is not a landing path)
 - the product-specific holds recorded in
   `docs/governance/PRODUCT_DELIVERY_OPERATING_RULE_2026-08-06.md` (registry
   ratification, GEX go/stop, NEWS-2 KEEP/REVISE/RETIRE)
@@ -74,8 +73,7 @@ lists only its deltas from this wall. Modes: RECON, DESIGN, IMPLEMENT, REVIEW,
 STEWARD. Codex may occupy any mode when explicitly commissioned for it (never by
 self-promotion); IMPLEMENT always requires an explicit Basis, Objective, and
 Scope. Load contract: the already-loaded Layer-1 surface (this file / AGENTS.md)
-plus exactly one mode file is the complete session contract - a mode file lists
-only its deltas, so Layer 1 still binds and is not restated there. Skills do not
+plus exactly one mode file is the complete session contract. Skills do not
 reopen this file, the active mode file, or `docs/PROJECT_STATE.md` when already
 in context; other canonical docs open only on a named trigger (a PRD opens its
 own file, MATERIAL opens GOV-2, a schema question opens the map).
@@ -172,8 +170,7 @@ instead, reporting both SHAs. Blocker vocabulary, used verbatim: `CI is running`
 
 - No PRD for a feature that violates a `VISION.md` non-goal without explicit
   Dustin override.
-- No opportunistic `runtime/` refactor; it is acknowledged debt needing its own
-  PRD.
+- No opportunistic `runtime/` refactor; it is acknowledged debt needing its own PRD.
 - No documentation that duplicates a canonical source; reference instead.
 - No silent FILES expansion; amend first.
 - No committing generated artifacts (`logs/*`, `reports/*`) outside the

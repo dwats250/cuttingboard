@@ -9,11 +9,9 @@ description: Use when authoring an independent Claude review of a PRD (and, when
 
 This skill does two things and only two things:
 
-1. **Generate** an independent Claude review of a PRD (and, when a prior
-   second-model review of it coexists, record AGREE/DISAGREE/EXTEND on that
-   review's REQUIRED findings as adjudication input for Dustin - not a review
-   of its prose, per GOV-1 "reviews target the change, never another review's
-   prose").
+1. **Generate** an independent Claude review of a PRD (and, when a prior second-model review of it
+   coexists, record AGREE/DISAGREE/EXTEND on that review's REQUIRED findings as adjudication input
+   for Dustin - not a review of its prose, per GOV-1).
 2. **Verify** every line number, symbol, and file path in the review
    resolves against the current repo state.
 
@@ -29,13 +27,10 @@ It is NOT a substitute for:
 
 ## Independence (input envelope)
 
-The review receives only: the primary artifact under review (the PRD, and the
-implementation diff if one exists), the exact reviewed SHA, a neutral review
-question, and the applicable canonical authority. It does not treat an
-author-side conclusion, an acceptance-criteria list, or a prior review's verdict
-as presumed truth. Where a prior second-model review coexists, its REQUIRED
-findings are enumerated for AGREE/DISAGREE/EXTEND (adjudication input), never
-reviewed as prose.
+The review receives only: the primary artifact under review (the PRD, and the implementation diff if
+one exists), the exact reviewed SHA, a neutral review question, and the applicable canonical
+authority. It does not treat an author-side conclusion, an acceptance-criteria list, or a prior
+review's verdict as presumed truth.
 
 ## When to trigger
 
@@ -45,23 +40,19 @@ reviewed as prose.
 - "Independent review of PRD-NNN"
 
 Do NOT trigger for:
-- PRDs in PROPOSED state without an implementation diff if the user
-  wants an *implementation* review. The skill reviews the PRD
-  document; if an implementation exists, the skill reviews against
+- PRDs in PROPOSED state without an implementation diff if the user wants an *implementation*
+  review. The skill reviews the PRD document; if an implementation exists, the skill reviews against
   the PRD's stated FILES + REQUIREMENTS, not the code quality.
-- Writing the Codex review artifact. The Codex slot
-  (`PRD-NNN.review.codex.md`) is stage-locked per
+- Writing the Codex review artifact. The Codex slot (`PRD-NNN.review.codex.md`) is stage-locked per
   `docs/PRD_REVIEW_TEMPLATE.md`'s Filename convention.
 
 ## Operating modes
 
 Default is **DRAFT_ONLY**.
 
-- **DRAFT_ONLY** — emit the review and Verification Report in the
-  response. Do not write a file.
-- **WRITE_MODE** — write to `docs/prd_history/PRD-NNN.review.claude.md`.
-  Refuse if that path already exists; the user can supply
-  `.review.claude.v2.md` etc. explicitly if iterating, but the skill
+- **DRAFT_ONLY** — emit the review and Verification Report in the response. Do not write a file.
+- **WRITE_MODE** — write to `docs/prd_history/PRD-NNN.review.claude.md`. Refuse if that path already
+  exists; the user can supply `.review.claude.v2.md` etc. explicitly if iterating, but the skill
   never overwrites without an explicit target.
 
 If unclear, ask once, then default to DRAFT_ONLY.
@@ -69,17 +60,14 @@ If unclear, ask once, then default to DRAFT_ONLY.
 ## Inputs required
 
 - `prd` — three-digit PRD number
-- `mode` — `independent` (Claude is first reviewer) OR `cross-review`
-  (a prior second-model review exists; Claude reviews the PRD/change and
-  records AGREE/DISAGREE/EXTEND on that review's REQUIRED findings as
-  adjudication input, treating no prior verdict as presumed truth)
+- `mode` — `independent` (Claude is first reviewer) OR `cross-review` (a prior second-model review
+  exists; Claude reviews the PRD/change and records AGREE/DISAGREE/EXTEND on that review's REQUIRED
+  findings as adjudication input, treating no prior verdict as presumed truth)
 - `target_path` (WRITE_MODE only, optional) — defaults to
-  `docs/prd_history/PRD-NNN.review.claude.md`. The skill validates the
-  path is in the Claude slot pattern; refuses anything matching the
-  Codex slot.
-- `full_codex_coverage` (cross-review mode only, optional, default
-  false) — if true, the review must address every Codex finding
-  (REQUIRED and recommended). Default is REQUIRED-only.
+  `docs/prd_history/PRD-NNN.review.claude.md`. The skill validates the path is in the Claude slot
+  pattern; refuses anything matching the Codex slot.
+- `full_codex_coverage` (cross-review mode only, optional, default false) — if true, the review must
+  address every Codex finding (REQUIRED and recommended). Default is REQUIRED-only.
 
 ## Hard rule: no invented references
 
@@ -87,13 +75,11 @@ The skill must never invent:
 
 - Line numbers in the PRD or any cited source file
 - Symbol names, function names, file paths
-- Codex review findings (only quote / reference what actually exists
-  in `PRD-NNN.review.codex.md`)
+- Codex review findings (only quote / reference what actually exists in `PRD-NNN.review.codex.md`)
 - A VERDICT not chosen from the fixed set below
 
-If a cited line cannot be confirmed, either remove the citation or
-tag the surrounding finding `[UNVERIFIED]` and surface it in the
-Verification Report under V1. Same fallback chain as
+If a cited line cannot be confirmed, either remove the citation or tag the surrounding finding
+`[UNVERIFIED]` and surface it in the Verification Report under V1. Same fallback chain as
 `prd-authoring-verified`.
 
 ## Stage-locked file paths
@@ -102,12 +88,9 @@ Two paths are stage-locked and the skill enforces them:
 
 - `docs/prd_history/PRD-NNN.review.claude.md` — Claude review slot.
   This is the only path the skill is permitted to write.
-- `docs/prd_history/PRD-NNN.review.codex.md` — Codex slot, per
-  `docs/PRD_REVIEW_TEMPLATE.md`'s Filename convention. The
-  `prd_eval.sh` keyword detector that once enforced this hook-side was
-  retired by PRD-243 (retired, not fictional — the slot-lock rule
-  itself still stands as skill-side discipline, just not hook-enforced
-  since). The skill refuses to write here even if explicitly asked.
+- `docs/prd_history/PRD-NNN.review.codex.md` — Codex slot, per `docs/PRD_REVIEW_TEMPLATE.md`'s
+  Filename convention; the slot-lock is skill-side discipline, not hook-enforced. The skill refuses
+  to write here even if explicitly asked.
 
 If WRITE_MODE target resolves to anything other than a path matching
 `PRD-<NNN>\.review\.claude(\.v\d+)?\.md`, refuse.
@@ -173,13 +156,10 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 ### Phase 1 — Generate
 
 1. Read `docs/prd_history/PRD-NNN.md`.
-2. Capture REVIEWED STATE: `git rev-parse HEAD` (or the reviewed
-   branch tip, if reviewing a ref other than the checked-out HEAD) for
-   the reviewed SHA. Then compute the merge base from THAT SAME SHA —
-   `git merge-base <reviewed SHA> origin/main` — never hardcode `HEAD`
-   once the reviewed SHA is known, or a review of a non-checked-out ref
-   silently pairs one commit's SHA with a different commit's merge
-   base. Record the independence line the dispatch specifies.
+2. Capture REVIEWED STATE: `git rev-parse HEAD` (or the reviewed branch tip, if reviewing a ref
+   other than the checked-out HEAD) for the reviewed SHA. Then compute the merge base from THAT SAME
+   SHA — `git merge-base <reviewed SHA> origin/main` — never hardcode `HEAD` once the reviewed SHA
+   is known. Record the independence line the dispatch specifies.
 3. In cross-review mode: read `PRD-NNN.review.codex.md` only to enumerate its
    REQUIRED findings for AGREE/DISAGREE/EXTEND; do not review its prose (GOV-1).
    Refuse if missing — there is nothing to compare against.
@@ -193,15 +173,12 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
 6. Each REQUIRED EDIT must:
    - Quote or reference an exact PRD line (`PRD-NNN.md:LL`)
    - State an observable, binary FAIL criterion
-   - Map to a CLAUDE.md rule, PRD-process rule, or existing repo
-     invariant (cite it)
-7. DRIFT CHECK (lightweight, always recorded): read `VISION.md` non-goals /
-   principles and the `docs/PROJECT_STATE.md` current-state claims; record
-   (i) whether the change conflicts with a VISION non-goal/principle and
-   (ii) whether it leaves any PROJECT_STATE claim stale. This is drift, not
-   correctness — keep it to the two recorded lines. Per
-   `docs/contract/MODE_REVIEW.md`, this recorded DRIFT CHECK is the standing
-   pre-merge drift signal recorded in every review.
+   - Map to a CLAUDE.md rule, PRD-process rule, or existing repo invariant (cite it)
+7. DRIFT CHECK (lightweight, always recorded): read `VISION.md` non-goals / principles and the
+   `docs/PROJECT_STATE.md` current-state claims; record (i) whether the change conflicts with a
+   VISION non-goal/principle and (ii) whether it leaves any PROJECT_STATE claim stale. This is
+   drift, not correctness — keep it to the two recorded lines. Per `docs/contract/MODE_REVIEW.md`,
+   this recorded DRIFT CHECK is the standing pre-merge drift signal recorded in every review.
 
 ### Phase 2 — Verify (MANDATORY before returning)
 
@@ -265,10 +242,9 @@ are load-bearing or the user supplied `full_codex_coverage: true`.>
   be resolved in CROSS-REVIEW NOTES escalate to a separate
   `PRD-NNN.adjudication.md` which this skill does not author.
 - Does not invoke Codex. The cross-review gate is a human decision.
-- Does not run the test suite itself; asserts implementation-against-PRD
-  PASS/FAIL per requirement from the diff and whatever command/test
-  output the implementer already produced (IMPLEMENTATION VERDICT; see
-  Review structure and V13).
+- Does not run the test suite itself; asserts implementation-against-PRD PASS/FAIL per requirement
+  from the diff and whatever command/test output the implementer already produced
+  (IMPLEMENTATION VERDICT; see Review structure and V13).
 - Does not update `PRD_REGISTRY.md`. Review artifacts do not get
   registry rows (per `docs/PRD_PROCESS.md § Registry Maintenance`).
 - Does not force-address optional/recommended Codex notes. REQUIRED

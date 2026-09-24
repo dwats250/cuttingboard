@@ -1,7 +1,7 @@
 {
   "tracking_start": 56,
-  "latest_complete": 345,
-  "next_prd": 346,
+  "latest_complete": 347,
+  "next_prd": 348,
   "entries": [
     {
       "number": 56,
@@ -1752,8 +1752,8 @@
     {
       "number": 347,
       "title": "Prompt-surface compaction (live agent-facing Markdown, semantic no-op)",
-      "status": "IN PROGRESS",
-      "commit": null
+      "status": "COMPLETE",
+      "commit": "#347"
     }
   ]
 }

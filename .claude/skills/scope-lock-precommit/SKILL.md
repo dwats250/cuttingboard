@@ -118,17 +118,6 @@ review regardless of lane, including MICRO (PRD-276 R5). The annotation is
 a declaration this skill's numbered contract does not yet check against
 the diff; that review is what does.
 
-Verifying the claim against staged hunks IS the right fix and is not
-abandoned — `docs/prd_history/PRD-277.review.fable.md` item 4 upholds it,
-and the precedent already exists in V7's cosmetic carve-out. It was
-attempted here as prose and reverted (connector 3689272946): a check that
-is not a numbered Phase-1 step with a V-row and a report line is not a
-check, and the hunk-shape vocabulary it needs is not yet correct — the
-first draft would have rejected a FILES-declared closeout row and, per
-that review's independent finding 1, the ordinary PROJECT_STATE closeout
-diff as well. Re-scheduled as a PRD-278 requirement, where the shapes must
-be fixture-tested against real governance diffs before anything is wired.
-
 Why the carve-out has a carve-out: for a GOVERNANCE PRD these two files
 are candidate PAYLOAD, and the Lane Downgrade Prohibition decides that
 PRD's lane from how its `FILES` declares them. Leaving them blanket-
@@ -240,7 +229,8 @@ No subagent dispatch — single PRD, small diff.
 - Does not stage files. Staging is the user's decision.
 - Does not amend PRD FILES section. If the staged set genuinely
   requires a file not in FILES, the user amends the PRD first (per
-  CLAUDE.md `Strict scope locking`), then re-runs this skill.
+  CLAUDE.md The wall, SCOPE, and `docs/contract/MODE_IMPLEMENT.md`
+  Scope discipline), then re-runs this skill.
 - Does not duplicate or override `docs/AGENT_WORKFLOW.md`. The
   protected pipeline set is read dynamically each invocation.
 - Does not run tests, lint, or any quality gate other than scope.
