@@ -7,12 +7,12 @@
     "close",
     "volume"
   ],
-  "generated_at": "2026-09-25T13:01:16.094077+00:00",
+  "generated_at": "2026-09-25T13:31:44.464941+00:00",
   "schema_version": 1,
   "source": {
     "adjusted": true,
     "interval": "1d",
-    "producer": "daily",
+    "producer": "hourly",
     "provider": "yfinance"
   },
   "symbols": {
