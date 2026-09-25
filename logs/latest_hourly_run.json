@@ -1,5 +1,5 @@
 {
-  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n11:00 AM\nRegime: RISK_ON\n29/31 validated\nVIX 15.0 (-4.3%)",
+  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n12:00 PM\nRegime: RISK_ON\n29/31 validated\nVIX 14.9 (-4.6%)",
   "alert_title": "OBSERVE ONLY \u2014 OPERATOR LOCK",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
@@ -11,9 +11,9 @@
     "AMZN | LONG | TREND | 2.0:1",
     "COIN | LONG | TREND | 2.0:1"
   ],
-  "candidates_qualified": 5,
-  "candidates_watchlist": 7,
-  "confidence": 0.625,
+  "candidates_qualified": 4,
+  "candidates_watchlist": 8,
+  "confidence": 0.75,
   "data_status": "ok",
   "effective_permission": {
     "authority_version": [
@@ -33,14 +33,14 @@
   },
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-09-25T18:01:36Z",
-  "generation_id": "hourly-20260925T180136Z",
+  "generated_at": "2026-09-25T19:01:35Z",
+  "generation_id": "hourly-20260925T190135Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-09-25T18:00:00Z",
+  "hourly_slot_utc": "2026-09-25T19:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
-  "net_score": 5,
+  "net_score": 6,
   "notification_attempted": true,
   "notification_http_status": 200,
   "notification_reason": null,
@@ -51,14 +51,14 @@
   "notify_mode": "hourly",
   "outcome": "NO_TRADE",
   "permission": "No new trades permitted \u2014 operator cannot monitor.",
-  "posture": "CONTROLLED_LONG",
+  "posture": "AGGRESSIVE_LONG",
   "regime": "RISK_ON",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-09-25T18:01:36Z",
-  "run_id": "hourly-20260925T180136Z",
+  "run_at_utc": "2026-09-25T19:01:35Z",
+  "run_id": "hourly-20260925T190135Z",
   "session_date": "2026-09-25",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-09-25T18:01:36Z",
+  "timestamp": "2026-09-25T19:01:35Z",
   "warnings": []
 }
