@@ -2,9 +2,9 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.0010913823898116458,
-      "price": 151.02499389648438,
-      "structure": "TRENDING_UP",
+      "pct_change_decimal": -0.017526952194878945,
+      "price": 148.54010009765625,
+      "structure": "PULLBACK",
       "symbol": "USO"
     }
   },
@@ -18,8 +18,8 @@
       "GLD"
     ]
   },
-  "generated_at": "2026-09-25T15:01:50Z",
-  "generation_id": "hourly-20260925T150150Z",
+  "generated_at": "2026-09-25T16:01:35Z",
+  "generation_id": "hourly-20260925T160135Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +33,14 @@
   "session_date": "2026-09-25",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-25T15:01:50Z"
+    "run_at_utc": "2026-09-25T16:01:35Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 92.56999969482422,
+      "current_price": 93.12000274658203,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -96,7 +96,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 392.375,
+      "current_price": 393.57000732421875,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -152,7 +152,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 743.3699951171875,
+      "current_price": 744.52001953125,
       "fib_levels": {
         "retracements": {
           "0.382": 729.6019,
@@ -218,7 +218,7 @@
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 57.999900817871094,
+      "current_price": 58.279998779296875,
       "fib_levels": {
         "retracements": {
           "0.382": 61.2425,
@@ -245,7 +245,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "C: bullish range, regime aligned, away from key level",
+      "reason_for_grade": "C: bullish range, regime aligned, near key level",
       "setup_state": "LOW_QUALITY",
       "structure": "RANGE",
       "symbol": "SLV",
@@ -284,7 +284,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 769.14501953125,
+      "current_price": 770.6799926757812,
       "fib_levels": {
         "retracements": {
           "0.382": 764.6744,
@@ -350,7 +350,7 @@
       "asset_group": "ENERGY",
       "bias": "BEARISH",
       "confidence": "MEDIUM",
-      "current_price": 62.060001373291016,
+      "current_price": 61.869998931884766,
       "fib_levels": {
         "retracements": {
           "0.382": 64.0246,
