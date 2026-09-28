@@ -1,25 +1,25 @@
 {
-  "generated_at": "2026-09-28T13:01:59.161233+00:00",
+  "generated_at": "2026-09-28T13:32:01.580932+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 92.87000274658203,
+      "current_price": 88.17500305175781,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
-      "price_vs_sma_200": "ABOVE",
-      "price_vs_sma_50": "ABOVE",
+      "price_vs_sma_200": "BELOW",
+      "price_vs_sma_50": "BELOW",
       "price_vs_vwap": "NOT_COMPUTED",
-      "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
+      "reason": "BEARISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.7301574173312828,
       "sma_200": 90.97702865600586,
       "sma_50": 90.01179992675782,
       "symbol": "GDX",
-      "trend_alignment": "BULLISH",
+      "trend_alignment": "BEARISH",
       "vwap": null
     },
     "GLD": {
-      "current_price": 393.4100036621094,
+      "current_price": 379.8800048828125,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -34,7 +34,7 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 744.5,
+      "current_price": 740.0900268554688,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -49,22 +49,22 @@
       "vwap": null
     },
     "SLV": {
-      "current_price": 58.13999938964844,
+      "current_price": 55.38370132446289,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
-      "price_vs_sma_50": "ABOVE",
+      "price_vs_sma_50": "BELOW",
       "price_vs_vwap": "NOT_COMPUTED",
-      "reason": "MIXED alignment; VWAP NOT_COMPUTED",
+      "reason": "BEARISH alignment; VWAP NOT_COMPUTED",
       "relative_volume": 0.8446393986248562,
       "sma_200": 65.9558500289917,
       "sma_50": 57.46299987792969,
       "symbol": "SLV",
-      "trend_alignment": "MIXED",
+      "trend_alignment": "BEARISH",
       "vwap": null
     },
     "SPY": {
-      "current_price": 771.3499755859375,
+      "current_price": 768.0499877929688,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -79,7 +79,7 @@
       "vwap": null
     },
     "XLE": {
-      "current_price": 62.040000915527344,
+      "current_price": 62.5099983215332,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
