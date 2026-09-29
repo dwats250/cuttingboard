@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.02929208162047736,
-      "price": 145.47999572753906,
+      "pct_change_decimal": -0.027002703286859057,
+      "price": 145.82310485839844,
       "structure": "CHOPPY",
       "symbol": "USO"
     }
@@ -18,8 +18,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-09-29T16:01:58Z",
-  "generation_id": "hourly-20260929T160158Z",
+  "generated_at": "2026-09-29T17:02:34Z",
+  "generation_id": "hourly-20260929T170234Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +33,14 @@
   "session_date": "2026-09-29",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-09-29T16:01:58Z"
+    "run_at_utc": "2026-09-29T17:02:34Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
-      "bias": "NEUTRAL",
+      "bias": "MIXED",
       "confidence": "LOW",
-      "current_price": 88.12000274658203,
+      "current_price": 88.12999725341797,
       "fib_levels": {
         "retracements": {
           "0.382": 96.2283,
@@ -67,7 +67,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "pullback reset watch",
-      "reason_for_grade": "D: neutral structure is extended from trend reference",
+      "reason_for_grade": "D: mixed structure is extended from trend reference",
       "setup_state": "EXTENDED",
       "structure": "BREAKOUT",
       "symbol": "GDX",
@@ -76,7 +76,7 @@
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
         "entry": "wait for reset toward EMA50 before defining risk",
         "if_now": "WAIT",
-        "setup": "metals extended neutral structure",
+        "setup": "metals extended mixed structure",
         "trade_type": "none",
         "upgrade": "improves with cleaner directional structure near a key level"
       },
@@ -96,7 +96,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 380.9942932128906,
+      "current_price": 380.05999755859375,
       "fib_levels": {
         "retracements": {
           "0.382": 399.5359,
@@ -162,7 +162,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 736.9500122070312,
+      "current_price": 735.8300170898438,
       "fib_levels": {
         "retracements": {
           "0.382": 729.6019,
@@ -228,7 +228,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 54.939998626708984,
+      "current_price": 54.880001068115234,
       "fib_levels": {
         "retracements": {
           "0.382": 59.0971,
@@ -277,7 +277,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 763.0,
+      "current_price": 762.6500244140625,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -333,7 +333,7 @@
       "asset_group": "ENERGY",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 61.625,
+      "current_price": 61.70000076293945,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
