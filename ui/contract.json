@@ -29,73 +29,73 @@
     "valid_until": "2026-10-01T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-09-30T13:31:51Z",
-  "generation_id": "hourly-20260930T133151Z",
+  "generated_at": "2026-09-30T13:46:44Z",
+  "generation_id": "hourly-20260930T134644Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 2.0982529332928315,
-      "level": 85393.3515625,
+      "change_pct": 0.9472892892999499,
+      "level": 84419.796875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.2248298522886302,
-      "level": 101.18399810791016,
+      "change_pct": -0.23666379432142312,
+      "level": 101.1719970703125,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": 1.9891223519270627,
-      "level": 2730.31005859375,
+      "change_pct": 1.0018387197797258,
+      "level": 2703.8798828125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": 0.21595248330640845,
-      "level": 1.1366219520568848,
+      "change_pct": 0.1476540682122275,
+      "level": 1.1358473300933838,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": 0.4660586768814648,
-      "level": 4225.10009765625,
+      "change_pct": 0.45178932350493406,
+      "level": 4224.5,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -0.3307969056218123,
-      "level": 3.013000011444092,
+      "change_pct": -0.9593133923493584,
+      "level": 2.99399995803833,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 1.5701514307323214,
-      "level": 91.20999908447266,
+      "change_pct": 1.5144772429102282,
+      "level": 91.16000366210938,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -2.686169783494336,
-      "change_pct": -0.5138045034841324,
-      "level": 5.227999687194824,
+      "change_bps": -1.8931356541525741,
+      "change_pct": -0.36156142705970507,
+      "level": 5.236000061035156,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": -0.07150000323915132,
-      "level": 5.590000152587891,
+      "change_pct": 0.01788352489219593,
+      "level": 5.595000267028809,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -0.22821645914514965,
-      "level": 61.20500183105469,
+      "change_pct": 0.12225437566195209,
+      "level": 61.41999816894531,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.0873853067848449,
-      "level": 1.4177800416946411,
+      "change_pct": -0.0465153281741671,
+      "level": 1.4183599948883057,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": -0.3393492612346414,
-      "level": 156.8249969482422,
+      "change_pct": -0.2929597634135611,
+      "level": 156.8979949951172,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": -1.4971972209110607,
-      "level": 15.789999961853027,
+      "change_pct": -0.748601585110164,
+      "level": 15.90999984741211,
       "symbol": "^VIX"
     }
   },
@@ -110,22 +110,22 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_ON",
-    "confidence": 0.5,
-    "net_score": 4,
-    "neutral_votes": 4,
+    "confidence": 0.25,
+    "net_score": 2,
+    "neutral_votes": 6,
     "posture": "STAY_FLAT",
     "risk_off_votes": 0,
-    "risk_on_votes": 4,
+    "risk_on_votes": 2,
     "total_votes": 8,
-    "vix_level": 15.789999961853027,
-    "vix_pct_change": -0.014971972209110606,
+    "vix_level": 15.90999984741211,
+    "vix_pct_change": -0.007486015851101639,
     "vote_breakdown": {
-      "BTC pct_change": "RISK_ON",
+      "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "RISK_ON",
       "IWM pct_change": "NEUTRAL",
       "QQQ pct_change": "NEUTRAL",
       "SPY pct_change": "NEUTRAL",
-      "TNX pct_change": "RISK_ON",
+      "TNX pct_change": "NEUTRAL",
       "VIX level": "RISK_ON",
       "VIX pct_change": "NEUTRAL"
     }
@@ -135,7 +135,7 @@
   "session_date": "2026-09-30",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.5,
+    "confidence": 0.25,
     "intraday_state": null,
     "market_regime": "RISK_ON",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
