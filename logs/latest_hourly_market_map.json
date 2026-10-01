@@ -2,15 +2,19 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.0069775095463622625,
-      "price": 145.75999450683594,
-      "structure": "CHOPPY",
+      "pct_change_decimal": 0.013609680281196027,
+      "price": 146.72000122070312,
+      "structure": "PULLBACK",
       "symbol": "USO"
     }
   },
   "data_quality": {
     "fib_deferred_symbols": [
+      "SPY",
+      "QQQ",
       "GDX",
+      "GLD",
+      "SLV",
       "XLE"
     ],
     "unavailable_symbols": [
@@ -18,8 +22,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-10-01T13:31:29Z",
-  "generation_id": "hourly-20261001T133129Z",
+  "generated_at": "2026-10-01T13:46:34Z",
+  "generation_id": "hourly-20261001T134634Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +37,14 @@
   "session_date": "2026-10-01",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-01T13:31:29Z"
+    "run_at_utc": "2026-10-01T13:46:34Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 87.61000061035156,
+      "current_price": 87.19999694824219,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -91,17 +95,8 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 382.260009765625,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 399.5359,
-          "0.5": 395.21,
-          "0.618": 390.8841
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 413.54,
-        "swing_low": 376.88
-      },
+      "current_price": 381.6000061035156,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "reclaims EMA9 with follow-through",
@@ -157,17 +152,8 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 742.0,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 729.6019,
-          "0.5": 723.8107,
-          "0.618": 718.0194
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 748.35,
-        "swing_low": 699.2713
-      },
+      "current_price": 741.4401245117188,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "loses EMA9 with weak recovery",
@@ -175,25 +161,25 @@
       ],
       "lifecycle": {
         "current_grade": "D",
-        "current_setup_state": "EXTENDED",
+        "current_setup_state": "LOW_QUALITY",
         "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "D",
-        "previous_setup_state": "LOW_QUALITY",
+        "previous_setup_state": "EXTENDED",
         "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": "pullback reset watch",
-      "reason_for_grade": "D: bullish structure is extended from trend reference",
-      "setup_state": "EXTENDED",
+      "preferred_trade_structure": "bullish defined-risk continuation",
+      "reason_for_grade": "D: bullish trending_up, regime mixed, near key level",
+      "setup_state": "LOW_QUALITY",
       "structure": "TRENDING_UP",
       "symbol": "QQQ",
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward EMA9 before defining risk",
+        "entry": "wait for clearer reaction around EMA9",
         "if_now": "WAIT",
-        "setup": "index extended bullish structure",
+        "setup": "index low-quality trending_up",
         "trade_type": "none",
         "upgrade": "improves with cleaner directional structure near a key level"
       },
@@ -215,25 +201,16 @@
         }
       ],
       "what_to_look_for": [
-        "look for reset toward EMA9",
-        "watch for cleaner compression"
+        "watch hold above EMA9",
+        "look for higher low with expanding volume"
       ]
     },
     "SLV": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 55.130001068115234,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 58.8526,
-          "0.5": 57.97,
-          "0.618": 57.0874
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 61.71,
-        "swing_low": 54.23
-      },
+      "current_price": 55.03499984741211,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "reclaims EMA9 with follow-through",
@@ -268,11 +245,6 @@
           "context": "fast trend reference",
           "level": 56.8297,
           "type": "EMA9"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 57.8297,
-          "type": "EMA21"
         }
       ],
       "what_to_look_for": [
@@ -284,17 +256,8 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 764.1500244140625,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 764.6744,
-          "0.5": 761.4416,
-          "0.618": 758.2088
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 775.14,
-        "swing_low": 747.7432
-      },
+      "current_price": 763.6400146484375,
+      "fib_levels": null,
       "grade": "C",
       "invalidation": [
         "loses EMA21 with weak recovery",
@@ -311,7 +274,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "C: bullish range, regime aligned, near key level",
+      "reason_for_grade": "C: bullish range, regime mixed, near key level",
       "setup_state": "LOW_QUALITY",
       "structure": "RANGE",
       "symbol": "SPY",
@@ -350,7 +313,7 @@
       "asset_group": "ENERGY",
       "bias": "NEUTRAL",
       "confidence": "LOW",
-      "current_price": 61.29999923706055,
+      "current_price": 61.58000183105469,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
