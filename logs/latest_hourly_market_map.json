@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.004420536187094059,
-      "price": 145.94000244140625,
+      "pct_change_decimal": -0.006091853874677627,
+      "price": 145.69500732421875,
       "structure": "CHOPPY",
       "symbol": "USO"
     }
@@ -18,8 +18,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-10-05T15:01:40Z",
-  "generation_id": "hourly-20261005T150140Z",
+  "generated_at": "2026-10-05T16:01:33Z",
+  "generation_id": "hourly-20261005T160133Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +33,14 @@
   "session_date": "2026-10-05",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-05T15:01:40Z"
+    "run_at_utc": "2026-10-05T16:01:33Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 87.33999633789062,
+      "current_price": 87.30999755859375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -91,7 +91,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 379.9800109863281,
+      "current_price": 378.9324951171875,
       "fib_levels": {
         "retracements": {
           "0.382": 396.1122,
@@ -157,7 +157,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 753.9912719726562,
+      "current_price": 753.510009765625,
       "fib_levels": {
         "retracements": {
           "0.382": 733.4274,
@@ -223,7 +223,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 55.2400016784668,
+      "current_price": 55.140201568603516,
       "fib_levels": {
         "retracements": {
           "0.382": 58.7266,
@@ -273,11 +273,6 @@
           "context": "primary trend reference",
           "level": 57.3166,
           "type": "EMA21"
-        },
-        {
-          "context": "trend base reference",
-          "level": 57.9744,
-          "type": "EMA50"
         }
       ],
       "what_to_look_for": [
@@ -288,8 +283,8 @@
     "SPY": {
       "asset_group": "INDEX",
       "bias": "BULLISH",
-      "confidence": "HIGH",
-      "current_price": 772.72998046875,
+      "confidence": "MEDIUM",
+      "current_price": 773.155029296875,
       "fib_levels": {
         "retracements": {
           "0.382": 764.6744,
@@ -355,7 +350,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 63.244998931884766,
+      "current_price": 63.53499984741211,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [

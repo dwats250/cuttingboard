@@ -29,22 +29,22 @@
     "valid_until": "2026-10-06T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-10-05T15:01:40Z",
-  "generation_id": "hourly-20261005T150140Z",
+  "generated_at": "2026-10-05T16:01:33Z",
+  "generation_id": "hourly-20261005T160133Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.1203611885897535,
-      "level": 85543.71875,
+      "change_pct": -1.4757359828876828,
+      "level": 85236.2734375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": -0.24877538246898348,
-      "level": 102.24600219726562,
+      "change_pct": -0.30438382223877597,
+      "level": 102.18900299072266,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -0.9249366966201189,
-      "level": 2701.449951171875,
+      "change_pct": -1.1497529771276975,
+      "level": 2695.31005859375,
       "symbol": "ETH-USD"
     },
     "eurusd": {
@@ -53,49 +53,49 @@
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -0.028767864633269417,
-      "level": 4170.7998046875,
+      "change_pct": -0.17258378026126558,
+      "level": 4164.7998046875,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": 0.991406846095687,
-      "level": 3.055999994277954,
+      "change_pct": 1.1566452599455843,
+      "level": 3.061000108718872,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 0.5115648285583719,
-      "level": 90.37999725341797,
+      "change_pct": 0.6783814755038905,
+      "level": 90.52999877929688,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 3.624584929506866,
-      "change_pct": 0.6822105762428466,
-      "level": 5.313000202178955,
+      "change_bps": 5.353228279037158,
+      "change_pct": 1.004358040462213,
+      "level": 5.329999923706055,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": 0.6749574784919343,
-      "level": 5.668000221252441,
+      "change_pct": 0.9946670465553978,
+      "level": 5.685999870300293,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -0.048754721098692354,
-      "level": 61.5,
+      "change_pct": -0.024377360549346177,
+      "level": 61.51499938964844,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.02316400955615816,
-      "level": 1.4241700172424316,
+      "change_pct": 0.004209355782784521,
+      "level": 1.4245599508285522,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.07476158807032056,
-      "level": 157.947998046875,
+      "change_pct": 0.09250211750379246,
+      "level": 157.9759979248047,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 1.3063344466593025,
-      "level": 15.510000228881836,
+      "change_pct": 1.9594985554419575,
+      "level": 15.609999656677246,
       "symbol": "^VIX"
     }
   },
@@ -110,22 +110,22 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_ON",
-    "confidence": 0.5,
-    "net_score": 4,
-    "neutral_votes": 4,
+    "confidence": 0.375,
+    "net_score": 3,
+    "neutral_votes": 3,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 0,
+    "risk_off_votes": 1,
     "risk_on_votes": 4,
     "total_votes": 8,
-    "vix_level": 15.510000228881836,
-    "vix_pct_change": 0.013063344466593026,
+    "vix_level": 15.609999656677246,
+    "vix_pct_change": 0.019594985554419575,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "RISK_ON",
       "IWM pct_change": "NEUTRAL",
       "QQQ pct_change": "RISK_ON",
       "SPY pct_change": "RISK_ON",
-      "TNX pct_change": "NEUTRAL",
+      "TNX pct_change": "RISK_OFF",
       "VIX level": "RISK_ON",
       "VIX pct_change": "NEUTRAL"
     }
@@ -135,7 +135,7 @@
   "session_date": "2026-10-05",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.5,
+    "confidence": 0.375,
     "intraday_state": null,
     "market_regime": "RISK_ON",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
