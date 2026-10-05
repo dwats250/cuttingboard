@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": -0.006091853874677627,
-      "price": 145.69500732421875,
+      "pct_change_decimal": -0.006944583975367997,
+      "price": 145.57000732421875,
       "structure": "CHOPPY",
       "symbol": "USO"
     }
@@ -18,8 +18,8 @@
       "XLE"
     ]
   },
-  "generated_at": "2026-10-05T16:01:33Z",
-  "generation_id": "hourly-20261005T160133Z",
+  "generated_at": "2026-10-05T17:01:35Z",
+  "generation_id": "hourly-20261005T170135Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +33,14 @@
   "session_date": "2026-10-05",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-05T16:01:33Z"
+    "run_at_utc": "2026-10-05T17:01:35Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 87.30999755859375,
+      "current_price": 87.30000305175781,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -91,7 +91,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 378.9324951171875,
+      "current_price": 378.7698974609375,
       "fib_levels": {
         "retracements": {
           "0.382": 396.1122,
@@ -157,7 +157,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 753.510009765625,
+      "current_price": 754.0125122070312,
       "fib_levels": {
         "retracements": {
           "0.382": 733.4274,
@@ -223,7 +223,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 55.140201568603516,
+      "current_price": 55.07500076293945,
       "fib_levels": {
         "retracements": {
           "0.382": 58.7266,
@@ -283,8 +283,8 @@
     "SPY": {
       "asset_group": "INDEX",
       "bias": "BULLISH",
-      "confidence": "MEDIUM",
-      "current_price": 773.155029296875,
+      "confidence": "HIGH",
+      "current_price": 774.0850219726562,
       "fib_levels": {
         "retracements": {
           "0.382": 764.6744,
@@ -295,31 +295,31 @@
         "swing_high": 775.14,
         "swing_low": 747.7432
       },
-      "grade": "A+",
+      "grade": "A",
       "invalidation": [
         "loses EMA9 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
-        "current_grade": "A+",
-        "current_setup_state": "ACTIONABLE",
-        "grade_transition": "UNCHANGED",
+        "current_grade": "A",
+        "current_setup_state": "STRONG_WATCH",
+        "grade_transition": "DOWNGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "A+",
         "previous_setup_state": "ACTIONABLE",
-        "setup_state_transition": "UNCHANGED"
+        "setup_state_transition": "CHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
-      "reason_for_grade": "A+: bullish trending_up, regime aligned, near key level",
-      "setup_state": "ACTIONABLE",
+      "reason_for_grade": "A: bullish trending_up, regime aligned, away from key level",
+      "setup_state": "STRONG_WATCH",
       "structure": "TRENDING_UP",
       "symbol": "SPY",
       "trade_framing": {
         "direction": "LONG",
         "downgrade": "wait if price loses EMA9 or structure turns choppy",
         "entry": "hold above EMA9 with constructive follow-through",
-        "if_now": "TAKE",
+        "if_now": "WAIT",
         "setup": "index bullish trending_up",
         "trade_type": "call_spread",
         "upgrade": "improves on clean hold near key level with expanding participation"
@@ -350,7 +350,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 63.53499984741211,
+      "current_price": 63.55500030517578,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
