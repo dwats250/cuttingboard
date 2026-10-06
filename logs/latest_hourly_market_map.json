@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.006199469195969212,
-      "price": 144.6300048828125,
+      "pct_change_decimal": 0.00487761101139809,
+      "price": 144.44000244140625,
       "structure": "CHOPPY",
       "symbol": "USO"
     }
@@ -16,8 +16,8 @@
       "GDX"
     ]
   },
-  "generated_at": "2026-10-06T17:01:45Z",
-  "generation_id": "hourly-20261006T170145Z",
+  "generated_at": "2026-10-06T18:01:42Z",
+  "generation_id": "hourly-20261006T180142Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +31,14 @@
   "session_date": "2026-10-06",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-06T17:01:45Z"
+    "run_at_utc": "2026-10-06T18:01:42Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 88.1957015991211,
+      "current_price": 88.4749984741211,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -94,7 +94,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 381.1600036621094,
+      "current_price": 381.7799987792969,
       "fib_levels": {
         "retracements": {
           "0.382": 395.2222,
@@ -160,7 +160,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 760.8200073242188,
+      "current_price": 761.0050048828125,
       "fib_levels": {
         "retracements": {
           "0.382": 734.8982,
@@ -221,7 +221,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 55.34000015258789,
+      "current_price": 55.459999084472656,
       "fib_levels": {
         "retracements": {
           "0.382": 58.7266,
@@ -248,7 +248,7 @@
         "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
-      "reason_for_grade": "D: bearish trending_down, regime mixed, away from key level",
+      "reason_for_grade": "D: bearish trending_down, regime mixed, near key level",
       "setup_state": "LOW_QUALITY",
       "structure": "TRENDING_DOWN",
       "symbol": "SLV",
@@ -287,7 +287,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 779.989990234375,
+      "current_price": 779.9190063476562,
       "fib_levels": {
         "retracements": {
           "0.382": 765.5829,
@@ -353,7 +353,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 63.95500183105469,
+      "current_price": 63.91999816894531,
       "fib_levels": {
         "retracements": {
           "0.382": 63.9343,
