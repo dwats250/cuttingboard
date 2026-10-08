@@ -2,22 +2,27 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.029179562325773775,
-      "price": 148.14010620117188,
+      "pct_change_decimal": 0.025566174219726987,
+      "price": 147.6199951171875,
       "structure": "RANGE",
       "symbol": "USO"
     }
   },
   "data_quality": {
     "fib_deferred_symbols": [
-      "GDX"
+      "SPY",
+      "QQQ",
+      "GDX",
+      "GLD",
+      "SLV",
+      "XLE"
     ],
     "unavailable_symbols": [
       "GDX"
     ]
   },
-  "generated_at": "2026-10-08T19:01:38Z",
-  "generation_id": "hourly-20261008T190138Z",
+  "generated_at": "2026-10-08T20:01:44Z",
+  "generation_id": "hourly-20261008T200144Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +36,14 @@
   "session_date": "2026-10-08",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-08T19:01:38Z"
+    "run_at_utc": "2026-10-08T20:01:44Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 86.56500244140625,
+      "current_price": 86.73999786376953,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -79,6 +84,11 @@
           "context": "trend base reference",
           "level": 90.7015,
           "type": "EMA50"
+        },
+        {
+          "context": "primary trend reference",
+          "level": 90.9465,
+          "type": "EMA21"
         }
       ],
       "what_to_look_for": [
@@ -89,17 +99,8 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 378.29010009765625,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 392.4116,
-          "0.5": 388.94,
-          "0.618": 385.4684
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 403.65,
-        "swing_low": 374.23
-      },
+      "current_price": 378.6700134277344,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "reclaims EMA9 with follow-through",
@@ -155,17 +156,8 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 746.6699829101562,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 738.5691,
-          "0.5": 731.0657,
-          "0.618": 723.5622
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 762.86,
-        "swing_low": 699.2713
-      },
+      "current_price": 747.5800170898438,
+      "fib_levels": null,
       "grade": "B",
       "invalidation": [
         "loses EMA9 with weak recovery",
@@ -221,17 +213,8 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 53.36000061035156,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 58.1732,
-          "0.5": 57.3,
-          "0.618": 56.4268
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 61.0,
-        "swing_low": 53.6
-      },
+      "current_price": 53.45000076293945,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "reclaims EMA9 with follow-through",
@@ -277,17 +260,8 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 772.9600219726562,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 768.6791,
-          "0.5": 764.6816,
-          "0.618": 760.6841
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 781.62,
-        "swing_low": 747.7432
-      },
+      "current_price": 773.969970703125,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "loses EMA9 with weak recovery",
@@ -343,17 +317,8 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 65.25,
-      "fib_levels": {
-        "retracements": {
-          "0.382": 63.9343,
-          "0.5": 63.3645,
-          "0.618": 62.7947
-        },
-        "source": "last_20_bars_high_low",
-        "swing_high": 65.779,
-        "swing_low": 60.95
-      },
+      "current_price": 65.22000122070312,
+      "fib_levels": null,
       "grade": "D",
       "invalidation": [
         "loses EMA9 with weak recovery",
