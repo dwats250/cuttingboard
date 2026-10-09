@@ -9,7 +9,7 @@
     "continuation_audit_present": true,
     "continuation_rejected_count": 5,
     "error_count": 0,
-    "qualified_count": 6,
+    "qualified_count": 7,
     "rejected_count": 9
   },
   "correlation": null,
@@ -29,73 +29,73 @@
     "valid_until": "2026-10-10T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-10-09T18:01:41Z",
-  "generation_id": "hourly-20261009T180141Z",
+  "generated_at": "2026-10-09T19:01:39Z",
+  "generation_id": "hourly-20261009T190139Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 1.106441367558738,
-      "level": 82596.671875,
+      "change_pct": 0.8106495017489782,
+      "level": 82355.03125,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.24602000076275995,
-      "level": 102.2750015258789,
+      "change_pct": 0.174470124860815,
+      "level": 102.2020034790039,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": 0.480819496025109,
-      "level": 2484.780029296875,
+      "change_pct": 0.318660647883094,
+      "level": 2480.77001953125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.1343999163308706,
-      "level": 1.1200717687606812,
+      "change_pct": -0.08964245902210854,
+      "level": 1.1205737590789795,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": 0.42120258275614053,
-      "level": 4220.0,
+      "change_pct": 0.5687454902275191,
+      "level": 4226.2001953125,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": 3.2556655424795258,
-      "level": 3.234999895095825,
+      "change_pct": 2.1385302548088183,
+      "level": 3.200000047683716,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 1.4375793955221368,
-      "level": 91.7300033569336,
+      "change_pct": 0.24328344571567273,
+      "level": 90.6500015258789,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 2.209235991899464,
-      "change_pct": 0.4205665492759386,
-      "level": 5.252999782562256,
+      "change_bps": 1.7055447216747721,
+      "change_pct": 0.32498945780579064,
+      "level": 5.248000144958496,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": 0.03568198176450845,
-      "level": 5.6080002784729,
+      "change_pct": -0.03567347592856935,
+      "level": 5.604000091552734,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": 1.0008263599679552,
-      "level": 61.05500030517578,
+      "change_pct": 1.4392041702307845,
+      "level": 61.31999969482422,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": 0.3234095621550133,
-      "level": 1.4269599914550781,
+      "change_pct": 0.28966728742618353,
+      "level": 1.4264800548553467,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.22612593988395932,
-      "level": 158.23800659179688,
+      "change_pct": 0.2102854297557459,
+      "level": 158.21299743652344,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": -3.5667975876369176,
-      "level": 14.869999885559082,
+      "change_pct": -3.631649914695008,
+      "level": 14.859999656677246,
       "symbol": "^VIX"
     }
   },
@@ -117,8 +117,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 0,
     "total_votes": 0,
-    "vix_level": 14.869999885559082,
-    "vix_pct_change": -0.035667975876369176,
+    "vix_level": 14.859999656677246,
+    "vix_pct_change": -0.03631649914695008,
     "vote_breakdown": {}
   },
   "rejections": [
@@ -136,7 +136,7 @@
     },
     {
       "detail": null,
-      "reason": "3 soft gates failed: stop distance 0.5% below 1.0% minimum; R:R 2.00 below 2.0 minimum; price 2.3\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "3 soft gates failed: stop distance 0.5% below 1.0% minimum; R:R 2.00 below 2.0 minimum; price 2.2\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "DX-Y.NYB"
     },
@@ -148,7 +148,7 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 0.6% below 1.0% minimum; price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 0.6% below 1.0% minimum; price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "EURUSD=X"
     },
@@ -166,15 +166,15 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 0.4% below 1.0% minimum; price 2.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 0.9% below 1.0% minimum; price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
-      "symbol": "USDCAD=X"
+      "symbol": "SPY"
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 1.31 below 1\u00d7 ATR14 (1.31); price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 0.4% below 1.0% minimum; price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
-      "symbol": "XLE"
+      "symbol": "USDCAD=X"
     },
     {
       "detail": null,
@@ -193,18 +193,6 @@
       "reason": "stop distance 0.07 below 1\u00d7 ATR14 (0.07)",
       "stage": "WATCHLIST",
       "symbol": "^TYX"
-    },
-    {
-      "detail": null,
-      "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
-      "stage": "WATCHLIST",
-      "symbol": "NG=F"
-    },
-    {
-      "detail": null,
-      "reason": "stop distance 0.9% below 1.0% minimum",
-      "stage": "WATCHLIST",
-      "symbol": "SPY"
     },
     {
       "detail": null,
@@ -235,6 +223,12 @@
       "reason": "stop distance 5.37 below 1\u00d7 ATR14 (5.37)",
       "stage": "WATCHLIST",
       "symbol": "USO"
+    },
+    {
+      "detail": null,
+      "reason": "price 1.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "stage": "WATCHLIST",
+      "symbol": "XLE"
     },
     {
       "detail": null,
