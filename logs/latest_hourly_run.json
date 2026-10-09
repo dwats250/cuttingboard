@@ -1,5 +1,5 @@
 {
-  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n8:00 AM\nRegime: EXPANSION\n29/31 validated\nVIX 15.1 (-2.4%)",
+  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n9:00 AM\nRegime: EXPANSION\n29/31 validated\nVIX 14.9 (-3.2%)",
   "alert_title": "OBSERVE ONLY \u2014 OPERATOR LOCK",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
@@ -8,10 +8,10 @@
   },
   "candidate_lines": [
     "QQQ | LONG | TREND | 2.0:1",
-    "AMZN | LONG | REVERSAL | 2.0:1"
+    "TSLA | LONG | TREND | 2.0:1"
   ],
-  "candidates_qualified": 4,
-  "candidates_watchlist": 15,
+  "candidates_qualified": 6,
+  "candidates_watchlist": 13,
   "confidence": 1.0,
   "data_status": "ok",
   "effective_permission": {
@@ -32,10 +32,10 @@
   },
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-10-09T15:01:56Z",
-  "generation_id": "hourly-20261009T150156Z",
+  "generated_at": "2026-10-09T16:02:00Z",
+  "generation_id": "hourly-20261009T160200Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-10-09T15:00:00Z",
+  "hourly_slot_utc": "2026-10-09T16:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
@@ -53,11 +53,11 @@
   "posture": "EXPANSION_LONG",
   "regime": "EXPANSION",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-10-09T15:01:56Z",
-  "run_id": "hourly-20261009T150156Z",
+  "run_at_utc": "2026-10-09T16:02:00Z",
+  "run_id": "hourly-20261009T160200Z",
   "session_date": "2026-10-09",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-10-09T15:01:56Z",
+  "timestamp": "2026-10-09T16:02:00Z",
   "warnings": []
 }
