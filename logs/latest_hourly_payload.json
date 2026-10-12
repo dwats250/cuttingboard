@@ -17,23 +17,23 @@
   },
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.4212991438053701,
-      "level": 82491.2421875,
+      "change_pct": -1.2359089933442078,
+      "level": 82644.1015625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.24958881020124066,
-      "level": 102.42500305175781,
+      "change_pct": 0.23294408012888057,
+      "level": 102.40799713134766,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -0.41116880126664657,
-      "level": 2523.800048828125,
+      "change_pct": -0.2170438584093271,
+      "level": 2528.550048828125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.21245622631529565,
-      "level": 1.1181930303573608,
+      "change_pct": -0.20130735419179507,
+      "level": 1.11831796169281,
       "symbol": "EURUSD=X"
     },
     "gold": {
@@ -42,13 +42,13 @@
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -1.2662223129908468,
-      "level": 3.11899995803833,
+      "change_pct": -0.41152300645005674,
+      "level": 3.1459999084472656,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 3.420786311584365,
-      "level": 93.41999816894531,
+      "change_pct": 3.664339080590831,
+      "level": 93.63999938964844,
       "symbol": "CL=F"
     },
     "rates": {
@@ -63,30 +63,30 @@
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -0.6687869592547648,
-      "level": 60.89500045776367,
+      "change_pct": -0.8319095240056804,
+      "level": 60.79499816894531,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": 0.0259594240152438,
-      "level": 1.4257700443267822,
+      "change_pct": 0.014033477286591205,
+      "level": 1.4256000518798828,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.23381008812233564,
-      "level": 158.61599731445312,
+      "change_pct": 0.21169031155714937,
+      "level": 158.58099365234375,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 3.908355240851603,
-      "level": 15.420000076293945,
+      "change_pct": 3.5040397489394555,
+      "level": 15.359999656677246,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20261012T133158Z",
+    "generation_id": "hourly-20261012T134646Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-10-12T13:31:58Z"
+    "timestamp": "2026-10-12T13:46:46Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
