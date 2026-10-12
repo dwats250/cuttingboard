@@ -17,38 +17,38 @@
   },
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.2359089933442078,
-      "level": 82644.1015625,
+      "change_pct": -0.9096128111934649,
+      "level": 82917.140625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.23294408012888057,
-      "level": 102.40799713134766,
+      "change_pct": 0.24175555679347674,
+      "level": 102.41699981689453,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -0.2170438584093271,
-      "level": 2528.550048828125,
+      "change_pct": 0.2166488478360502,
+      "level": 2539.5400390625,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.20130735419179507,
-      "level": 1.11831796169281,
+      "change_pct": -0.257072991282816,
+      "level": 1.1176930665969849,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -0.733311272085071,
-      "level": 4196.39990234375,
+      "change_pct": -0.7664262452621737,
+      "level": 4195.0,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -0.41152300645005674,
-      "level": 3.1459999084472656,
+      "change_pct": -0.8230460129001135,
+      "level": 3.132999897003174,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 3.664339080590831,
-      "level": 93.63999938964844,
+      "change_pct": 3.985385144632472,
+      "level": 93.93000030517578,
       "symbol": "CL=F"
     },
     "rates": {
@@ -63,18 +63,18 @@
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -0.8319095240056804,
-      "level": 60.79499816894531,
+      "change_pct": -0.8808431821861572,
+      "level": 60.76499938964844,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": 0.014033477286591205,
-      "level": 1.4256000518798828,
+      "change_pct": 0.07857241901521118,
+      "level": 1.4265199899673462,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.21169031155714937,
-      "level": 158.58099365234375,
+      "change_pct": 0.25529346309497525,
+      "level": 158.64999389648438,
       "symbol": "JPY=X"
     },
     "volatility": {
@@ -84,9 +84,9 @@
     }
   },
   "meta": {
-    "generation_id": "hourly-20261012T134646Z",
+    "generation_id": "hourly-20261012T140242Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-10-12T13:46:46Z"
+    "timestamp": "2026-10-12T14:02:42Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
