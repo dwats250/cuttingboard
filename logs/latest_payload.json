@@ -1,56 +1,181 @@
 {
   "effective_permission": {
     "authority_version": [
-      "2026-10-11",
+      "2026-10-12",
       1,
       1
     ],
     "decision_seq": 1,
-    "decision_uid": "d9138a820c474cbea4bf9ba71a554603",
+    "decision_uid": "88634f51caa444e18157e0230d6f560a",
     "permission_line": "No new trades permitted \u2014 operator cannot monitor.",
     "recovery_basis": null,
     "restriction_rank": 1,
-    "run_uid": "d9138a820c474cbea4bf9ba71a554603",
-    "session_date": "2026-10-11",
-    "valid_until": "2026-10-12T08:00:00+00:00",
+    "run_uid": "88634f51caa444e18157e0230d6f560a",
+    "session_date": "2026-10-12",
+    "valid_until": "2026-10-13T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "macro_drivers": {},
+  "macro_drivers": {
+    "bitcoin": {
+      "change_pct": -1.2753084007285718,
+      "level": 82611.1328125,
+      "symbol": "BTC-USD"
+    },
+    "dollar": {
+      "change_pct": 0.2260965173310545,
+      "level": 102.4010009765625,
+      "symbol": "DX-Y.NYB"
+    },
+    "ethereum": {
+      "change_pct": -0.24033021342421274,
+      "level": 2527.9599609375,
+      "symbol": "ETH-USD"
+    },
+    "eurusd": {
+      "change_pct": -0.2347752470358149,
+      "level": 1.1179429292678833,
+      "symbol": "EURUSD=X"
+    },
+    "gold": {
+      "change_pct": -0.8965298580514605,
+      "level": 4189.5,
+      "symbol": "GC=F"
+    },
+    "natgas": {
+      "change_pct": -1.7727127476432485,
+      "level": 3.1029999256134033,
+      "symbol": "NG=F"
+    },
+    "oil": {
+      "change_pct": 3.819325670661182,
+      "level": 93.77999877929688,
+      "symbol": "CL=F"
+    },
+    "rates": {
+      "change_bps": -0.39966594192251803,
+      "change_pct": -0.07627212271191589,
+      "level": 5.240000247955322,
+      "symbol": "^TNX"
+    },
+    "rates_30y": {
+      "change_pct": -0.0357116977778792,
+      "level": 5.5980000495910645,
+      "symbol": "^TYX"
+    },
+    "silver": {
+      "change_pct": -0.8237518401457357,
+      "level": 60.79999923706055,
+      "symbol": "SI=F"
+    },
+    "usdcad": {
+      "change_pct": 0.0617372642012016,
+      "level": 1.4262800216674805,
+      "symbol": "USDCAD=X"
+    },
+    "usdjpy": {
+      "change_pct": 0.2508772217406355,
+      "level": 158.64300537109375,
+      "symbol": "JPY=X"
+    },
+    "volatility": {
+      "change_pct": 4.4474382791499805,
+      "level": 15.5,
+      "symbol": "^VIX"
+    }
+  },
   "meta": {
-    "generation_id": "sunday-20261011T233115Z",
-    "session_type": "SUNDAY_PREMARKET",
+    "generation_id": "live-20261012T130114Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-10-11T23:31:15Z"
+    "timestamp": "2026-10-12T13:01:14Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
     "continuation_audit": null,
+    "market_control_card": {
+      "candidate_implication": {
+        "unavailable_reason": null,
+        "value": "NO_CANDIDATES"
+      },
+      "event": {
+        "events": [
+          {
+            "date": "2026-10-14",
+            "name": "Consumer Price Index",
+            "time_et": "08:30",
+            "type": "CPI"
+          }
+        ],
+        "expiring": false,
+        "unavailable_reason": null,
+        "value": null
+      },
+      "invalidation": {
+        "unavailable_reason": null,
+        "value": "NO_ACTIVE_CANDIDATES"
+      },
+      "location": {
+        "orb": {
+          "orb_high": null,
+          "orb_low": null,
+          "reason": "pre_open_prior_session",
+          "state": "PRE_OPEN"
+        },
+        "price_vs_vwap": null,
+        "reason": "pre_open_prior_session",
+        "state": "PRE_OPEN"
+      },
+      "permission": {
+        "value": "No new trades permitted \u2014 operator cannot monitor."
+      },
+      "state": {
+        "unavailable_reason": "non_current_observation",
+        "value": null
+      },
+      "transition": {
+        "unavailable_reason": "transition_state_unavailable",
+        "value": null
+      }
+    },
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)",
+        "stage": "REGIME",
+        "symbol": "REGIME"
+      }
+    ],
     "spy_observation": {
       "current_price": null,
-      "intended_session_date": "2026-10-11",
-      "observed_at_utc": null,
+      "intended_session_date": "2026-10-12",
+      "observed_at_utc": "2026-10-09T19:59:00+00:00",
       "observed_symbol": "SPY",
-      "orb": null,
+      "orb": {
+        "observed_at_utc": "2026-10-09T19:30:00+00:00",
+        "orb_high": null,
+        "orb_low": null,
+        "reason": "pre_open_prior_session",
+        "state": "PRE_OPEN",
+        "trading_date": "2026-10-12"
+      },
       "price_vs_vwap": null,
-      "reason": "intraday_fetch_failed",
+      "reason": "pre_open_prior_session",
       "session_vwap": null,
-      "state": "UNAVAILABLE",
+      "state": "PRE_OPEN",
       "timezone": "America/New_York"
     },
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "PREMARKET_CONTEXT"
+      "reason": "STAY_FLAT posture (regime=NEUTRAL, confidence=0.12)"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.0,
+    "confidence": 0.125,
     "market_regime": "NEUTRAL",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
