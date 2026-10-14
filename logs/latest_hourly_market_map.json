@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.000976562500000037,
-      "price": 153.75,
+      "pct_change_decimal": 0.0016601284344991418,
+      "price": 153.85499572753906,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -16,8 +16,8 @@
       "QQQ"
     ]
   },
-  "generated_at": "2026-10-14T14:01:47Z",
-  "generation_id": "hourly-20261014T140147Z",
+  "generated_at": "2026-10-14T15:01:44Z",
+  "generation_id": "hourly-20261014T150144Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +31,14 @@
   "session_date": "2026-10-14",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-14T14:01:47Z"
+    "run_at_utc": "2026-10-14T15:01:44Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 83.94000244140625,
+      "current_price": 83.75,
       "fib_levels": {
         "retracements": {
           "0.382": 93.0182,
@@ -87,7 +87,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 375.1400146484375,
+      "current_price": 374.9215087890625,
       "fib_levels": {
         "retracements": {
           "0.382": 392.1026,
@@ -153,7 +153,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 736.77001953125,
+      "current_price": 735.5999755859375,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -209,7 +209,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 50.92499923706055,
+      "current_price": 50.73500061035156,
       "fib_levels": {
         "retracements": {
           "0.382": 57.8829,
@@ -258,7 +258,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "MEDIUM",
-      "current_price": 773.4099731445312,
+      "current_price": 772.0899047851562,
       "fib_levels": {
         "retracements": {
           "0.382": 768.6791,
@@ -271,18 +271,18 @@
       },
       "grade": "B",
       "invalidation": [
-        "loses EMA9 with weak recovery",
+        "loses EMA21 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
         "current_grade": "B",
         "current_setup_state": "DEVELOPING",
-        "grade_transition": "UPGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "D",
-        "previous_setup_state": "LOW_QUALITY",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "B",
+        "previous_setup_state": "DEVELOPING",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bullish defined-risk continuation",
       "reason_for_grade": "B: bullish pullback, regime mixed, near key level",
@@ -291,8 +291,8 @@
       "symbol": "SPY",
       "trade_framing": {
         "direction": "LONG",
-        "downgrade": "wait if price loses EMA9 or structure turns choppy",
-        "entry": "hold above EMA9 with constructive follow-through",
+        "downgrade": "wait if price loses EMA21 or structure turns choppy",
+        "entry": "hold above EMA21 with constructive follow-through",
         "if_now": "WAIT",
         "setup": "index bullish pullback",
         "trade_type": "call_spread",
@@ -300,14 +300,14 @@
       },
       "watch_zones": [
         {
-          "context": "fast trend reference",
-          "level": 775.0064,
-          "type": "EMA9"
-        },
-        {
           "context": "primary trend reference",
           "level": 770.9181,
           "type": "EMA21"
+        },
+        {
+          "context": "fast trend reference",
+          "level": 775.0064,
+          "type": "EMA9"
         },
         {
           "context": "trend base reference",
@@ -316,7 +316,7 @@
         }
       ],
       "what_to_look_for": [
-        "watch hold above EMA9",
+        "watch hold above EMA21",
         "look for higher low with expanding volume"
       ]
     },
@@ -324,7 +324,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 67.18000030517578,
+      "current_price": 67.30500030517578,
       "fib_levels": {
         "retracements": {
           "0.382": 64.8434,
@@ -369,11 +369,6 @@
           "context": "fast trend reference",
           "level": 64.8066,
           "type": "EMA9"
-        },
-        {
-          "context": "primary trend reference",
-          "level": 63.8684,
-          "type": "EMA21"
         }
       ],
       "what_to_look_for": [
