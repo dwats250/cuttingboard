@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.0031900803248087937,
-      "price": 154.08999633789062,
+      "pct_change_decimal": -0.0003906687100727983,
+      "price": 153.5399932861328,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -18,8 +18,8 @@
       "QQQ"
     ]
   },
-  "generated_at": "2026-10-14T18:01:17Z",
-  "generation_id": "hourly-20261014T180117Z",
+  "generated_at": "2026-10-14T19:01:10Z",
+  "generation_id": "hourly-20261014T190110Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -33,14 +33,14 @@
   "session_date": "2026-10-14",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-14T18:01:17Z"
+    "run_at_utc": "2026-10-14T19:01:10Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 82.54499816894531,
+      "current_price": 82.84500122070312,
       "fib_levels": {
         "retracements": {
           "0.382": 93.0182,
@@ -89,7 +89,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 374.11370849609375,
+      "current_price": 375.4501037597656,
       "fib_levels": {
         "retracements": {
           "0.382": 392.1026,
@@ -155,7 +155,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 727.4199829101562,
+      "current_price": 727.010009765625,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -211,7 +211,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 50.10499954223633,
+      "current_price": 50.20000076293945,
       "fib_levels": {
         "retracements": {
           "0.382": 57.8829,
@@ -260,7 +260,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 767.0999755859375,
+      "current_price": 767.25,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
