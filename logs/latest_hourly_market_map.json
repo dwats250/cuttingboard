@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.010581327372326131,
-      "price": 154.72000122070312,
+      "pct_change_decimal": 0.0073154880516207105,
+      "price": 154.22000122070312,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -16,8 +16,8 @@
       "SPY"
     ]
   },
-  "generated_at": "2026-10-15T13:46:21Z",
-  "generation_id": "hourly-20261015T134621Z",
+  "generated_at": "2026-10-15T14:01:27Z",
+  "generation_id": "hourly-20261015T140127Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +31,14 @@
   "session_date": "2026-10-15",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-15T13:46:21Z"
+    "run_at_utc": "2026-10-15T14:01:27Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 84.25,
+      "current_price": 84.31999969482422,
       "fib_levels": {
         "retracements": {
           "0.382": 92.2924,
@@ -94,7 +94,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 380.8349914550781,
+      "current_price": 380.7799987792969,
       "fib_levels": {
         "retracements": {
           "0.382": 391.7702,
@@ -160,7 +160,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 719.3699951171875,
+      "current_price": 718.1699829101562,
       "fib_levels": {
         "retracements": {
           "0.382": 743.6521,
@@ -226,7 +226,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 51.185001373291016,
+      "current_price": 51.060001373291016,
       "fib_levels": {
         "retracements": {
           "0.382": 56.8018,
@@ -239,8 +239,7 @@
       },
       "grade": "D",
       "invalidation": [
-        "reclaims EMA9 with follow-through",
-        "momentum improves above primary trend reference"
+        "No trade structure available until price, structure, and level data are present."
       ],
       "lifecycle": {
         "current_grade": "D",
@@ -260,21 +259,15 @@
       "trade_framing": {
         "direction": "NEUTRAL",
         "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for reset toward EMA9 before defining risk",
+        "entry": "wait for reset toward defined reference level before defining risk",
         "if_now": "WAIT",
         "setup": "metals extended bearish structure",
         "trade_type": "none",
         "upgrade": "improves with cleaner directional structure near a key level"
       },
-      "watch_zones": [
-        {
-          "context": "fast trend reference",
-          "level": 53.7097,
-          "type": "EMA9"
-        }
-      ],
+      "watch_zones": [],
       "what_to_look_for": [
-        "look for reset toward EMA9",
+        "look for reset toward defined reference level",
         "watch for cleaner compression"
       ]
     },
@@ -282,7 +275,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 766.3699951171875,
+      "current_price": 766.1489868164062,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -338,7 +331,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 67.0199966430664,
+      "current_price": 66.70500183105469,
       "fib_levels": {
         "retracements": {
           "0.382": 65.1339,
