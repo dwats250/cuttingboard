@@ -2,8 +2,8 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.0274330702270269,
-      "price": 157.3000030517578,
+      "pct_change_decimal": 0.031058104033566743,
+      "price": 157.85499572753906,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
@@ -16,8 +16,8 @@
       "SPY"
     ]
   },
-  "generated_at": "2026-10-15T16:01:40Z",
-  "generation_id": "hourly-20261015T160140Z",
+  "generated_at": "2026-10-15T17:01:26Z",
+  "generation_id": "hourly-20261015T170126Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +31,14 @@
   "session_date": "2026-10-15",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-15T16:01:40Z"
+    "run_at_utc": "2026-10-15T17:01:26Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "MEDIUM",
-      "current_price": 85.8949966430664,
+      "current_price": 85.7699966430664,
       "fib_levels": {
         "retracements": {
           "0.382": 92.2924,
@@ -104,7 +104,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 380.2550048828125,
+      "current_price": 379.9800109863281,
       "fib_levels": {
         "retracements": {
           "0.382": 391.7702,
@@ -123,12 +123,12 @@
       "lifecycle": {
         "current_grade": "D",
         "current_setup_state": "LOW_QUALITY",
-        "grade_transition": "DOWNGRADED",
+        "grade_transition": "UNCHANGED",
         "is_new": false,
         "is_removed": false,
-        "previous_grade": "B",
-        "previous_setup_state": "DEVELOPING",
-        "setup_state_transition": "CHANGED"
+        "previous_grade": "D",
+        "previous_setup_state": "LOW_QUALITY",
+        "setup_state_transition": "UNCHANGED"
       },
       "preferred_trade_structure": "bearish defined-risk continuation",
       "reason_for_grade": "D: bearish trending_down, regime mixed, near key level",
@@ -170,7 +170,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 725.2000122070312,
+      "current_price": 723.6199951171875,
       "fib_levels": {
         "retracements": {
           "0.382": 743.6521,
@@ -236,7 +236,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 51.46500015258789,
+      "current_price": 51.330101013183594,
       "fib_levels": {
         "retracements": {
           "0.382": 56.8018,
@@ -292,7 +292,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 770.4400024414062,
+      "current_price": 769.8699951171875,
       "fib_levels": null,
       "grade": "F",
       "invalidation": [
@@ -348,7 +348,7 @@
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 66.6884994506836,
+      "current_price": 66.50499725341797,
       "fib_levels": {
         "retracements": {
           "0.382": 65.1339,
