@@ -1,18 +1,15 @@
 {
-  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n12:00 PM\nRegime: RISK_ON\n29/31 validated\nVIX 16.7 (-0.8%)",
+  "alert_body": "No new trades permitted \u2014 operator cannot monitor.\n\n1:00 PM\nRegime: EXPANSION\n29/31 validated\nVIX 16.4 (-2.6%)",
   "alert_title": "OBSERVE ONLY \u2014 OPERATOR LOCK",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
     "report_path": "reports/output/hourly_report.html"
   },
-  "candidate_lines": [
-    "GLD | LONG | PULLBACK | 2.0:1",
-    "GDX | LONG | BREAKOUT | 2.0:1"
-  ],
-  "candidates_qualified": 3,
-  "candidates_watchlist": 12,
-  "confidence": 0.625,
+  "candidate_lines": [],
+  "candidates_qualified": 0,
+  "candidates_watchlist": 3,
+  "confidence": 1.0,
   "data_status": "ok",
   "effective_permission": {
     "authority_version": [
@@ -32,14 +29,14 @@
   },
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-10-15T19:01:20Z",
-  "generation_id": "hourly-20261015T190120Z",
+  "generated_at": "2026-10-15T20:01:31Z",
+  "generation_id": "hourly-20261015T200131Z",
   "halt_reason": null,
-  "hourly_slot_utc": "2026-10-15T19:00:00Z",
+  "hourly_slot_utc": "2026-10-15T20:00:00Z",
   "index_score": 0.0,
   "kill_switch": false,
   "mode": "LIVE",
-  "net_score": 5,
+  "net_score": 0,
   "notification_attempted": true,
   "notification_http_status": 200,
   "notification_reason": null,
@@ -50,14 +47,14 @@
   "notify_mode": "hourly",
   "outcome": "NO_TRADE",
   "permission": "No new trades permitted \u2014 operator cannot monitor.",
-  "posture": "CONTROLLED_LONG",
-  "regime": "RISK_ON",
+  "posture": "EXPANSION_LONG",
+  "regime": "EXPANSION",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-10-15T19:01:20Z",
-  "run_id": "hourly-20261015T190120Z",
+  "run_at_utc": "2026-10-15T20:01:31Z",
+  "run_id": "hourly-20261015T200131Z",
   "session_date": "2026-10-15",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-10-15T19:01:20Z",
+  "timestamp": "2026-10-15T20:01:31Z",
   "warnings": []
 }
