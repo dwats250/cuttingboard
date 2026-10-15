@@ -29,48 +29,48 @@
     "valid_until": "2026-10-16T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-10-15T14:01:27Z",
-  "generation_id": "hourly-20261015T140127Z",
+  "generated_at": "2026-10-15T15:01:25Z",
+  "generation_id": "hourly-20261015T150125Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.8105003561137585,
-      "level": 80089.5234375,
+      "change_pct": 0.2581489517152653,
+      "level": 81776.84375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.0912123975226207,
-      "level": 102.0469970703125,
+      "change_pct": 0.11279386888657492,
+      "level": 102.06900024414062,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -3.299913459819484,
-      "level": 2338.739990234375,
+      "change_pct": -0.9369314586224777,
+      "level": 2395.889892578125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": 0.4152672882539459,
-      "level": 1.1223344802856445,
+      "change_pct": 0.23527368978024377,
+      "level": 1.1203227043151855,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": 0.24725860490773283,
-      "level": 4175.89990234375,
+      "change_pct": 0.28807374012574394,
+      "level": 4177.60009765625,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -1.1026037425654844,
-      "level": 3.2290000915527344,
+      "change_pct": 0.27564545895136866,
+      "level": 3.2739999294281006,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 0.4573984633599574,
-      "level": 94.44000244140625,
+      "change_pct": 1.3828267129272585,
+      "level": 95.30999755859375,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -12.6743846701356,
-      "change_pct": -2.5048191330953555,
-      "level": 5.059999942779541,
+      "change_bps": -12.294097153612771,
+      "change_pct": -2.4277442414563692,
+      "level": 5.064000129699707,
       "symbol": "^TNX"
     },
     "rates_30y": {
@@ -79,23 +79,23 @@
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": 1.2838755037400085,
-      "level": 56.79999923706055,
+      "change_pct": 2.068473269502911,
+      "level": 57.2400016784668,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.20321995024242132,
-      "level": 1.4192099571228027,
+      "change_pct": -0.2039240906466767,
+      "level": 1.4191999435424805,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": -0.3005340585797164,
-      "level": 157.57899475097656,
+      "change_pct": 0.02784260279292972,
+      "level": 158.09800720214844,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 3.6201702622734486,
-      "level": 17.459999084472656,
+      "change_pct": 1.9584564761729146,
+      "level": 17.18000030517578,
       "symbol": "^VIX"
     }
   },
@@ -110,21 +110,21 @@
   "outcome": "NO_TRADE",
   "regime": {
     "classification": "RISK_ON",
-    "confidence": 0.25,
-    "net_score": 2,
+    "confidence": 0.5,
+    "net_score": 4,
     "neutral_votes": 4,
     "posture": "STAY_FLAT",
-    "risk_off_votes": 1,
-    "risk_on_votes": 3,
+    "risk_off_votes": 0,
+    "risk_on_votes": 4,
     "total_votes": 8,
-    "vix_level": 17.459999084472656,
-    "vix_pct_change": 0.036201702622734484,
+    "vix_level": 17.18000030517578,
+    "vix_pct_change": 0.019584564761729147,
     "vote_breakdown": {
       "BTC pct_change": "NEUTRAL",
       "DXY pct_change": "NEUTRAL",
       "IWM pct_change": "RISK_ON",
-      "QQQ pct_change": "RISK_OFF",
-      "SPY pct_change": "NEUTRAL",
+      "QQQ pct_change": "NEUTRAL",
+      "SPY pct_change": "RISK_ON",
       "TNX pct_change": "RISK_ON",
       "VIX level": "RISK_ON",
       "VIX pct_change": "NEUTRAL"
@@ -135,7 +135,7 @@
   "session_date": "2026-10-15",
   "status": "STAY_FLAT",
   "system_state": {
-    "confidence": 0.25,
+    "confidence": 0.5,
     "intraday_state": null,
     "market_regime": "RISK_ON",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
