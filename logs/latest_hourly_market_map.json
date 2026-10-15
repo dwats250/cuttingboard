@@ -2,22 +2,18 @@
   "context": {
     "energy": {
       "asset_group": "ENERGY_CONTEXT",
-      "pct_change_decimal": 0.031058104033566743,
-      "price": 157.85499572753906,
+      "pct_change_decimal": 0.02906598988737961,
+      "price": 157.5500030517578,
       "structure": "TRENDING_UP",
       "symbol": "USO"
     }
   },
   "data_quality": {
-    "fib_deferred_symbols": [
-      "SPY"
-    ],
-    "unavailable_symbols": [
-      "SPY"
-    ]
+    "fib_deferred_symbols": [],
+    "unavailable_symbols": []
   },
-  "generated_at": "2026-10-15T17:01:26Z",
-  "generation_id": "hourly-20261015T170126Z",
+  "generated_at": "2026-10-15T18:01:37Z",
+  "generation_id": "hourly-20261015T180137Z",
   "primary_symbols": [
     "SPY",
     "QQQ",
@@ -31,14 +27,14 @@
   "session_date": "2026-10-15",
   "source": {
     "mode": "live",
-    "run_at_utc": "2026-10-15T17:01:26Z"
+    "run_at_utc": "2026-10-15T18:01:37Z"
   },
   "symbols": {
     "GDX": {
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "MEDIUM",
-      "current_price": 85.7699966430664,
+      "current_price": 86.08999633789062,
       "fib_levels": {
         "retracements": {
           "0.382": 92.2924,
@@ -104,7 +100,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 379.9800109863281,
+      "current_price": 380.6199951171875,
       "fib_levels": {
         "retracements": {
           "0.382": 391.7702,
@@ -170,7 +166,7 @@
       "asset_group": "INDEX",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 723.6199951171875,
+      "current_price": 725.2899780273438,
       "fib_levels": {
         "retracements": {
           "0.382": 743.6521,
@@ -236,7 +232,7 @@
       "asset_group": "METALS",
       "bias": "BEARISH",
       "confidence": "LOW",
-      "current_price": 51.330101013183594,
+      "current_price": 51.48500061035156,
       "fib_levels": {
         "retracements": {
           "0.382": 56.8018,
@@ -291,37 +287,46 @@
     "SPY": {
       "asset_group": "INDEX",
       "bias": "BULLISH",
-      "confidence": "LOW",
-      "current_price": 769.8699951171875,
-      "fib_levels": null,
-      "grade": "F",
+      "confidence": "MEDIUM",
+      "current_price": 770.8209228515625,
+      "fib_levels": {
+        "retracements": {
+          "0.382": 772.5857,
+          "0.5": 769.795,
+          "0.618": 767.0043
+        },
+        "source": "last_20_bars_high_low",
+        "swing_high": 781.62,
+        "swing_low": 757.97
+      },
+      "grade": "B",
       "invalidation": [
         "loses EMA21 with weak recovery",
         "momentum fades below primary trend reference"
       ],
       "lifecycle": {
-        "current_grade": "F",
-        "current_setup_state": "CHOPPY",
-        "grade_transition": "UNCHANGED",
+        "current_grade": "B",
+        "current_setup_state": "DEVELOPING",
+        "grade_transition": "UPGRADED",
         "is_new": false,
         "is_removed": false,
         "previous_grade": "F",
         "previous_setup_state": "CHOPPY",
-        "setup_state_transition": "UNCHANGED"
+        "setup_state_transition": "CHANGED"
       },
-      "preferred_trade_structure": null,
-      "reason_for_grade": "Market data unavailable for this run.",
-      "setup_state": "CHOPPY",
-      "structure": "CHOPPY",
+      "preferred_trade_structure": "bullish defined-risk continuation",
+      "reason_for_grade": "B: bullish pullback, regime aligned, near key level",
+      "setup_state": "DEVELOPING",
+      "structure": "PULLBACK",
       "symbol": "SPY",
       "trade_framing": {
-        "direction": "NEUTRAL",
-        "downgrade": "weakens if structure stays mixed or moves away from reference levels",
-        "entry": "wait for cleaner structure around EMA21",
+        "direction": "LONG",
+        "downgrade": "wait if price loses EMA21 or structure turns choppy",
+        "entry": "hold above EMA21 with constructive follow-through",
         "if_now": "WAIT",
-        "setup": "index choppy structure",
-        "trade_type": "none",
-        "upgrade": "improves with cleaner directional structure near a key level"
+        "setup": "index bullish pullback",
+        "trade_type": "call_spread",
+        "upgrade": "improves on clean hold near key level with expanding participation"
       },
       "watch_zones": [
         {
@@ -341,14 +346,15 @@
         }
       ],
       "what_to_look_for": [
-        "Market data unavailable for this run; review during live market session."
+        "watch hold above EMA21",
+        "look for higher low with expanding volume"
       ]
     },
     "XLE": {
       "asset_group": "ENERGY",
       "bias": "BULLISH",
       "confidence": "LOW",
-      "current_price": 66.50499725341797,
+      "current_price": 66.69000244140625,
       "fib_levels": {
         "retracements": {
           "0.382": 65.1339,

@@ -17,38 +17,38 @@
   },
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.5888711672753869,
-      "level": 82046.6015625,
+      "change_pct": 0.8949680876863563,
+      "level": 82296.2734375,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.1167150516170576,
-      "level": 102.072998046875,
+      "change_pct": 0.08631091910951735,
+      "level": 102.04199981689453,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": 0.5726511023551386,
-      "level": 2432.39990234375,
+      "change_pct": 0.8980575247408716,
+      "level": 2440.27001953125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": 0.29144969613014826,
-      "level": 1.1209505796432495,
+      "change_pct": 0.3927307586512596,
+      "level": 1.1220825910568237,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": 0.1296308387064861,
-      "level": 4171.0,
+      "change_pct": 0.21124938739201485,
+      "level": 4174.39990234375,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -1.868303422938554,
-      "level": 3.2039999961853027,
+      "change_pct": -1.6845349154687501,
+      "level": 3.2100000381469727,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 2.606102428007482,
-      "level": 96.45999908447266,
+      "change_pct": 2.638012627576889,
+      "level": 96.48999786376953,
       "symbol": "CL=F"
     },
     "rates": {
@@ -58,57 +58,216 @@
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": -1.7918633889614572,
-      "level": 5.425999641418457,
+      "change_pct": -1.8280512291394535,
+      "level": 5.424000263214111,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": 1.8188241971518198,
-      "level": 57.099998474121094,
+      "change_pct": 2.0238913774512217,
+      "level": 57.21500015258789,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.1589177831413531,
-      "level": 1.4198399782180786,
+      "change_pct": -0.2601714967485059,
+      "level": 1.4184000492095947,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.04175425002753849,
-      "level": 158.1199951171875,
+      "change_pct": 0.008225345901378682,
+      "level": 158.06700134277344,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": -0.2373941520579046,
-      "level": 16.809999465942383,
+      "change_pct": -1.6023765676622572,
+      "level": 16.579999923706055,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20261015T170126Z",
-    "symbols_scanned": 0,
-    "timestamp": "2026-10-15T17:01:26Z"
+    "generation_id": "hourly-20261015T180137Z",
+    "symbols_scanned": 29,
+    "timestamp": "2026-10-15T18:01:37Z"
   },
-  "run_status": "STAY_FLAT",
+  "run_status": "OK",
   "schema_version": "1.0",
   "sections": {
     "chain_results_detail": [],
-    "continuation_audit": null,
+    "continuation_audit": {
+      "accepted_count": 0,
+      "rejected_count": 6
+    },
     "option_setups_detail": [],
-    "rejected": [],
+    "rejected": [
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "AMZN"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "COIN"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "ETH-USD"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 0.6% below 1.0% minimum; R:R 2.00 below 2.0 minimum",
+        "stage": "QUALIFICATION",
+        "symbol": "EURUSD=X"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "JPY=X"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "MSTR"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "NVDA"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 1.77 below 1\u00d7 ATR14 (1.77); price 1.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "PAAS"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.5\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "QQQ"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "SI=F"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "TSLA"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "USO"
+      },
+      {
+        "detail": null,
+        "reason": "2 soft gates failed: stop distance 1.24 below 1\u00d7 ATR14 (1.24); price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "QUALIFICATION",
+        "symbol": "XLE"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "^TNX"
+      },
+      {
+        "detail": null,
+        "reason": "CHOP",
+        "stage": "QUALIFICATION",
+        "symbol": "^TYX"
+      }
+    ],
     "top_trades": [],
     "trade_decision_detail": [],
-    "validation_halt_detail": {
-      "reason": "STAY_FLAT posture"
-    },
+    "validation_halt_detail": null,
     "watch_summary_detail": null,
-    "watchlist": []
+    "watchlist": [
+      {
+        "detail": null,
+        "reason": "stop distance 1.20 below 1\u00d7 ATR14 (1.20)",
+        "stage": "WATCHLIST",
+        "symbol": "^VIX"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 0.5% below 1.0% minimum",
+        "stage": "WATCHLIST",
+        "symbol": "DX-Y.NYB"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 2192.49 below 1\u00d7 ATR14 (2192.49)",
+        "stage": "WATCHLIST",
+        "symbol": "BTC-USD"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 85.84 below 1\u00d7 ATR14 (85.84)",
+        "stage": "WATCHLIST",
+        "symbol": "GC=F"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 0.5% below 1.0% minimum",
+        "stage": "WATCHLIST",
+        "symbol": "USDCAD=X"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 0.14 below 1\u00d7 ATR14 (0.14)",
+        "stage": "WATCHLIST",
+        "symbol": "NG=F"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 0.8% below 1.0% minimum",
+        "stage": "WATCHLIST",
+        "symbol": "SPY"
+      },
+      {
+        "detail": null,
+        "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "IWM"
+      },
+      {
+        "detail": null,
+        "reason": "price 2.4\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+        "stage": "WATCHLIST",
+        "symbol": "SLV"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 6.68 below 1\u00d7 ATR14 (6.68)",
+        "stage": "WATCHLIST",
+        "symbol": "AAPL"
+      },
+      {
+        "detail": null,
+        "reason": "stop distance 24.19 below 1\u00d7 ATR14 (24.19)",
+        "stage": "WATCHLIST",
+        "symbol": "META"
+      }
+    ]
   },
   "summary": {
-    "confidence": 0.5,
-    "market_regime": "RISK_ON",
+    "confidence": 1.0,
+    "market_regime": "EXPANSION",
     "outcome": null,
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
-    "tradable": false
+    "tradable": true
   }
 }
