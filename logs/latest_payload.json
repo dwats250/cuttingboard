@@ -1,92 +1,92 @@
 {
   "effective_permission": {
     "authority_version": [
-      "2026-10-15",
+      "2026-10-16",
       1,
       1
     ],
     "decision_seq": 1,
-    "decision_uid": "53245e2a15c747b5a3f52b826104ba87",
+    "decision_uid": "94d1e5fac1104ea486613c90add45d34",
     "permission_line": "No new trades permitted \u2014 operator cannot monitor.",
     "recovery_basis": null,
     "restriction_rank": 1,
-    "run_uid": "53245e2a15c747b5a3f52b826104ba87",
-    "session_date": "2026-10-15",
-    "valid_until": "2026-10-16T08:00:00+00:00",
+    "run_uid": "94d1e5fac1104ea486613c90add45d34",
+    "session_date": "2026-10-16",
+    "valid_until": "2026-10-17T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -1.269337705033598,
-      "level": 80530.9296875,
+      "change_pct": -0.2264016539811407,
+      "level": 81937.890625,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.19616390094823027,
-      "level": 102.15399932861328,
+      "change_pct": -0.06382675082508436,
+      "level": 101.7770004272461,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -2.8426122516386156,
-      "level": 2349.800048828125,
+      "change_pct": 0.8402879483306172,
+      "level": 2460.139892578125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": 0.35895262838542563,
-      "level": 1.1217050552368164,
+      "change_pct": 0.2699280645268251,
+      "level": 1.1247328519821167,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -0.03600921751571799,
-      "level": 4164.10009765625,
+      "change_pct": -0.23546528811950745,
+      "level": 4194.5,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": -0.7350740298792142,
-      "level": 3.240999937057495,
+      "change_pct": -3.8807824185799804,
+      "level": 3.0959999561309814,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": -0.15955911336065934,
-      "level": 93.86000061035156,
+      "change_pct": 0.11497921235172444,
+      "level": 95.77999877929688,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -12.4843406562096,
-      "change_pct": -2.466286281082731,
-      "level": 5.061999797821045,
+      "change_bps": 1.9071471521633423,
+      "change_pct": 0.37336473143919,
+      "level": 5.1080002784729,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": -2.371041442542418,
-      "level": 5.394000053405762,
+      "change_pct": 0.2578732588065562,
+      "level": 5.442999839782715,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": 1.0698973868236226,
-      "level": 56.68000030517578,
+      "change_pct": -0.10332827006414853,
+      "level": 58.005001068115234,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.10547017340882502,
-      "level": 1.4206000566482544,
+      "change_pct": -0.1409623805964111,
+      "level": 1.4168000221252441,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": -0.1689285241576575,
-      "level": 157.78700256347656,
+      "change_pct": -0.024032021075599912,
+      "level": 158.06100463867188,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 3.7388673383024007,
-      "level": 17.479999542236328,
+      "change_pct": -2.8554030346080665,
+      "level": 15.989999771118164,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "live-20261015T130101Z",
+    "generation_id": "live-20261016T130149Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-10-15T13:01:01Z"
+    "timestamp": "2026-10-16T13:01:49Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -135,23 +135,23 @@
     "rejected": [
       {
         "detail": null,
-        "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.50)",
+        "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.25)",
         "stage": "REGIME",
         "symbol": "REGIME"
       }
     ],
     "spy_observation": {
       "current_price": null,
-      "intended_session_date": "2026-10-15",
-      "observed_at_utc": "2026-10-14T19:59:00+00:00",
+      "intended_session_date": "2026-10-16",
+      "observed_at_utc": "2026-10-15T19:59:00+00:00",
       "observed_symbol": "SPY",
       "orb": {
-        "observed_at_utc": "2026-10-14T19:30:00+00:00",
+        "observed_at_utc": "2026-10-15T19:30:00+00:00",
         "orb_high": null,
         "orb_low": null,
         "reason": "pre_open_prior_session",
         "state": "PRE_OPEN",
-        "trading_date": "2026-10-15"
+        "trading_date": "2026-10-16"
       },
       "price_vs_vwap": null,
       "reason": "pre_open_prior_session",
@@ -162,13 +162,13 @@
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.50)"
+      "reason": "STAY_FLAT posture (regime=RISK_ON, confidence=0.25)"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.5,
+    "confidence": 0.25,
     "market_regime": "RISK_ON",
     "outcome": "NO_TRADE",
     "permission": "No new trades permitted \u2014 operator cannot monitor.",
