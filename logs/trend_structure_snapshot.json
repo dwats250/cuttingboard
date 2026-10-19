@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-19T13:31:23.258041+00:00",
+  "generated_at": "2026-10-19T13:46:28.850608+00:00",
   "schema_version": 1,
   "source": "trend_structure",
   "symbols": {
     "GDX": {
-      "current_price": 87.2750015258789,
+      "current_price": 86.62000274658203,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -19,7 +19,7 @@
       "vwap": null
     },
     "GLD": {
-      "current_price": 381.489990234375,
+      "current_price": 380.1199951171875,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -34,7 +34,7 @@
       "vwap": null
     },
     "QQQ": {
-      "current_price": 719.3200073242188,
+      "current_price": 719.2575073242188,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
@@ -49,7 +49,7 @@
       "vwap": null
     },
     "SLV": {
-      "current_price": 51.88999938964844,
+      "current_price": 51.649200439453125,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "BELOW",
@@ -64,22 +64,22 @@
       "vwap": null
     },
     "SPY": {
-      "current_price": 767.4199829101562,
+      "current_price": 766.9099731445312,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",
-      "price_vs_sma_50": "ABOVE",
+      "price_vs_sma_50": "BELOW",
       "price_vs_vwap": "NOT_COMPUTED",
-      "reason": "BULLISH alignment; VWAP NOT_COMPUTED",
+      "reason": "MIXED alignment; VWAP NOT_COMPUTED",
       "relative_volume": 1.5237915747093984,
       "sma_200": 721.8774685668945,
       "sma_50": 767.40001953125,
       "symbol": "SPY",
-      "trend_alignment": "BULLISH",
+      "trend_alignment": "MIXED",
       "vwap": null
     },
     "XLE": {
-      "current_price": 68.1500015258789,
+      "current_price": 68.3499984741211,
       "data_status": "PARTIAL",
       "entry_context": "NOT_COMPUTED",
       "price_vs_sma_200": "ABOVE",

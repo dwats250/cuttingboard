@@ -29,73 +29,73 @@
     "valid_until": "2026-10-20T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
-  "generated_at": "2026-10-19T13:31:23Z",
-  "generation_id": "hourly-20261019T133123Z",
+  "generated_at": "2026-10-19T13:46:28Z",
+  "generation_id": "hourly-20261019T134628Z",
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": 0.4313854492150379,
-      "level": 82360.6171875,
+      "change_pct": 0.14276627229222558,
+      "level": 82123.9296875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.011786407222842223,
-      "level": 101.83300018310547,
+      "change_pct": 0.048127205080938075,
+      "level": 101.87000274658203,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": 0.40747737512854726,
-      "level": 2417.320068359375,
+      "change_pct": 0.049426228818290265,
+      "level": 2408.699951171875,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.14595365595035753,
-      "level": 1.12271249294281,
+      "change_pct": -0.19078091567417793,
+      "level": 1.1222084760665894,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -0.5093880613720388,
-      "level": 4179.7001953125,
+      "change_pct": -0.5236723593487708,
+      "level": 4179.10009765625,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": 1.6585326519084922,
-      "level": 3.125999927520752,
+      "change_pct": 1.3333297150568504,
+      "level": 3.115999937057495,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 0.16433446149530176,
-      "level": 97.5199966430664,
+      "change_pct": 0.0,
+      "level": 97.36000061035156,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": 0.40033256991461275,
-      "change_pct": 0.07846580779234967,
-      "level": 5.1020002365112305,
+      "change_bps": 0.8012450622522366,
+      "change_pct": 0.15692226216858393,
+      "level": 5.105999946594238,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": 0.12877059693592646,
-      "level": 5.442999839782715,
+      "change_pct": 0.14716514337834047,
+      "level": 5.443999767303467,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -0.48354854537529957,
-      "level": 57.625,
+      "change_pct": -0.638975804653766,
+      "level": 57.53499984741211,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.296383119114426,
-      "level": 1.4095100164413452,
+      "change_pct": -0.20089425941112113,
+      "level": 1.4108599424362183,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": 0.19811980796296175,
-      "level": 158.3000030517578,
+      "change_pct": 0.2417944421758274,
+      "level": 158.36900329589844,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": -8.208205341454553,
-      "level": 18.34000015258789,
+      "change_pct": -8.008010100738176,
+      "level": 18.3799991607666,
       "symbol": "^VIX"
     }
   },
@@ -117,8 +117,8 @@
     "risk_off_votes": 0,
     "risk_on_votes": 0,
     "total_votes": 0,
-    "vix_level": 18.34000015258789,
-    "vix_pct_change": -0.08208205341454552,
+    "vix_level": 18.3799991607666,
+    "vix_pct_change": -0.08008010100738176,
     "vote_breakdown": {}
   },
   "rejections": [
@@ -166,13 +166,13 @@
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.0\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: R:R 2.00 below 2.0 minimum; price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "SI=F"
     },
     {
       "detail": null,
-      "reason": "2 soft gates failed: stop distance 1.59 below 1\u00d7 ATR14 (1.59); price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "2 soft gates failed: stop distance 1.59 below 1\u00d7 ATR14 (1.59); price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "QUALIFICATION",
       "symbol": "SLV"
     },
@@ -184,7 +184,7 @@
     },
     {
       "detail": null,
-      "reason": "DIRECT rejected (2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.8\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended); promoted via CONTINUATION",
+      "reason": "DIRECT rejected (2 soft gates failed: R:R 2.00 below 2.0 minimum; price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended); promoted via CONTINUATION",
       "stage": "QUALIFICATION",
       "symbol": "USO"
     },
@@ -238,7 +238,7 @@
     },
     {
       "detail": null,
-      "reason": "price 1.9\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.1\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "IWM"
     },
@@ -262,7 +262,7 @@
     },
     {
       "detail": null,
-      "reason": "price 2.6\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
+      "reason": "price 2.7\u00d7 ATR from EMA21 (max 1.5\u00d7) \u2014 entry extended",
       "stage": "WATCHLIST",
       "symbol": "XLE"
     },
