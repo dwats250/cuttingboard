@@ -1,5 +1,5 @@
 {
-  "candidates_generated": 20,
+  "candidates_generated": 17,
   "candidates_qualified": 0,
   "candidates_watchlist": 0,
   "chain_validation": {},
@@ -8,23 +8,23 @@
   "data_status": "ok",
   "effective_permission": {
     "authority_version": [
-      "2026-10-19",
+      "2026-10-20",
       1,
       1
     ],
     "decision_seq": 1,
-    "decision_uid": "cecb84dc702e41309e157a367185dd2b",
+    "decision_uid": "93fbabd337b4496b90c78c70a7fad985",
     "permission_line": "No new trades permitted \u2014 operator cannot monitor.",
     "recovery_basis": null,
     "restriction_rank": 1,
-    "run_uid": "cecb84dc702e41309e157a367185dd2b",
-    "session_date": "2026-10-19",
-    "valid_until": "2026-10-20T08:00:00+00:00",
+    "run_uid": "93fbabd337b4496b90c78c70a7fad985",
+    "session_date": "2026-10-20",
+    "valid_until": "2026-10-21T08:00:00+00:00",
     "verdict": "OBSERVE_ONLY"
   },
   "energy_score": 0.0,
   "errors": [],
-  "generation_id": "live-20261019T130107Z",
+  "generation_id": "live-20261020T130105Z",
   "halt_reason": null,
   "index_score": 0.0,
   "kill_switch": false,
@@ -36,11 +36,11 @@
   "posture": "STAY_FLAT",
   "regime": "NEUTRAL",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-10-19T13:01:07Z",
-  "run_id": "live-20261019T130107Z",
+  "run_at_utc": "2026-10-20T13:01:05Z",
+  "run_id": "live-20261020T130105Z",
   "status": "SUCCESS",
   "system_halted": false,
-  "timestamp": "2026-10-19T13:01:07Z",
+  "timestamp": "2026-10-20T13:01:05Z",
   "warnings": [],
   "watch_candidates": 0
 }
