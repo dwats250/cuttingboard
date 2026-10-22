@@ -1,6 +1,6 @@
 {
-  "alert_body": "Regime: CHAOTIC\nConfidence: 0.38\nReason: Market-stress kill switch tripped; new positions halted.\n\nMacro Tape:\nGC   4048.1  -1.4%\nSI   54.8   -2.8%\nBTC  81.3K  -3.3%\nVIX  19.9   +19.5%\nDXY  101.6  +0.0%\nUSDJPY  156.8  -0.9%\n10Y  4.95   -3.8%\n30Y  5.28   -2.8%\nOIL  99.5   +1.0%\n\nTradables:\nSPY  761.33\nQQQ  702.58\nGLD  368.98\nGDX  81.29\nSLV  49.25\nXLE  67.56\n\nFocus: no active setup",
-  "alert_title": "HALT 12:00 PM",
+  "alert_body": "Regime: CHAOTIC\nConfidence: 0.25\nReason: Market-stress kill switch tripped; new positions halted.\n\nMacro Tape:\nGC   4043.7  -1.5%\nSI   54.8   -2.9%\nBTC  81.4K  -3.2%\nVIX  19.8   +18.4%\nDXY  101.6  +0.0%\nUSDJPY  156.9  -0.8%\n10Y  4.95   -3.8%\n30Y  5.29   -2.8%\nOIL  99.3   +0.8%\n\nTradables:\nSPY  764.06\nQQQ  704.47\nGLD  369.02\nGDX  81.74\nSLV  49.34\nXLE  67.58\n\nFocus: no active setup",
+  "alert_title": "HALT 1:00 PM",
   "artifacts": {
     "contract_path": "logs/latest_hourly_contract.json",
     "payload_path": "logs/latest_hourly_payload.json",
@@ -9,7 +9,7 @@
   "candidate_lines": [],
   "candidates_qualified": 0,
   "candidates_watchlist": 0,
-  "confidence": 0.375,
+  "confidence": 0.25,
   "data_status": "ok",
   "effective_permission": {
     "authority_version": [
@@ -29,14 +29,14 @@
   },
   "energy_score": 0.0,
   "errors": [],
-  "generated_at": "2026-10-22T19:01:59Z",
-  "generation_id": "hourly-20261022T190159Z",
+  "generated_at": "2026-10-22T20:01:58Z",
+  "generation_id": "hourly-20261022T200158Z",
   "halt_reason": "Market-stress kill switch tripped; new positions halted.",
-  "hourly_slot_utc": "2026-10-22T19:00:00Z",
+  "hourly_slot_utc": "2026-10-22T20:00:00Z",
   "index_score": 0.0,
   "kill_switch": true,
   "mode": "LIVE",
-  "net_score": -3,
+  "net_score": -2,
   "notification_attempted": true,
   "notification_http_status": 200,
   "notification_reason": null,
@@ -50,11 +50,11 @@
   "posture": "STAY_FLAT",
   "regime": "CHAOTIC",
   "router_mode": "MIXED",
-  "run_at_utc": "2026-10-22T19:01:59Z",
-  "run_id": "hourly-20261022T190159Z",
+  "run_at_utc": "2026-10-22T20:01:58Z",
+  "run_id": "hourly-20261022T200158Z",
   "session_date": "2026-10-22",
   "status": "FAIL",
   "system_halted": true,
-  "timestamp": "2026-10-22T19:01:59Z",
+  "timestamp": "2026-10-22T20:01:58Z",
   "warnings": []
 }
