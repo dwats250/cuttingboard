@@ -1,92 +1,92 @@
 {
   "effective_permission": {
     "authority_version": [
-      "2026-10-22",
+      "2026-10-23",
       1,
-      2
+      1
     ],
     "decision_seq": 1,
-    "decision_uid": "320272e31bdb493b874011de1cea17cc",
-    "permission_line": "No trades permitted. System halted.",
+    "decision_uid": "f46257a7de3a4ef0809e300c5f64e068",
+    "permission_line": "No new trades permitted \u2014 operator cannot monitor.",
     "recovery_basis": null,
-    "restriction_rank": 2,
-    "run_uid": "320272e31bdb493b874011de1cea17cc",
-    "session_date": "2026-10-22",
-    "valid_until": "2026-10-23T08:00:00+00:00",
-    "verdict": "HALT"
+    "restriction_rank": 1,
+    "run_uid": "f46257a7de3a4ef0809e300c5f64e068",
+    "session_date": "2026-10-23",
+    "valid_until": "2026-10-24T08:00:00+00:00",
+    "verdict": "OBSERVE_ONLY"
   },
   "macro_drivers": {
     "bitcoin": {
-      "change_pct": -3.178196578459671,
-      "level": 81354.1875,
+      "change_pct": 0.48598747641004264,
+      "level": 81695.4296875,
       "symbol": "BTC-USD"
     },
     "dollar": {
-      "change_pct": 0.02559126100488051,
-      "level": 101.62699890136719,
+      "change_pct": 0.07870864971731015,
+      "level": 101.7229995727539,
       "symbol": "DX-Y.NYB"
     },
     "ethereum": {
-      "change_pct": -3.552097993651186,
-      "level": 2383.97998046875,
+      "change_pct": 0.6156852283944573,
+      "level": 2400.639892578125,
       "symbol": "ETH-USD"
     },
     "eurusd": {
-      "change_pct": -0.12340708398473398,
-      "level": 1.121956706047058,
+      "change_pct": -0.19043372451784546,
+      "level": 1.1201971769332886,
       "symbol": "EURUSD=X"
     },
     "gold": {
-      "change_pct": -1.548459000802449,
-      "level": 4043.699951171875,
+      "change_pct": 0.37467688518224374,
+      "level": 4045.199951171875,
       "symbol": "GC=F"
     },
     "natgas": {
-      "change_pct": 0.9041539240635561,
-      "level": 2.7899999618530273,
+      "change_pct": 11.769006561390691,
+      "level": 3.058000087738037,
       "symbol": "NG=F"
     },
     "oil": {
-      "change_pct": 0.8221733816363131,
-      "level": 99.33000183105469,
+      "change_pct": 1.7701813284089312,
+      "level": 101.76000213623047,
       "symbol": "CL=F"
     },
     "rates": {
-      "change_bps": -18.576141405033024,
-      "change_pct": -3.750482767516214,
-      "level": 4.953000068664551,
+      "change_bps": 1.2029157618508604,
+      "change_pct": 0.24227909866707023,
+      "level": 4.965000152587891,
       "symbol": "^TNX"
     },
     "rates_30y": {
-      "change_pct": -2.794639154650762,
-      "level": 5.286999702453613,
+      "change_pct": 0.1323996572039393,
+      "level": 5.293999671936035,
       "symbol": "^TYX"
     },
     "silver": {
-      "change_pct": -2.8997044785027577,
-      "level": 54.75,
+      "change_pct": -0.03706877413571003,
+      "level": 53.935001373291016,
       "symbol": "SI=F"
     },
     "usdcad": {
-      "change_pct": -0.2541705639967413,
-      "level": 1.4010299444198608,
+      "change_pct": -0.1756768445047098,
+      "level": 1.3978400230407715,
       "symbol": "USDCAD=X"
     },
     "usdjpy": {
-      "change_pct": -0.8137448151445199,
-      "level": 156.87100219726562,
+      "change_pct": -0.1684473180306979,
+      "level": 156.45700073242188,
       "symbol": "JPY=X"
     },
     "volatility": {
-      "change_pct": 18.40527361304425,
-      "level": 19.75,
+      "change_pct": 6.197470278821499,
+      "level": 20.219999313354492,
       "symbol": "^VIX"
     }
   },
   "meta": {
-    "generation_id": "hourly-20261022T200158Z",
+    "generation_id": "hourly-20261023T133158Z",
     "symbols_scanned": 0,
-    "timestamp": "2026-10-22T20:01:58Z"
+    "timestamp": "2026-10-23T13:31:58Z"
   },
   "run_status": "STAY_FLAT",
   "schema_version": "1.0",
@@ -98,16 +98,16 @@
     "top_trades": [],
     "trade_decision_detail": [],
     "validation_halt_detail": {
-      "reason": "Market-stress kill switch tripped; new positions halted."
+      "reason": "STAY_FLAT posture"
     },
     "watch_summary_detail": null,
     "watchlist": []
   },
   "summary": {
-    "confidence": 0.25,
-    "market_regime": "CHAOTIC",
+    "confidence": 0.375,
+    "market_regime": "RISK_OFF",
     "outcome": null,
-    "permission": null,
+    "permission": "No new trades permitted \u2014 operator cannot monitor.",
     "router_mode": "MIXED",
     "tradable": false
   }
